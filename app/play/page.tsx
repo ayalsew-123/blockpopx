@@ -1,0 +1,187 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+const rows = 6;
+const cols = 6;
+const colors = ["red", "blue", "green", "yellow", "purple"];
+
+type Block = {
+  id: string;
+  color: string;
+};
+
+function createBoard(): Block[][] {
+  return Array.from({ length: rows }, (_, row) =>
+    Array.from({ length: cols }, (_, col) => ({
+      id: `${row}-${col}-${Math.random()}`,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }))
+  );
+}
+
+function getColorClass(color: string) {
+  switch (color) {
+    case "red":
+      return "bg-red-500";
+    case "blue":
+      return "bg-blue-500";
+    case "green":
+      return "bg-green-500";
+    case "yellow":
+      return "bg-yellow-400";
+    case "purple":
+      return "bg-purple-500";
+    default:
+      return "bg-slate-500";
+  }
+}
+
+export default function PlayPage() {
+  const [board, setBoard] = useState<Block[][]>(createBoard);
+  const [score, setScore] = useState(0);
+  const [highScore, setHighScore] = useState(0);
+
+  useEffect(() => {
+    const savedHighScore = localStorage.getItem("blockpopx-high-score");
+
+    if (savedHighScore) {
+      setHighScore(Number(savedHighScore));
+    }
+  }, []);
+
+  function handleBlockClick(rowIndex: number, colIndex: number) {
+    const selectedColor = board[rowIndex][colIndex].color;
+    const connected = findConnectedBlocks(rowIndex, colIndex, selectedColor);
+
+    if (connected.length < 2) {
+      return;
+    }
+
+    const newScore = score + connected.length * connected.length * 10;
+
+    setScore(newScore);
+
+    if (newScore > highScore) {
+      setHighScore(newScore);
+      localStorage.setItem("blockpopx-high-score", String(newScore));
+    }
+
+    const newBoard = board.map((row) =>
+      row.map((block) => ({
+        ...block,
+      }))
+    );
+
+    connected.forEach(([r, c]) => {
+      newBoard[r][c] = {
+        id: `${r}-${c}-${Math.random()}`,
+        color: colors[Math.floor(Math.random() * colors.length)],
+      };
+    });
+
+    setBoard(newBoard);
+  }
+
+  function findConnectedBlocks(
+    rowIndex: number,
+    colIndex: number,
+    color: string
+  ) {
+    const visited = new Set<string>();
+    const result: [number, number][] = [];
+
+    function search(r: number, c: number) {
+      const key = `${r}-${c}`;
+
+      if (r < 0 || r >= rows) return;
+      if (c < 0 || c >= cols) return;
+      if (visited.has(key)) return;
+      if (board[r][c].color !== color) return;
+
+      visited.add(key);
+      result.push([r, c]);
+
+      search(r - 1, c);
+      search(r + 1, c);
+      search(r, c - 1);
+      search(r, c + 1);
+    }
+
+    search(rowIndex, colIndex);
+
+    return result;
+  }
+
+  function restartGame() {
+    setBoard(createBoard());
+    setScore(0);
+  }
+
+  return (
+    <main className="min-h-screen bg-slate-950 text-white px-4 py-4">
+      <div className="mx-auto max-w-md">
+        <div className="mb-4 flex items-center justify-between">
+          <Link href="/" className="text-cyan-400 hover:text-cyan-300">
+            ← Home
+          </Link>
+
+          <button
+            type="button"
+            onClick={restartGame}
+            className="rounded-full bg-slate-800 px-4 py-2 text-sm font-bold hover:bg-slate-700"
+          >
+            Restart
+          </button>
+        </div>
+
+        <section className="text-center mb-4">
+          <h1 className="text-4xl font-bold mb-2">BlockPopX</h1>
+          <p className="text-slate-400">
+            Tap 2 or more matching blocks to score.
+          </p>
+        </section>
+
+        <section className="mb-4 grid grid-cols-2 gap-4">
+          <div className="rounded-2xl bg-slate-900 p-4 text-center">
+            <p className="text-sm text-slate-400">Score</p>
+            <p className="text-2xl font-bold">{score}</p>
+          </div>
+
+          <div className="rounded-2xl bg-slate-900 p-4 text-center">
+            <p className="text-sm text-slate-400">High Score</p>
+            <p className="text-2xl font-bold">{highScore}</p>
+          </div>
+        </section>
+
+        <section className="rounded-3xl bg-slate-900 p-3 shadow-xl">
+          <div
+            className="grid gap-2"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+            }}
+          >
+            {board.map((row, rowIndex) =>
+              row.map((block, colIndex) => (
+                <button
+                  type="button"
+                  key={block.id}
+                  onClick={() => handleBlockClick(rowIndex, colIndex)}
+                  className={`${getColorClass(
+                    block.color
+                  )} aspect-square rounded-lg shadow-md hover:scale-105 active:scale-95 transition`}
+                  aria-label={`${block.color} block`}
+                />
+              ))
+            )}
+          </div>
+        </section>
+
+        <p className="mt-4 text-center text-sm text-slate-500">
+          Bigger groups give bigger points.
+        </p>
+      </div>
+    </main>
+  );
+} 
