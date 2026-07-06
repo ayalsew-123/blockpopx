@@ -48,7 +48,7 @@ export default function PlayPage() {
     const savedHighScore = localStorage.getItem("blockpopx-high-score");
 
     if (savedHighScore) {
-      //setHighScore(Number(savedHighScore));
+      setHighScore(Number(savedHighScore));
     }
   }, []);
 
