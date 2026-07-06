@@ -5,6 +5,7 @@ import Link from "next/link";
 
 const rows = 6;
 const cols = 6;
+const maxMoves = 20;
 const colors = ["red", "blue", "green", "yellow", "purple"];
 
 type Block = {
@@ -42,6 +43,8 @@ export default function PlayPage() {
   const [board, setBoard] = useState<Block[][]>(createBoard);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [movesLeft, setMovesLeft] = useState(maxMoves);
+  const [gameOver, setGameOver] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -53,6 +56,10 @@ export default function PlayPage() {
   }, []);
 
   function handleBlockClick(rowIndex: number, colIndex: number) {
+    if (gameOver) {
+      return;
+    }
+
     const selectedColor = board[rowIndex][colIndex].color;
     const connected = findConnectedBlocks(rowIndex, colIndex, selectedColor);
 
@@ -61,10 +68,13 @@ export default function PlayPage() {
       return;
     }
 
-    const newScore = score + connected.length * connected.length * 10;
+    const pointsEarned = connected.length * connected.length * 10;
+    const newScore = score + pointsEarned;
+    const newMovesLeft = movesLeft - 1;
 
     setScore(newScore);
-    setMessage(`Nice! +${connected.length * connected.length * 10} points`);
+    setMovesLeft(newMovesLeft);
+    setMessage(`Nice! +${pointsEarned} points`);
 
     if (newScore > highScore) {
       setHighScore(newScore);
@@ -85,6 +95,11 @@ export default function PlayPage() {
     });
 
     setBoard(newBoard);
+
+    if (newMovesLeft === 0) {
+      setGameOver(true);
+      setMessage("Game Over! Great job.");
+    }
   }
 
   function findConnectedBlocks(
@@ -120,6 +135,8 @@ export default function PlayPage() {
   function restartGame() {
     setBoard(createBoard());
     setScore(0);
+    setMovesLeft(maxMoves);
+    setGameOver(false);
     setMessage("");
   }
 
@@ -164,7 +181,7 @@ export default function PlayPage() {
           </p>
         </section>
 
-        <section className="mb-4 grid grid-cols-2 gap-4">
+        <section className="mb-4 grid grid-cols-3 gap-3">
           <div className="rounded-2xl bg-slate-900 p-4 text-center">
             <p className="text-sm text-slate-400">Score</p>
             <p className="text-2xl font-bold">{score}</p>
@@ -174,7 +191,27 @@ export default function PlayPage() {
             <p className="text-sm text-slate-400">High Score</p>
             <p className="text-2xl font-bold">{highScore}</p>
           </div>
+
+          <div className="rounded-2xl bg-slate-900 p-4 text-center">
+            <p className="text-sm text-slate-400">Moves</p>
+            <p className="text-2xl font-bold">{movesLeft}</p>
+          </div>
         </section>
+
+        {gameOver && (
+          <section className="mb-4 rounded-3xl border border-cyan-400 bg-slate-900 p-5 text-center">
+            <h2 className="text-3xl font-bold text-cyan-400">Game Over</h2>
+            <p className="mt-2 text-slate-300">Final Score: {score}</p>
+
+            <button
+              type="button"
+              onClick={restartGame}
+              className="mt-4 rounded-full bg-cyan-400 px-6 py-3 font-bold text-slate-950 hover:bg-cyan-300"
+            >
+              Play Again
+            </button>
+          </section>
+        )}
 
         <section className="rounded-3xl bg-slate-900 p-3 shadow-xl">
           <div
@@ -189,9 +226,10 @@ export default function PlayPage() {
                   type="button"
                   key={block.id}
                   onClick={() => handleBlockClick(rowIndex, colIndex)}
+                  disabled={gameOver}
                   className={`${getColorClass(
                     block.color
-                  )} aspect-square rounded-lg shadow-md hover:scale-105 active:scale-95 transition`}
+                  )} aspect-square rounded-lg shadow-md transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60`}
                   aria-label={`${block.color} block`}
                 />
               ))
@@ -224,7 +262,7 @@ export default function PlayPage() {
         </div>
 
         <p className="mt-4 text-center text-sm text-slate-500">
-          Bigger groups give bigger points.
+          You have 20 moves. Bigger groups give bigger points.
         </p>
       </div>
     </main>
