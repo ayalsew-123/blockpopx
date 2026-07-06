@@ -144,13 +144,30 @@ export default function PlayPage() {
   }
 
   async function shareScore() {
-    const shareText = `I scored ${score} on BlockPopX! Play here: https://www.blockpopx.com`;
+    const shareUrl = "https://www.blockpopx.com/play";
+    const shareText = `🎮 I scored ${score} points on BlockPopX! Can you beat me? ${shareUrl}`;
 
     try {
-      await navigator.clipboard.writeText(shareText);
-      setMessage("Score copied. Share it with your friends!");
+      if (navigator.share) {
+        await navigator.share({
+          title: "BlockPopX",
+          text: `🎮 I scored ${score} points on BlockPopX! Can you beat me?`,
+          url: shareUrl,
+        });
+
+        setMessage("Thanks for sharing BlockPopX!");
+        return;
+      }
+
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareText);
+        setMessage("Share link copied!");
+        return;
+      }
+
+      setMessage("Copy this link: https://www.blockpopx.com/play");
     } catch {
-      setMessage("Could not copy score. Try again.");
+      setMessage("Share canceled or not supported.");
     }
   }
 
