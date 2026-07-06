@@ -42,6 +42,7 @@ export default function PlayPage() {
   const [board, setBoard] = useState<Block[][]>(createBoard);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const savedHighScore = localStorage.getItem("blockpopx-high-score");
@@ -56,12 +57,14 @@ export default function PlayPage() {
     const connected = findConnectedBlocks(rowIndex, colIndex, selectedColor);
 
     if (connected.length < 2) {
+      setMessage("Tap 2 or more matching blocks.");
       return;
     }
 
     const newScore = score + connected.length * connected.length * 10;
 
     setScore(newScore);
+    setMessage(`Nice! +${connected.length * connected.length * 10} points`);
 
     if (newScore > highScore) {
       setHighScore(newScore);
@@ -117,6 +120,24 @@ export default function PlayPage() {
   function restartGame() {
     setBoard(createBoard());
     setScore(0);
+    setMessage("");
+  }
+
+  function resetHighScore() {
+    localStorage.removeItem("blockpopx-high-score");
+    setHighScore(0);
+    setMessage("High score reset.");
+  }
+
+  async function shareScore() {
+    const shareText = `I scored ${score} on BlockPopX! Play here: https://www.blockpopx.com`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setMessage("Score copied. Share it with your friends!");
+    } catch {
+      setMessage("Could not copy score. Try again.");
+    }
   }
 
   return (
@@ -178,10 +199,34 @@ export default function PlayPage() {
           </div>
         </section>
 
+        {message && (
+          <p className="mt-4 text-center text-sm font-semibold text-cyan-400">
+            {message}
+          </p>
+        )}
+
+        <div className="mt-4 flex justify-center gap-3">
+          <button
+            type="button"
+            onClick={resetHighScore}
+            className="rounded-full bg-slate-800 px-4 py-2 text-sm font-bold hover:bg-slate-700"
+          >
+            Reset High Score
+          </button>
+
+          <button
+            type="button"
+            onClick={shareScore}
+            className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-300"
+          >
+            Share Score
+          </button>
+        </div>
+
         <p className="mt-4 text-center text-sm text-slate-500">
           Bigger groups give bigger points.
         </p>
       </div>
     </main>
   );
-} 
+}
