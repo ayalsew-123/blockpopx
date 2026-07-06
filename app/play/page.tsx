@@ -156,7 +156,7 @@ export default function PlayPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white px-4 py-2">
-      <div className="mx-auto max-w-sm">
+      <div className="mx-auto max-w-[330px]">
         <div className="mb-2 flex items-center justify-between">
           <Link href="/" className="text-cyan-400 hover:text-cyan-300">
             ← Home
