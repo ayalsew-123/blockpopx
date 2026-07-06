@@ -56,9 +56,7 @@ export default function PlayPage() {
   }, []);
 
   function handleBlockClick(rowIndex: number, colIndex: number) {
-    if (gameOver) {
-      return;
-    }
+    if (gameOver) return;
 
     const selectedColor = board[rowIndex][colIndex].color;
     const connected = findConnectedBlocks(rowIndex, colIndex, selectedColor);
@@ -128,7 +126,6 @@ export default function PlayPage() {
     }
 
     search(rowIndex, colIndex);
-
     return result;
   }
 
@@ -158,9 +155,9 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white px-4 py-4">
-      <div className="mx-auto max-w-md">
-        <div className="mb-4 flex items-center justify-between">
+    <main className="min-h-screen bg-slate-950 text-white px-4 py-2">
+      <div className="mx-auto max-w-sm">
+        <div className="mb-2 flex items-center justify-between">
           <Link href="/" className="text-cyan-400 hover:text-cyan-300">
             ← Home
           </Link>
@@ -174,48 +171,48 @@ export default function PlayPage() {
           </button>
         </div>
 
-        <section className="text-center mb-4">
-          <h1 className="text-4xl font-bold mb-2">BlockPopX</h1>
-          <p className="text-slate-400">
+        <section className="text-center mb-2">
+          <h1 className="text-3xl font-bold mb-1">BlockPopX</h1>
+          <p className="text-sm text-slate-400">
             Tap 2 or more matching blocks to score.
           </p>
         </section>
 
-        <section className="mb-4 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl bg-slate-900 p-4 text-center">
-            <p className="text-sm text-slate-400">Score</p>
-            <p className="text-2xl font-bold">{score}</p>
+        <section className="mb-3 grid grid-cols-3 gap-2">
+          <div className="rounded-2xl bg-slate-900 p-3 text-center">
+            <p className="text-xs text-slate-400">Score</p>
+            <p className="text-xl font-bold">{score}</p>
           </div>
 
-          <div className="rounded-2xl bg-slate-900 p-4 text-center">
-            <p className="text-sm text-slate-400">High Score</p>
-            <p className="text-2xl font-bold">{highScore}</p>
+          <div className="rounded-2xl bg-slate-900 p-3 text-center">
+            <p className="text-xs text-slate-400">High Score</p>
+            <p className="text-xl font-bold">{highScore}</p>
           </div>
 
-          <div className="rounded-2xl bg-slate-900 p-4 text-center">
-            <p className="text-sm text-slate-400">Moves</p>
-            <p className="text-2xl font-bold">{movesLeft}</p>
+          <div className="rounded-2xl bg-slate-900 p-3 text-center">
+            <p className="text-xs text-slate-400">Moves</p>
+            <p className="text-xl font-bold">{movesLeft}</p>
           </div>
         </section>
 
         {gameOver && (
-          <section className="mb-4 rounded-3xl border border-cyan-400 bg-slate-900 p-5 text-center">
-            <h2 className="text-3xl font-bold text-cyan-400">Game Over</h2>
-            <p className="mt-2 text-slate-300">Final Score: {score}</p>
+          <section className="mb-3 rounded-2xl border border-cyan-400 bg-slate-900 p-4 text-center">
+            <h2 className="text-2xl font-bold text-cyan-400">Game Over</h2>
+            <p className="mt-1 text-sm text-slate-300">Final Score: {score}</p>
 
             <button
               type="button"
               onClick={restartGame}
-              className="mt-4 rounded-full bg-cyan-400 px-6 py-3 font-bold text-slate-950 hover:bg-cyan-300"
+              className="mt-3 rounded-full bg-cyan-400 px-5 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-300"
             >
               Play Again
             </button>
           </section>
         )}
 
-        <section className="rounded-3xl bg-slate-900 p-3 shadow-xl">
+        <section className="rounded-3xl bg-slate-900 p-2 shadow-xl">
           <div
-            className="grid gap-2"
+            className="grid gap-1.5"
             style={{
               gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
             }}
@@ -238,16 +235,16 @@ export default function PlayPage() {
         </section>
 
         {message && (
-          <p className="mt-4 text-center text-sm font-semibold text-cyan-400">
+          <p className="mt-2 text-center text-sm font-semibold text-cyan-400">
             {message}
           </p>
         )}
 
-        <div className="mt-4 flex justify-center gap-3">
+        <div className="mt-3 flex justify-center gap-2">
           <button
             type="button"
             onClick={resetHighScore}
-            className="rounded-full bg-slate-800 px-4 py-2 text-sm font-bold hover:bg-slate-700"
+            className="rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700"
           >
             Reset High Score
           </button>
@@ -255,13 +252,13 @@ export default function PlayPage() {
           <button
             type="button"
             onClick={shareScore}
-            className="rounded-full bg-cyan-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-300"
+            className="rounded-full bg-cyan-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-300"
           >
             Share Score
           </button>
         </div>
 
-        <p className="mt-4 text-center text-sm text-slate-500">
+        <p className="mt-2 text-center text-xs text-slate-500">
           You have 20 moves. Bigger groups give bigger points.
         </p>
       </div>
