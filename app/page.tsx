@@ -3,7 +3,6 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      {/* Navbar */}
       <header className="border-b border-slate-800">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <Link href="/" className="text-xl font-black tracking-wide">
@@ -11,30 +10,21 @@ export default function Home() {
           </Link>
 
           <nav className="flex items-center gap-6 text-sm text-slate-300">
-            <Link href="/play" target="_blank" className="hover:text-cyan-400">
+            <Link href="/play" className="hover:text-cyan-400">
               Play
             </Link>
 
-            <Link
-              href="/how-to-play"
-              target="_blank"
-              className="hover:text-cyan-400"
-            >
+            <Link href="/how-to-play" className="hover:text-cyan-400">
               How to Play
             </Link>
 
-            <Link
-              href="/privacy"
-              target="_blank"
-              className="hover:text-cyan-400"
-            >
+            <Link href="/privacy" className="hover:text-cyan-400">
               Privacy
             </Link>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
       <section className="px-6 py-20 md:py-28">
         <div className="mx-auto max-w-5xl text-center">
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-cyan-400">
@@ -56,7 +46,6 @@ export default function Home() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/play"
-              target="_blank"
               className="rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-300"
             >
               Play Now
@@ -64,7 +53,6 @@ export default function Home() {
 
             <Link
               href="/how-to-play"
-              target="_blank"
               className="rounded-full border border-slate-700 px-9 py-4 font-bold text-white transition hover:border-cyan-400 hover:text-cyan-400"
             >
               Learn How to Play
@@ -73,7 +61,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Quick Stats */}
       <section className="border-y border-slate-800 bg-slate-900/40 px-6 py-10">
         <div className="mx-auto grid max-w-5xl gap-4 text-center md:grid-cols-3">
           <div className="rounded-3xl bg-slate-950 p-6">
@@ -93,7 +80,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How to Play Preview */}
       <section className="px-6 py-16">
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 text-center">
@@ -150,7 +136,6 @@ export default function Home() {
           <div className="mt-10 text-center">
             <Link
               href="/how-to-play"
-              target="_blank"
               className="font-bold text-cyan-400 hover:text-cyan-300"
             >
               Read full instructions →
@@ -159,7 +144,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Call to Action */}
       <section className="border-t border-slate-800 px-6 py-16">
         <div className="mx-auto max-w-4xl rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-950 p-10 text-center shadow-2xl">
           <h2 className="text-4xl font-black">Ready to play?</h2>
@@ -171,7 +155,6 @@ export default function Home() {
 
           <Link
             href="/play"
-            target="_blank"
             className="mt-8 inline-block rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 transition hover:bg-cyan-300"
           >
             Start Playing
@@ -179,24 +162,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-slate-800 px-6 py-8 text-center text-sm text-slate-400">
         <p>© 2026 BlockPopX. All rights reserved.</p>
 
         <div className="mt-4 flex flex-wrap justify-center gap-6">
-          <Link href="/play" target="_blank" className="hover:text-cyan-400">
+          <Link href="/" className="hover:text-cyan-400">
+            Home
+          </Link>
+
+          <Link href="/play" className="hover:text-cyan-400">
             Play
           </Link>
 
-          <Link
-            href="/how-to-play"
-            target="_blank"
-            className="hover:text-cyan-400"
-          >
+          <Link href="/how-to-play" className="hover:text-cyan-400">
             How to Play
           </Link>
 
-          <Link href="/privacy" target="_blank" className="hover:text-cyan-400">
+          <Link href="/privacy" className="hover:text-cyan-400">
             Privacy Policy
           </Link>
         </div>
