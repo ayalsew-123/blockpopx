@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -476,6 +476,7 @@ function mergePositions(...groups: [number, number][][]) {
 }
 
 export default function PlayPage() {
+  const ambientMoveStep = useRef(0);
   const [board, setBoard] = useState<Block[][] | null>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
@@ -519,22 +520,53 @@ export default function PlayPage() {
       return;
     }
 
-    const relocateTimer = window.setInterval(() => {
-      setMoveAnimation("relocate");
+    const ambientMoveTimer = window.setInterval(() => {
+      const motionStep = ambientMoveStep.current % 4;
+      ambientMoveStep.current += 1;
+      const shouldFlipGravity = motionStep === 1;
+      const shouldShuffle = motionStep === 2;
+      const nextGravity = shouldFlipGravity
+        ? gravity === "down"
+          ? "up"
+          : "down"
+        : gravity;
+      const animation: MoveAnimation = shouldShuffle
+        ? "shuffle"
+        : shouldFlipGravity
+        ? nextGravity
+        : "relocate";
+
+      setIsMoving(true);
+      setMoveAnimation(animation);
+
+      if (shouldFlipGravity) {
+        setGravity(nextGravity);
+      }
 
       window.setTimeout(() => {
-        setBoard((currentBoard) =>
-          currentBoard ? relocateBoard(currentBoard) : currentBoard
-        );
-      }, 420);
+        setBoard((currentBoard) => {
+          if (!currentBoard) return currentBoard;
+
+          if (shouldShuffle) {
+            return shuffleBoard(currentBoard);
+          }
+
+          if (shouldFlipGravity) {
+            return relocateBoard(currentBoard);
+          }
+
+          return relocateBoard(currentBoard);
+        });
+      }, shouldShuffle ? 260 : 420);
 
       window.setTimeout(() => {
+        setIsMoving(false);
         setMoveAnimation("none");
-      }, 1350);
-    }, 5200);
+      }, shouldShuffle ? 980 : 1250);
+    }, 4600);
 
-    return () => window.clearInterval(relocateTimer);
-  }, [board, gameOver, isMoving, levelComplete, selectedBlock]);
+    return () => window.clearInterval(ambientMoveTimer);
+  }, [board, gameOver, gravity, isMoving, levelComplete, selectedBlock]);
 
   function showGoalSigns(signs: string[], cue: SoundCue = "goal") {
     if (signs.length === 0) return;
