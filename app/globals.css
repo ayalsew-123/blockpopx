@@ -25,22 +25,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-@keyframes ballIdleFloat {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  28% {
-    transform: translate3d(0, -9px, 0) scale(1.035);
-  }
-  56% {
-    transform: translate3d(0, 7px, 0) scale(0.985);
-  }
-  78% {
-    transform: translate3d(0, -4px, 0) scale(1.015);
-  }
-}
-
 @keyframes ballMoveDown {
   0% {
     transform: translateY(-58px) scale(0.88);
@@ -101,6 +85,43 @@ body {
   }
 }
 
+@keyframes ballRiseAway {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: translate3d(0, -54px, 0) scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, -120vh, 0) scale(0.72);
+    opacity: 0;
+  }
+}
+
+@keyframes ballZigzagReturn {
+  0% {
+    transform: translate3d(var(--zigzag-start-x, 64px), -115vh, 0)
+      rotate(-18deg) scale(0.72);
+    opacity: 0;
+  }
+  30% {
+    transform: translate3d(var(--zigzag-mid-x, -42px), -56px, 0) rotate(12deg)
+      scale(1.08);
+    opacity: 1;
+  }
+  62% {
+    transform: translate3d(var(--zigzag-cross-x, 24px), 18px, 0) rotate(-8deg)
+      scale(0.98);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes signPop {
   0% {
     transform: translateY(12px) scale(0.88);
@@ -120,14 +141,6 @@ body {
   }
 }
 
-.board-alive .game-ball {
-  animation: ballIdleFloat 2.4s ease-in-out infinite;
-  animation-delay: calc(
-    (var(--ball-row, 0) * -0.18s) + (var(--ball-col, 0) * -0.11s)
-  );
-  will-change: transform;
-}
-
 .ball-move-down .game-ball {
   animation: ballMoveDown 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -142,6 +155,22 @@ body {
 
 .ball-relocate .game-ball {
   animation: ballRelocate 1.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ball-rise-away .game-ball {
+  animation: ballRiseAway 0.85s cubic-bezier(0.2, 0.82, 0.1, 1) both;
+  animation-delay: calc(
+    (var(--ball-row, 0) * 0.025s) + (var(--ball-col, 0) * 0.018s)
+  );
+  will-change: transform, opacity;
+}
+
+.ball-zigzag-return .game-ball {
+  animation: ballZigzagReturn 1.15s cubic-bezier(0.2, 0.82, 0.18, 1) both;
+  animation-delay: calc(
+    (var(--ball-col, 0) * 0.055s) + (var(--ball-row, 0) * 0.035s)
+  );
+  will-change: transform, opacity;
 }
 
 .goal-sign {

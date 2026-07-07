@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -15,7 +15,14 @@ const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 type SpecialBlock = "bomb" | "rocket" | "lightning";
 type PrizeType = "moves" | "points" | "shuffle";
 type GravityDirection = "down" | "up";
-type MoveAnimation = "none" | "up" | "down" | "shuffle" | "relocate";
+type MoveAnimation =
+  | "none"
+  | "up"
+  | "down"
+  | "shuffle"
+  | "relocate"
+  | "rise"
+  | "zigzag";
 type SoundCue = "pop" | "goal" | "prize" | "blast" | "win" | "big" | "foul";
 type BlockColor = (typeof colors)[number];
 type ColorGoals = Record<BlockColor, number>;
@@ -476,7 +483,6 @@ function mergePositions(...groups: [number, number][][]) {
 }
 
 export default function PlayPage() {
-  const ambientMoveStep = useRef(0);
   const [board, setBoard] = useState<Block[][] | null>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
@@ -520,59 +526,28 @@ export default function PlayPage() {
       return;
     }
 
-    function runAmbientMove() {
-      const motionStep = ambientMoveStep.current % 4;
-      ambientMoveStep.current += 1;
-      const shouldFlipGravity = motionStep === 1;
-      const shouldShuffle = motionStep === 2;
-      const nextGravity = shouldFlipGravity
-        ? gravity === "down"
-          ? "up"
-          : "down"
-        : gravity;
-      const animation: MoveAnimation = shouldShuffle
-        ? "shuffle"
-        : shouldFlipGravity
-        ? nextGravity
-        : "relocate";
-
+    const ambientStartTimer = window.setTimeout(() => {
       setIsMoving(true);
-      setMoveAnimation(animation);
-
-      if (shouldFlipGravity) {
-        setGravity(nextGravity);
-      }
+      setMoveAnimation("rise");
 
       window.setTimeout(() => {
         setBoard((currentBoard) => {
           if (!currentBoard) return currentBoard;
-
-          if (shouldShuffle) {
-            return shuffleBoard(currentBoard);
-          }
-
-          if (shouldFlipGravity) {
-            return relocateBoard(currentBoard);
-          }
-
-          return relocateBoard(currentBoard);
+          return shuffleBoard(relocateBoard(currentBoard));
         });
-      }, shouldShuffle ? 260 : 420);
+        setMoveAnimation("zigzag");
+      }, 850);
 
       window.setTimeout(() => {
         setIsMoving(false);
         setMoveAnimation("none");
-      }, shouldShuffle ? 980 : 1250);
-    }
-
-    const ambientStartTimer = window.setTimeout(runAmbientMove, 1400);
-    const ambientMoveTimer = window.setInterval(runAmbientMove, 3600);
+      }, 2100);
+    }, 1500);
 
     return () => {
       window.clearTimeout(ambientStartTimer);
-      window.clearInterval(ambientMoveTimer);
     };
-  }, [board, gameOver, gravity, isMoving, levelComplete, selectedBlock]);
+  }, [board, gameOver, isMoving, levelComplete, selectedBlock]);
 
   function showGoalSigns(signs: string[], cue: SoundCue = "goal") {
     if (signs.length === 0) return;
@@ -1682,7 +1657,7 @@ export default function PlayPage() {
             )}
 
             <div
-              className={`board-alive grid gap-2 transition-all duration-300 ${
+              className={`grid gap-2 transition-all duration-300 ${
                 isMoving ? "scale-95 opacity-90" : "scale-100 opacity-100"
               } ${
                 moveAnimation === "down"
@@ -1693,6 +1668,10 @@ export default function PlayPage() {
                   ? "ball-shuffle"
                   : moveAnimation === "relocate"
                   ? "ball-relocate"
+                  : moveAnimation === "rise"
+                  ? "ball-rise-away"
+                  : moveAnimation === "zigzag"
+                  ? "ball-zigzag-return"
                   : ""
               }`}
               style={{
@@ -1723,6 +1702,16 @@ export default function PlayPage() {
                         {
                           "--ball-row": rowIndex,
                           "--ball-col": colIndex,
+                          "--zigzag-start-x":
+                            colIndex % 2 === 0 ? "-72px" : "72px",
+                          "--zigzag-mid-x":
+                            (rowIndex + colIndex) % 2 === 0
+                              ? "42px"
+                              : "-42px",
+                          "--zigzag-cross-x":
+                            (rowIndex + colIndex) % 2 === 0
+                              ? "-24px"
+                              : "24px",
                         } as CSSProperties
                       }
                     >
