@@ -565,15 +565,14 @@ export default function PlayPage() {
     bonusSigns: string[] = []
   ) {
     const crossedBest = newScore > highScore;
-    const shouldCelebrateBest =
-      crossedBest &&
-      (lastShowtimeScore.current === 0 ||
-        newScore - lastShowtimeScore.current >= 350 ||
-        milestoneSigns.length > 0 ||
-        bonusSigns.length > 0);
+    const crossedThousand =
+      Math.floor(score / 1000) < Math.floor(newScore / 1000);
+    const hasShowtimeReason =
+      crossedThousand || milestoneSigns.length > 0 || bonusSigns.length > 0;
+    const shouldCelebrateBest = crossedBest && hasShowtimeReason;
 
     return uniqueSigns([
-      ...(newScore > score ? ["Score hit"] : []),
+      ...(crossedThousand ? ["1000 points"] : []),
       ...bonusSigns,
       ...(milestoneSigns.length > 0 ? ["Goal hit", "Rocket fire"] : []),
       ...(shouldCelebrateBest ? ["New best", "Fire boost"] : []),
@@ -860,11 +859,7 @@ export default function PlayPage() {
       newScore,
       milestoneSigns,
       [
-        ...(connected.length >= 7
-          ? ["Rocket launch", "Fire streak"]
-          : connected.length >= 5
-          ? ["Blast fire"]
-          : []),
+        ...(meterReward ? ["Prize won"] : []),
         ...(pipResult.blastsEarned > 0 ? ["Pip blast charged"] : []),
       ]
     );
