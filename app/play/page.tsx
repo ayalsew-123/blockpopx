@@ -533,34 +533,6 @@ export default function PlayPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!board || isMoving || gameOver || levelComplete || selectedBlock) {
-      return;
-    }
-
-    const ambientStartTimer = window.setTimeout(() => {
-      setIsMoving(true);
-      setMoveAnimation("rise");
-
-      window.setTimeout(() => {
-        setBoard((currentBoard) => {
-          if (!currentBoard) return currentBoard;
-          return shuffleBoard(relocateBoard(currentBoard));
-        });
-        setMoveAnimation("zigzag");
-      }, 850);
-
-      window.setTimeout(() => {
-        setIsMoving(false);
-        setMoveAnimation("none");
-      }, 2100);
-    }, 1500);
-
-    return () => {
-      window.clearTimeout(ambientStartTimer);
-    };
-  }, [board, gameOver, isMoving, levelComplete, selectedBlock]);
-
   function showGoalSigns(signs: string[], cue: SoundCue = "goal") {
     if (signs.length === 0) return;
 
@@ -601,6 +573,7 @@ export default function PlayPage() {
         bonusSigns.length > 0);
 
     return uniqueSigns([
+      ...(newScore > score ? ["Score hit"] : []),
       ...bonusSigns,
       ...(milestoneSigns.length > 0 ? ["Goal hit", "Rocket fire"] : []),
       ...(shouldCelebrateBest ? ["New best", "Fire boost"] : []),
