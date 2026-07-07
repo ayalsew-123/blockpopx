@@ -1372,7 +1372,7 @@ export default function PlayPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#243c5a,transparent_36%),linear-gradient(135deg,#190f32_0%,#06333a_46%,#3a1021_100%)] text-white">
       <header className="border-b border-white/10 bg-black/25 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-5 sm:flex-row">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-3 sm:flex-row">
           <Link
             href="/"
             className="flex items-center gap-3 text-xl font-black tracking-wide"
@@ -1382,7 +1382,7 @@ export default function PlayPage() {
               alt=""
               width={44}
               height={44}
-              className="h-11 w-11"
+              className="h-10 w-10"
             />
             <span>
               <span className="text-cyan-300">Block</span>
@@ -1407,24 +1407,25 @@ export default function PlayPage() {
         </div>
       </header>
 
-      <section className="px-4 py-6">
-        <div className="mx-auto max-w-[410px]">
-          <section className="mb-3 text-center">
+      <section className="px-3 py-4 lg:px-5">
+        <div className="mx-auto grid max-w-[1240px] gap-3 lg:grid-cols-[minmax(240px,330px)_minmax(360px,520px)_minmax(240px,300px)] lg:items-start">
+          <div className="order-1 space-y-3">
+          <section className="text-center lg:text-left">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200">
               Arcade Blast Puzzle
             </p>
 
-            <h1 className="mt-2 text-4xl font-black">
+            <h1 className="mt-2 text-4xl font-black lg:text-3xl">
               Block<span className="text-fuchsia-400">PopX</span>
             </h1>
 
-            <p className="mt-2 text-sm text-slate-200">
+            <p className="mt-2 text-sm leading-6 text-slate-200">
               Collect pips, fire Pip Blasts, and keep your run alive by
               avoiding fouls.
             </p>
           </section>
 
-          <section className="mb-3 rounded-3xl border border-white/15 bg-black/25 p-3 shadow-2xl backdrop-blur">
+          <section className="rounded-3xl border border-white/15 bg-black/25 p-3 shadow-2xl backdrop-blur">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-amber-200">Level {level}</p>
               <p className="text-sm text-slate-200">Score goal: {targetScore}</p>
@@ -1501,8 +1502,10 @@ export default function PlayPage() {
               />
             </div>
           </section>
+          </div>
 
-          <section className="mb-3 grid grid-cols-2 gap-2">
+          <div className="order-2 space-y-3 lg:order-3">
+          <section className="grid grid-cols-2 gap-2">
             <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
               <p className="text-xs text-slate-400">Score</p>
               <p className="text-xl font-black text-cyan-300">{score}</p>
@@ -1526,7 +1529,7 @@ export default function PlayPage() {
             </div>
           </section>
 
-          <section className="mb-3 grid grid-cols-3 gap-2">
+          <section className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={flipGravity}
@@ -1555,6 +1558,45 @@ export default function PlayPage() {
             </button>
           </section>
 
+          {message && (
+            <p className="rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-bold text-cyan-200">
+              {message}
+            </p>
+          )}
+
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={restartGame}
+              className="rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700"
+            >
+              Restart
+            </button>
+
+            <button
+              type="button"
+              onClick={resetHighScore}
+              className="rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700"
+            >
+              Reset
+            </button>
+
+            <button
+              type="button"
+              onClick={shareScore}
+              className="rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400 px-3 py-2 text-xs font-black text-slate-950"
+            >
+              Share
+            </button>
+          </div>
+
+          <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
+            Pop pip balls to charge Pip Blast. Crack locks from the side.
+            Prize balls are free rewards.
+          </p>
+          </div>
+
+          <div className="order-3 lg:order-2 lg:w-[min(520px,calc(100vh-150px))] lg:justify-self-center">
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">
@@ -1587,7 +1629,7 @@ export default function PlayPage() {
             </section>
           )}
 
-          <section className="relative rounded-[2rem] border border-white/10 bg-slate-900/90 p-3 shadow-2xl">
+          <section className="relative rounded-[2rem] border border-white/10 bg-slate-900/90 p-2 shadow-2xl lg:p-3">
             {goalSigns.length > 0 && (
               <div className="pointer-events-none absolute inset-x-3 top-4 z-10 flex flex-col items-center gap-2">
                 {goalSigns.map((sign) => (
@@ -1670,43 +1712,7 @@ export default function PlayPage() {
               )}
             </div>
           </section>
-
-          {message && (
-            <p className="mt-3 rounded-full bg-white/10 px-4 py-2 text-center text-sm font-bold text-cyan-200">
-              {message}
-            </p>
-          )}
-
-          <div className="mt-3 flex justify-center gap-2">
-            <button
-              type="button"
-              onClick={restartGame}
-              className="rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700"
-            >
-              Restart
-            </button>
-
-            <button
-              type="button"
-              onClick={resetHighScore}
-              className="rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700"
-            >
-              Reset
-            </button>
-
-            <button
-              type="button"
-              onClick={shareScore}
-              className="rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400 px-3 py-2 text-xs font-black text-slate-950"
-            >
-              Share
-            </button>
           </div>
-
-          <p className="mt-3 text-center text-xs text-slate-400">
-            Pop pip balls to charge Pip Blast. Crack locks from the side.
-            Prize balls are free rewards.
-          </p>
         </div>
       </section>
 
