@@ -2,42 +2,98 @@ import Link from "next/link";
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white px-6 py-12">
-      <div className="mx-auto max-w-3xl">
-        <Link href="/" className="text-cyan-400 hover:text-cyan-300">
-          ← Back Home
-        </Link>
+    <main className="min-h-screen bg-slate-950 text-white">
+      <header className="border-b border-slate-800">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+          <Link href="/" className="text-xl font-black tracking-wide">
+            <span className="text-cyan-400">Block</span>PopX
+          </Link>
 
-        <h1 className="mt-8 text-4xl font-bold">Privacy Policy</h1>
+          <nav className="flex items-center gap-6 text-sm text-slate-300">
+            <Link href="/play" className="hover:text-cyan-400">
+              Play
+            </Link>
 
-        <p className="mt-6 text-slate-300">
-          BlockPopX is a simple puzzle game. This website does not ask users to
-          create an account or submit personal information.
-        </p>
+            <Link href="/how-to-play" className="hover:text-cyan-400">
+              How to Play
+            </Link>
 
-        <h2 className="mt-8 text-2xl font-bold">High Score</h2>
-        <p className="mt-3 text-slate-300">
-          Your high score is saved only in your browser using local storage. It
-          is not sent to our server.
-        </p>
+            <Link href="/privacy" className="text-cyan-400">
+              Privacy
+            </Link>
+          </nav>
+        </div>
+      </header>
 
-        <h2 className="mt-8 text-2xl font-bold">Sharing</h2>
-        <p className="mt-3 text-slate-300">
-          If you use the Share Score button, your browser may open a sharing
-          option or copy a link to your clipboard. BlockPopX does not collect
-          this information.
-        </p>
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-cyan-400">
+            Legal
+          </p>
 
-        <h2 className="mt-8 text-2xl font-bold">Advertising</h2>
-        <p className="mt-3 text-slate-300">
-          In the future, BlockPopX may show ads to support the free game.
-        </p>
+          <h1 className="mt-4 text-5xl font-black">Privacy Policy</h1>
 
-        <h2 className="mt-8 text-2xl font-bold">Contact</h2>
-        <p className="mt-3 text-slate-300">
-          For questions, contact us through BlockPopX.com.
-        </p>
-      </div>
+          <p className="mt-6 leading-8 text-slate-300">
+            BlockPopX is a simple puzzle game. This website does not ask users
+            to create an account or submit personal information.
+          </p>
+
+          <div className="mt-10 space-y-8">
+            <section className="rounded-3xl border border-slate-800 bg-slate-900 p-7">
+              <h2 className="text-2xl font-bold">High Score</h2>
+
+              <p className="mt-3 leading-7 text-slate-300">
+                Your high score is saved only in your browser using local
+                storage. It is not sent to our server.
+              </p>
+            </section>
+
+            <section className="rounded-3xl border border-slate-800 bg-slate-900 p-7">
+              <h2 className="text-2xl font-bold">Sharing</h2>
+
+              <p className="mt-3 leading-7 text-slate-300">
+                If you use the Share Score button, your browser may open a
+                sharing option or copy a link to your clipboard. BlockPopX does
+                not collect this information.
+              </p>
+            </section>
+
+            <section className="rounded-3xl border border-slate-800 bg-slate-900 p-7">
+              <h2 className="text-2xl font-bold">Advertising</h2>
+
+              <p className="mt-3 leading-7 text-slate-300">
+                In the future, BlockPopX may show ads to support the free game.
+              </p>
+            </section>
+
+            <section className="rounded-3xl border border-slate-800 bg-slate-900 p-7">
+              <h2 className="text-2xl font-bold">Contact</h2>
+
+              <p className="mt-3 leading-7 text-slate-300">
+                For questions, contact us through BlockPopX.com.
+              </p>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-slate-800 px-6 py-8 text-center text-sm text-slate-400">
+        <p>© 2026 BlockPopX. All rights reserved.</p>
+
+        <div className="mt-4 flex flex-wrap justify-center gap-6">
+          <Link href="/" className="hover:text-cyan-400">
+            Home
+          </Link>
+
+          <Link href="/play" className="hover:text-cyan-400">
+            Play
+          </Link>
+
+          <Link href="/how-to-play" className="hover:text-cyan-400">
+            How to Play
+          </Link>
+        </div>
+      </footer>
     </main>
   );
 }

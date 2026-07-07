@@ -2,81 +2,145 @@ import Link from "next/link";
 
 export default function HowToPlayPage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white px-6 py-12">
-      <div className="mx-auto max-w-4xl">
-        <Link href="/" className="text-cyan-400 hover:text-cyan-300">
-          ← Back Home
-        </Link>
+    <main className="min-h-screen bg-slate-950 text-white">
+      <header className="border-b border-slate-800">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+          <Link href="/" className="text-xl font-black tracking-wide">
+            <span className="text-cyan-400">Block</span>PopX
+          </Link>
 
-        <h1 className="mt-8 text-4xl font-bold">How to Play BlockPopX</h1>
+          <nav className="flex items-center gap-6 text-sm text-slate-300">
+            <Link href="/play" className="hover:text-cyan-400">
+              Play
+            </Link>
 
-        <p className="mt-4 text-slate-300">
-          BlockPopX is a simple block puzzle game. Your goal is to pop matching
-          blocks, score points, and beat your high score before your moves run
-          out.
-        </p>
+            <Link href="/how-to-play" className="text-cyan-400">
+              How to Play
+            </Link>
 
-        <section className="mt-10 grid gap-6 md:grid-cols-3">
-          <div className="rounded-3xl bg-slate-900 p-6">
-            <div className="mb-4 text-3xl font-bold text-cyan-400">1</div>
+            <Link href="/privacy" className="hover:text-cyan-400">
+              Privacy
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-4xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-cyan-400">
+            Instructions
+          </p>
+
+          <h1 className="mt-4 text-5xl font-black">How to Play BlockPopX</h1>
+
+          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            BlockPopX is a simple block puzzle game. Your goal is to pop
+            matching blocks, score points, and beat your high score before your
+            moves run out.
+          </p>
+
+          <div className="mt-10">
+            <Link
+              href="/play"
+              className="rounded-full bg-cyan-400 px-8 py-4 font-bold text-slate-950 hover:bg-cyan-300 transition"
+            >
+              Play Now
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-800 bg-slate-900/40 px-6 py-14">
+        <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
+          <div className="rounded-3xl bg-slate-950 p-7">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400 font-black text-slate-950">
+              1
+            </div>
+
             <h2 className="text-xl font-bold">Find Matching Blocks</h2>
-            <p className="mt-3 text-slate-400">
+
+            <p className="mt-3 leading-7 text-slate-400">
               Look for 2 or more blocks with the same color touching each other.
+              Blocks must touch up, down, left, or right.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-slate-900 p-6">
-            <div className="mb-4 text-3xl font-bold text-cyan-400">2</div>
+          <div className="rounded-3xl bg-slate-950 p-7">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400 font-black text-slate-950">
+              2
+            </div>
+
             <h2 className="text-xl font-bold">Tap to Pop</h2>
-            <p className="mt-3 text-slate-400">
-              Tap a matching group to pop the blocks and earn points.
+
+            <p className="mt-3 leading-7 text-slate-400">
+              Tap a matching group to pop the blocks and earn points. Single
+              blocks do not score.
             </p>
           </div>
 
-          <div className="rounded-3xl bg-slate-900 p-6">
-            <div className="mb-4 text-3xl font-bold text-cyan-400">3</div>
+          <div className="rounded-3xl bg-slate-950 p-7">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400 font-black text-slate-950">
+              3
+            </div>
+
             <h2 className="text-xl font-bold">Use Your Moves</h2>
-            <p className="mt-3 text-slate-400">
+
+            <p className="mt-3 leading-7 text-slate-400">
               You have 20 moves. Bigger groups give bigger points, so choose
               carefully.
             </p>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="mt-10 rounded-3xl bg-slate-900 p-6">
-          <h2 className="text-2xl font-bold">Scoring</h2>
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-4xl">
+          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-8">
+            <h2 className="text-3xl font-black">Scoring</h2>
 
-          <p className="mt-3 text-slate-300">
-            The more blocks you pop at one time, the more points you earn.
-          </p>
+            <p className="mt-4 leading-8 text-slate-300">
+              The more blocks you pop at one time, the more points you earn.
+              Try to wait for bigger groups before using your moves.
+            </p>
 
-          <ul className="mt-4 space-y-2 text-slate-400">
-            <li>2 blocks = small points</li>
-            <li>3 or more blocks = better points</li>
-            <li>Large groups = big score bonus</li>
-          </ul>
-        </section>
+            <ul className="mt-6 space-y-3 text-slate-400">
+              <li>2 blocks = small points</li>
+              <li>3 or more blocks = better points</li>
+              <li>Large groups = big score bonus</li>
+              <li>20 moves = one full game</li>
+            </ul>
+          </div>
 
-        <section className="mt-10 rounded-3xl bg-slate-900 p-6">
-          <h2 className="text-2xl font-bold">Game Tips</h2>
+          <div className="mt-10 rounded-3xl border border-slate-800 bg-slate-900 p-8">
+            <h2 className="text-3xl font-black">Game Tips</h2>
 
-          <ul className="mt-4 space-y-2 text-slate-400">
-            <li>Try to pop bigger groups instead of small groups.</li>
-            <li>Save your moves for high-value block groups.</li>
-            <li>Watch your score and try to beat your high score.</li>
-            <li>Use the Share Score button to challenge your friends.</li>
-          </ul>
-        </section>
+            <ul className="mt-6 space-y-3 text-slate-400">
+              <li>Pop bigger groups instead of small groups.</li>
+              <li>Save your moves for high-value block groups.</li>
+              <li>Watch your score and try to beat your high score.</li>
+              <li>Use the Share Score button to challenge your friends.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-        <div className="mt-10">
-          <Link
-            href="/play"
-            className="rounded-full bg-cyan-400 px-8 py-4 font-bold text-slate-950 hover:bg-cyan-300 transition"
-          >
-            Play Now
+      <footer className="border-t border-slate-800 px-6 py-8 text-center text-sm text-slate-400">
+        <p>© 2026 BlockPopX. All rights reserved.</p>
+
+        <div className="mt-4 flex flex-wrap justify-center gap-6">
+          <Link href="/" className="hover:text-cyan-400">
+            Home
+          </Link>
+
+          <Link href="/play" className="hover:text-cyan-400">
+            Play
+          </Link>
+
+          <Link href="/privacy" className="hover:text-cyan-400">
+            Privacy Policy
           </Link>
         </div>
-      </div>
+      </footer>
     </main>
   );
 }
