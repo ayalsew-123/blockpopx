@@ -5,12 +5,13 @@ import Link from "next/link";
 
 const rows = 6;
 const cols = 6;
-const maxMoves = 20;
+const maxMoves = 22;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"];
 
 type Block = {
   id: string;
   color: string;
+  special?: "bomb" | "rocket";
 };
 
 function randomBlock(row: number, col: number): Block {
@@ -26,8 +27,16 @@ function createBoard(): Block[][] {
   );
 }
 
-function getColorClass(color: string) {
-  switch (color) {
+function getColorClass(block: Block) {
+  if (block.special === "bomb") {
+    return "bg-gradient-to-br from-orange-300 via-red-500 to-pink-700";
+  }
+
+  if (block.special === "rocket") {
+    return "bg-gradient-to-br from-cyan-300 via-blue-500 to-purple-700";
+  }
+
+  switch (block.color) {
     case "red":
       return "bg-gradient-to-br from-red-400 to-red-600";
     case "blue":
@@ -54,7 +63,8 @@ export default function PlayPage() {
   const [levelComplete, setLevelComplete] = useState(false);
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState(1);
-  const [targetScore, setTargetScore] = useState(1200);
+  const [targetScore, setTargetScore] = useState(1500);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     setBoard(createBoard());
@@ -69,46 +79,136 @@ export default function PlayPage() {
   function handleBlockClick(rowIndex: number, colIndex: number) {
     if (!board || gameOver || levelComplete) return;
 
-    const selectedColor = board[rowIndex][colIndex].color;
-    const connected = findConnectedBlocks(rowIndex, colIndex, selectedColor);
+    const selectedBlock = board[rowIndex][colIndex];
+
+    if (selectedBlock.special === "bomb") {
+      activateBomb(rowIndex, colIndex);
+      return;
+    }
+
+    if (selectedBlock.special === "rocket") {
+      activateRocket(rowIndex);
+      return;
+    }
+
+    const connected = findConnectedBlocks(
+      rowIndex,
+      colIndex,
+      selectedBlock.color
+    );
 
     if (connected.length < 2) {
+      setStreak(0);
       setMessage("Find 2 or more matching blocks!");
       return;
     }
 
-    const comboBonus = connected.length >= 6 ? 2 : connected.length >= 4 ? 1.5 : 1;
-    const pointsEarned = Math.floor(
-      connected.length * connected.length * 10 * comboBonus
+    const newStreak = streak + 1;
+    const comboMultiplier = 1 + newStreak * 0.1;
+
+    let pointsEarned = Math.floor(
+      connected.length * connected.length * 10 * comboMultiplier
     );
+
+    if (connected.length >= 8) {
+      pointsEarned += 300;
+    } else if (connected.length >= 6) {
+      pointsEarned += 150;
+    } else if (connected.length >= 4) {
+      pointsEarned += 60;
+    }
 
     const newScore = score + pointsEarned;
     const newMovesLeft = movesLeft - 1;
 
     setScore(newScore);
     setMovesLeft(newMovesLeft);
+    setStreak(newStreak);
+
+    const special =
+      connected.length >= 7 ? "rocket" : connected.length >= 5 ? "bomb" : null;
+
+    const newBoard = removeAndDropBlocks(board, connected, {
+      row: rowIndex,
+      col: colIndex,
+      special,
+      color: selectedBlock.color,
+    });
+
+    setBoard(newBoard);
 
     if (connected.length >= 8) {
-      setMessage(`🔥 Mega Pop! +${pointsEarned}`);
-    } else if (connected.length >= 6) {
-      setMessage(`💥 Super Combo! +${pointsEarned}`);
-    } else if (connected.length >= 4) {
-      setMessage(`⭐ Great Pop! +${pointsEarned}`);
+      setMessage(`🔥 Mega Pop! +${pointsEarned} Rocket created!`);
+    } else if (connected.length >= 5) {
+      setMessage(`💣 Big Pop! +${pointsEarned} Bomb created!`);
+    } else if (newStreak >= 3) {
+      setMessage(`⚡ Streak x${newStreak}! +${pointsEarned}`);
     } else {
       setMessage(`Nice Pop! +${pointsEarned}`);
     }
 
+    finishMove(newScore, newMovesLeft);
+  }
+
+  function activateBomb(rowIndex: number, colIndex: number) {
+    if (!board) return;
+
+    const affected: [number, number][] = [];
+
+    for (let r = rowIndex - 1; r <= rowIndex + 1; r++) {
+      for (let c = colIndex - 1; c <= colIndex + 1; c++) {
+        if (r >= 0 && r < rows && c >= 0 && c < cols) {
+          affected.push([r, c]);
+        }
+      }
+    }
+
+    const pointsEarned = affected.length * 80;
+    const newScore = score + pointsEarned;
+    const newMovesLeft = movesLeft - 1;
+
+    setScore(newScore);
+    setMovesLeft(newMovesLeft);
+    setStreak(streak + 1);
+    setMessage(`💣 Bomb Blast! +${pointsEarned}`);
+
+    setBoard(removeAndDropBlocks(board, affected));
+
+    finishMove(newScore, newMovesLeft);
+  }
+
+  function activateRocket(rowIndex: number) {
+    if (!board) return;
+
+    const affected: [number, number][] = [];
+
+    for (let col = 0; col < cols; col++) {
+      affected.push([rowIndex, col]);
+    }
+
+    const pointsEarned = affected.length * 90;
+    const newScore = score + pointsEarned;
+    const newMovesLeft = movesLeft - 1;
+
+    setScore(newScore);
+    setMovesLeft(newMovesLeft);
+    setStreak(streak + 1);
+    setMessage(`🚀 Rocket Clear! +${pointsEarned}`);
+
+    setBoard(removeAndDropBlocks(board, affected));
+
+    finishMove(newScore, newMovesLeft);
+  }
+
+  function finishMove(newScore: number, newMovesLeft: number) {
     if (newScore > highScore) {
       setHighScore(newScore);
       localStorage.setItem("blockpopx-high-score", String(newScore));
     }
 
-    const newBoard = removeAndDropBlocks(board, connected);
-    setBoard(newBoard);
-
     if (newScore >= targetScore) {
       setLevelComplete(true);
-      setMessage("🎉 Level Complete!");
+      setMessage("🎉 Level Complete! You reached the target!");
       return;
     }
 
@@ -134,6 +234,7 @@ export default function PlayPage() {
       if (r < 0 || r >= rows) return;
       if (c < 0 || c >= cols) return;
       if (visited.has(key)) return;
+      if (board[r][c].special) return;
       if (board[r][c].color !== color) return;
 
       visited.add(key);
@@ -151,13 +252,27 @@ export default function PlayPage() {
 
   function removeAndDropBlocks(
     currentBoard: Block[][],
-    connected: [number, number][]
+    connected: [number, number][],
+    specialBlock?: {
+      row: number;
+      col: number;
+      special: "bomb" | "rocket" | null;
+      color: string;
+    }
   ) {
     const removeSet = new Set(connected.map(([r, c]) => `${r}-${c}`));
 
     const temporaryBoard: (Block | null)[][] = currentBoard.map((row, r) =>
       row.map((block, c) => (removeSet.has(`${r}-${c}`) ? null : block))
     );
+
+    if (specialBlock?.special) {
+      temporaryBoard[specialBlock.row][specialBlock.col] = {
+        id: `${specialBlock.row}-${specialBlock.col}-${Date.now()}-${Math.random()}`,
+        color: specialBlock.color,
+        special: specialBlock.special,
+      };
+    }
 
     const nextBoard: Block[][] = Array.from({ length: rows }, () =>
       Array.from({ length: cols }, () => randomBlock(0, 0))
@@ -200,18 +315,21 @@ export default function PlayPage() {
     setGameOver(false);
     setLevelComplete(false);
     setMessage("");
+    setStreak(0);
   }
 
   function nextLevel() {
     const next = level + 1;
+
     setLevel(next);
-    setTargetScore(1200 + next * 500);
+    setTargetScore(1500 + next * 600);
     setBoard(createBoard());
     setScore(0);
     setMovesLeft(maxMoves);
     setGameOver(false);
     setLevelComplete(false);
     setMessage(`Level ${next} started!`);
+    setStreak(0);
   }
 
   function resetHighScore() {
@@ -286,10 +404,10 @@ export default function PlayPage() {
       </header>
 
       <section className="px-4 py-6">
-        <div className="mx-auto max-w-[360px]">
+        <div className="mx-auto max-w-[370px]">
           <section className="mb-3 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">
-              Arcade Puzzle Mode
+              Power Puzzle Mode
             </p>
 
             <h1 className="mt-2 text-4xl font-black">
@@ -297,7 +415,7 @@ export default function PlayPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-300">
-              Pop blocks, hit the target, unlock the next level.
+              Make combos, create bombs, launch rockets, beat the target.
             </p>
           </section>
 
@@ -315,20 +433,25 @@ export default function PlayPage() {
             </div>
           </section>
 
-          <section className="mb-3 grid grid-cols-3 gap-2">
+          <section className="mb-3 grid grid-cols-4 gap-2">
             <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
               <p className="text-xs text-slate-400">Score</p>
-              <p className="text-xl font-black text-cyan-300">{score}</p>
+              <p className="text-lg font-black text-cyan-300">{score}</p>
             </div>
 
             <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
               <p className="text-xs text-slate-400">Best</p>
-              <p className="text-xl font-black text-yellow-300">{highScore}</p>
+              <p className="text-lg font-black text-yellow-300">{highScore}</p>
             </div>
 
             <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
               <p className="text-xs text-slate-400">Moves</p>
-              <p className="text-xl font-black text-fuchsia-300">{movesLeft}</p>
+              <p className="text-lg font-black text-fuchsia-300">{movesLeft}</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+              <p className="text-xs text-slate-400">Streak</p>
+              <p className="text-lg font-black text-green-300">{streak}</p>
             </div>
           </section>
 
@@ -379,10 +502,22 @@ export default function PlayPage() {
                     onClick={() => handleBlockClick(rowIndex, colIndex)}
                     disabled={gameOver || levelComplete}
                     className={`${getColorClass(
-                      block.color
-                    )} aspect-square rounded-2xl border border-white/30 shadow-lg shadow-black/30 transition hover:scale-110 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60`}
+                      block
+                    )} relative aspect-square rounded-2xl border border-white/30 shadow-lg shadow-black/30 transition hover:scale-110 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60`}
                     aria-label={`${block.color} block`}
-                  />
+                  >
+                    {block.special === "bomb" && (
+                      <span className="absolute inset-0 flex items-center justify-center text-xl">
+                        💣
+                      </span>
+                    )}
+
+                    {block.special === "rocket" && (
+                      <span className="absolute inset-0 flex items-center justify-center text-xl">
+                        🚀
+                      </span>
+                    )}
+                  </button>
                 ))
               )}
             </div>
@@ -421,7 +556,7 @@ export default function PlayPage() {
           </div>
 
           <p className="mt-3 text-center text-xs text-slate-400">
-            Bigger groups = bigger bonus. Reach the target before moves run out.
+            5+ blocks creates 💣. 7+ blocks creates 🚀. Bigger groups score more.
           </p>
         </div>
       </section>
