@@ -11,13 +11,23 @@ export default function Home() {
           </Link>
 
           <nav className="flex items-center gap-6 text-sm text-slate-300">
-            <Link href="/play" className="hover:text-cyan-400">
+            <Link href="/play" target="_blank" className="hover:text-cyan-400">
               Play
             </Link>
-            <Link href="/how-to-play" className="hover:text-cyan-400">
+
+            <Link
+              href="/how-to-play"
+              target="_blank"
+              className="hover:text-cyan-400"
+            >
               How to Play
             </Link>
-            <Link href="/privacy" className="hover:text-cyan-400">
+
+            <Link
+              href="/privacy"
+              target="_blank"
+              className="hover:text-cyan-400"
+            >
               Privacy
             </Link>
           </nav>
@@ -44,26 +54,26 @@ export default function Home() {
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-           <Link
-  href="/play"
-  target="_blank"
-  className="rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-300"
->
-  Play Now
-</Link>
+            <Link
+              href="/play"
+              target="_blank"
+              className="rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-300"
+            >
+              Play Now
+            </Link>
 
             <Link
-  href="/how-to-play"
-  target="_blank"
-  className="rounded-full border border-slate-700 px-9 py-4 font-bold text-white transition hover:border-cyan-400 hover:text-cyan-400"
->
-  Learn How to Play
-</Link>
+              href="/how-to-play"
+              target="_blank"
+              className="rounded-full border border-slate-700 px-9 py-4 font-bold text-white transition hover:border-cyan-400 hover:text-cyan-400"
+            >
+              Learn How to Play
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Quick Stats / Features */}
+      {/* Quick Stats */}
       <section className="border-y border-slate-800 bg-slate-900/40 px-6 py-10">
         <div className="mx-auto grid max-w-5xl gap-4 text-center md:grid-cols-3">
           <div className="rounded-3xl bg-slate-950 p-6">
@@ -90,7 +100,9 @@ export default function Home() {
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-cyan-400">
               Simple Rules
             </p>
+
             <h2 className="mt-3 text-4xl font-black">How to Play</h2>
+
             <p className="mx-auto mt-4 max-w-2xl text-slate-400">
               BlockPopX is easy to start, but your best score depends on smart
               moves.
@@ -102,7 +114,9 @@ export default function Home() {
               <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400 font-black text-slate-950">
                 1
               </div>
+
               <h3 className="text-xl font-bold">Find Matching Blocks</h3>
+
               <p className="mt-3 leading-7 text-slate-400">
                 Look for 2 or more same-color blocks touching each other.
               </p>
@@ -112,7 +126,9 @@ export default function Home() {
               <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400 font-black text-slate-950">
                 2
               </div>
+
               <h3 className="text-xl font-bold">Tap to Pop</h3>
+
               <p className="mt-3 leading-7 text-slate-400">
                 Tap a matching group to pop blocks and earn points.
               </p>
@@ -122,7 +138,9 @@ export default function Home() {
               <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400 font-black text-slate-950">
                 3
               </div>
+
               <h3 className="text-xl font-bold">Use Moves Wisely</h3>
+
               <p className="mt-3 leading-7 text-slate-400">
                 Bigger groups give bigger points. You only have 20 moves.
               </p>
@@ -132,6 +150,7 @@ export default function Home() {
           <div className="mt-10 text-center">
             <Link
               href="/how-to-play"
+              target="_blank"
               className="font-bold text-cyan-400 hover:text-cyan-300"
             >
               Read full instructions →
@@ -140,10 +159,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Call to Action */}
       <section className="border-t border-slate-800 px-6 py-16">
         <div className="mx-auto max-w-4xl rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-950 p-10 text-center shadow-2xl">
           <h2 className="text-4xl font-black">Ready to play?</h2>
+
           <p className="mx-auto mt-4 max-w-2xl text-slate-400">
             Start a new game, pop matching blocks, and see how high you can
             score.
@@ -151,6 +171,7 @@ export default function Home() {
 
           <Link
             href="/play"
+            target="_blank"
             className="mt-8 inline-block rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 transition hover:bg-cyan-300"
           >
             Start Playing
@@ -163,15 +184,19 @@ export default function Home() {
         <p>© 2026 BlockPopX. All rights reserved.</p>
 
         <div className="mt-4 flex flex-wrap justify-center gap-6">
-          <Link href="/play" className="hover:text-cyan-400">
+          <Link href="/play" target="_blank" className="hover:text-cyan-400">
             Play
           </Link>
 
-          <Link href="/how-to-play" className="hover:text-cyan-400">
+          <Link
+            href="/how-to-play"
+            target="_blank"
+            className="hover:text-cyan-400"
+          >
             How to Play
           </Link>
 
-          <Link href="/privacy" className="hover:text-cyan-400">
+          <Link href="/privacy" target="_blank" className="hover:text-cyan-400">
             Privacy Policy
           </Link>
         </div>
