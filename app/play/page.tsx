@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -520,7 +520,7 @@ export default function PlayPage() {
       return;
     }
 
-    const ambientMoveTimer = window.setInterval(() => {
+    function runAmbientMove() {
       const motionStep = ambientMoveStep.current % 4;
       ambientMoveStep.current += 1;
       const shouldFlipGravity = motionStep === 1;
@@ -563,9 +563,15 @@ export default function PlayPage() {
         setIsMoving(false);
         setMoveAnimation("none");
       }, shouldShuffle ? 980 : 1250);
-    }, 4600);
+    }
 
-    return () => window.clearInterval(ambientMoveTimer);
+    const ambientStartTimer = window.setTimeout(runAmbientMove, 1400);
+    const ambientMoveTimer = window.setInterval(runAmbientMove, 3600);
+
+    return () => {
+      window.clearTimeout(ambientStartTimer);
+      window.clearInterval(ambientMoveTimer);
+    };
   }, [board, gameOver, gravity, isMoving, levelComplete, selectedBlock]);
 
   function showGoalSigns(signs: string[], cue: SoundCue = "goal") {
@@ -1676,7 +1682,7 @@ export default function PlayPage() {
             )}
 
             <div
-              className={`grid gap-2 transition-all duration-300 ${
+              className={`board-alive grid gap-2 transition-all duration-300 ${
                 isMoving ? "scale-95 opacity-90" : "scale-100 opacity-100"
               } ${
                 moveAnimation === "down"
@@ -1713,6 +1719,12 @@ export default function PlayPage() {
                           : "border-white/40"
                       }`}
                       aria-label={getBlockLabel(block)}
+                      style={
+                        {
+                          "--ball-row": rowIndex,
+                          "--ball-col": colIndex,
+                        } as CSSProperties
+                      }
                     >
                       <span className="absolute inset-1 rounded-full bg-white/20" />
 

@@ -24,13 +24,30 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes ballIdleFloat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  28% {
+    transform: translate3d(0, -9px, 0) scale(1.035);
+  }
+  56% {
+    transform: translate3d(0, 7px, 0) scale(0.985);
+  }
+  78% {
+    transform: translate3d(0, -4px, 0) scale(1.015);
+  }
+}
+
 @keyframes ballMoveDown {
   0% {
-    transform: translateY(-22px) scale(0.9);
-    opacity: 0.5;
+    transform: translateY(-58px) scale(0.88);
+    opacity: 0.42;
   }
-  60% {
-    transform: translateY(6px) scale(1.05);
+  58% {
+    transform: translateY(12px) scale(1.08);
     opacity: 1;
   }
   100% {
@@ -41,11 +58,11 @@ body {
 
 @keyframes ballMoveUp {
   0% {
-    transform: translateY(22px) scale(0.9);
-    opacity: 0.5;
+    transform: translateY(58px) scale(0.88);
+    opacity: 0.42;
   }
-  60% {
-    transform: translateY(-6px) scale(1.05);
+  58% {
+    transform: translateY(-12px) scale(1.08);
     opacity: 1;
   }
   100% {
@@ -56,11 +73,11 @@ body {
 
 @keyframes ballShuffle {
   0% {
-    transform: rotate(-12deg) scale(0.8);
+    transform: translateX(-28px) rotate(-18deg) scale(0.78);
     opacity: 0.5;
   }
   50% {
-    transform: rotate(12deg) scale(1.15);
+    transform: translateX(24px) translateY(-14px) rotate(16deg) scale(1.16);
     opacity: 1;
   }
   100% {
@@ -71,11 +88,11 @@ body {
 
 @keyframes ballRelocate {
   0% {
-    transform: translateX(-10px) scale(0.96);
+    transform: translateX(-26px) translateY(8px) scale(0.92);
     opacity: 0.82;
   }
   45% {
-    transform: translateX(8px) translateY(-6px) scale(1.04);
+    transform: translateX(22px) translateY(-16px) scale(1.08);
     opacity: 1;
   }
   100% {
@@ -101,6 +118,14 @@ body {
     transform: translateY(-10px) scale(0.96);
     opacity: 0;
   }
+}
+
+.board-alive .game-ball {
+  animation: ballIdleFloat 2.4s ease-in-out infinite;
+  animation-delay: calc(
+    (var(--ball-row, 0) * -0.18s) + (var(--ball-col, 0) * -0.11s)
+  );
+  will-change: transform;
 }
 
 .ball-move-down .game-ball {
