@@ -5,12 +5,26 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link href="/" className="text-xl font-black tracking-wide">
-            <span className="text-cyan-400">Block</span>PopX
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-5 sm:flex-row">
+          <Link
+            href="/"
+            className="flex items-center gap-3 text-xl font-black tracking-wide"
+          >
+            <Image
+              src="/blockpopx-mark.svg"
+              alt=""
+              width={44}
+              height={44}
+              className="h-11 w-11"
+            />
+            <span>
+              <span className="text-cyan-300">Block</span>
+              <span className="text-white">Pop</span>
+              <span className="text-fuchsia-300">X</span>
+            </span>
           </Link>
 
-          <nav className="flex items-center gap-6 text-sm text-slate-300">
+          <nav className="flex items-center gap-4 text-xs text-slate-300 sm:gap-6 sm:text-sm">
             <Link href="/play" className="hover:text-cyan-400">
               Play
             </Link>
@@ -29,7 +43,7 @@ export default function Home() {
       <section className="px-6 py-16 md:py-20">
         <div className="mx-auto max-w-6xl text-center">
           <Image
-            src="/blockpopx-logo.png"
+            src="/blockpopx-logo.svg"
             alt="BlockPopX logo"
             width={1200}
             height={675}
@@ -46,9 +60,8 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300 md:text-xl">
-            BlockPopX is a fast and simple block puzzle game. Tap matching
-            blocks, score points, use your moves wisely, and challenge your high
-            score.
+            BlockPopX is a fast arcade puzzle game. Pop matching balls, charge
+            Pip Blast, dodge fouls, and keep your run alive for a bigger score.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -72,8 +85,8 @@ export default function Home() {
       <section className="border-y border-slate-800 bg-slate-900/40 px-6 py-10">
         <div className="mx-auto grid max-w-5xl gap-4 text-center md:grid-cols-3">
           <div className="rounded-3xl bg-slate-950 p-6">
-            <p className="text-3xl font-black text-cyan-400">20</p>
-            <p className="mt-2 text-sm text-slate-400">Moves per game</p>
+            <p className="text-3xl font-black text-cyan-400">5</p>
+            <p className="mt-2 text-sm text-slate-400">Fouls before restart</p>
           </div>
 
           <div className="rounded-3xl bg-slate-950 p-6">
@@ -133,10 +146,11 @@ export default function Home() {
                 3
               </div>
 
-              <h3 className="text-xl font-bold">Use Moves Wisely</h3>
+              <h3 className="text-xl font-bold">Avoid Fouls</h3>
 
               <p className="mt-3 leading-7 text-slate-400">
-                Bigger groups give bigger points. You only have 20 moves.
+                Bigger groups give bigger points. Bad taps build fouls, so play
+                clean.
               </p>
             </div>
           </div>

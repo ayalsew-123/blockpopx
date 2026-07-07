@@ -1,15 +1,30 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link href="/" className="text-xl font-black tracking-wide">
-            <span className="text-cyan-400">Block</span>PopX
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-5 sm:flex-row">
+          <Link
+            href="/"
+            className="flex items-center gap-3 text-xl font-black tracking-wide"
+          >
+            <Image
+              src="/blockpopx-mark.svg"
+              alt=""
+              width={44}
+              height={44}
+              className="h-11 w-11"
+            />
+            <span>
+              <span className="text-cyan-300">Block</span>
+              <span className="text-white">Pop</span>
+              <span className="text-fuchsia-300">X</span>
+            </span>
           </Link>
 
-          <nav className="flex items-center gap-6 text-sm text-slate-300">
+          <nav className="flex items-center gap-4 text-xs text-slate-300 sm:gap-6 sm:text-sm">
             <Link href="/play" className="hover:text-cyan-400">
               Play
             </Link>

@@ -69,14 +69,56 @@ body {
   }
 }
 
+@keyframes ballRelocate {
+  0% {
+    transform: translateX(-10px) scale(0.96);
+    opacity: 0.82;
+  }
+  45% {
+    transform: translateX(8px) translateY(-6px) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes signPop {
+  0% {
+    transform: translateY(12px) scale(0.88);
+    opacity: 0;
+  }
+  18% {
+    transform: translateY(-4px) scale(1.04);
+    opacity: 1;
+  }
+  72% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10px) scale(0.96);
+    opacity: 0;
+  }
+}
+
 .ball-move-down .game-ball {
-  animation: ballMoveDown 0.45s ease-out;
+  animation: ballMoveDown 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .ball-move-up .game-ball {
-  animation: ballMoveUp 0.45s ease-out;
+  animation: ballMoveUp 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .ball-shuffle .game-ball {
-  animation: ballShuffle 0.55s ease-out;
+  animation: ballShuffle 0.88s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ball-relocate .game-ball {
+  animation: ballRelocate 1.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.goal-sign {
+  animation: signPop 1.7s ease-out both;
 }

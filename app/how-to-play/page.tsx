@@ -1,15 +1,30 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function HowToPlayPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link href="/" className="text-xl font-black tracking-wide">
-            <span className="text-cyan-400">Block</span>PopX
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-5 sm:flex-row">
+          <Link
+            href="/"
+            className="flex items-center gap-3 text-xl font-black tracking-wide"
+          >
+            <Image
+              src="/blockpopx-mark.svg"
+              alt=""
+              width={44}
+              height={44}
+              className="h-11 w-11"
+            />
+            <span>
+              <span className="text-cyan-300">Block</span>
+              <span className="text-white">Pop</span>
+              <span className="text-fuchsia-300">X</span>
+            </span>
           </Link>
 
-          <nav className="flex items-center gap-6 text-sm text-slate-300">
+          <nav className="flex items-center gap-4 text-xs text-slate-300 sm:gap-6 sm:text-sm">
             <Link href="/play" className="hover:text-cyan-400">
               Play
             </Link>
@@ -34,9 +49,8 @@ export default function HowToPlayPage() {
           <h1 className="mt-4 text-5xl font-black">How to Play BlockPopX</h1>
 
           <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            BlockPopX is a simple block puzzle game. Your goal is to pop
-            matching blocks, score points, and beat your high score before your
-            moves run out.
+            BlockPopX is a fast puzzle game. Pop matching balls, score points,
+            charge Pip Blast, and keep your run alive by avoiding fouls.
           </p>
 
           <div className="mt-10">
@@ -83,11 +97,11 @@ export default function HowToPlayPage() {
               3
             </div>
 
-            <h2 className="text-xl font-bold">Use Your Moves</h2>
+            <h2 className="text-xl font-bold">Avoid Fouls</h2>
 
             <p className="mt-3 leading-7 text-slate-400">
-              You have 20 moves. Bigger groups give bigger points, so choose
-              carefully.
+              Bad taps and wasted power moves add fouls. Five fouls means a
+              restart, so choose carefully.
             </p>
           </div>
         </div>
@@ -100,14 +114,14 @@ export default function HowToPlayPage() {
 
             <p className="mt-4 leading-8 text-slate-300">
               The more blocks you pop at one time, the more points you earn.
-              Try to wait for bigger groups before using your moves.
+              Try to wait for bigger groups before using your boosts.
             </p>
 
             <ul className="mt-6 space-y-3 text-slate-400">
               <li>2 blocks = small points</li>
               <li>3 or more blocks = better points</li>
               <li>Large groups = big score bonus</li>
-              <li>20 moves = one full game</li>
+              <li>5 fouls = restart</li>
             </ul>
           </div>
 

@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "BlockPopX - Free Block Puzzle Game",
   description:
-    "Play BlockPopX, a free block puzzle game where you tap matching blocks, score points, use your moves wisely, and beat your high score.",
+    "Play BlockPopX, a free arcade puzzle game where you pop matching balls, charge Pip Blast, avoid fouls, and beat your high score.",
   keywords: [
     "BlockPopX",
     "block puzzle game",
@@ -17,10 +17,13 @@ export const metadata: Metadata = {
   creator: "BlockPopX",
   publisher: "BlockPopX",
   metadataBase: new URL("https://www.blockpopx.com"),
+  icons: {
+    icon: "/blockpopx-mark.svg",
+  },
   openGraph: {
     title: "BlockPopX - Free Block Puzzle Game",
     description:
-      "Tap matching blocks, score points, and beat your high score in BlockPopX.",
+      "Pop matching balls, charge Pip Blast, avoid fouls, and beat your high score in BlockPopX.",
     url: "https://www.blockpopx.com",
     siteName: "BlockPopX",
     type: "website",
@@ -29,7 +32,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "BlockPopX - Free Block Puzzle Game",
     description:
-      "Play BlockPopX, a free online block puzzle game. Tap matching blocks and beat your high score.",
+      "Play BlockPopX, a free online puzzle game. Pop matching balls, charge Pip Blast, and beat your high score.",
   },
 };
 

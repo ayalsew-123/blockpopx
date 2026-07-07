@@ -1,0 +1,108 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">BlockPopX logo</title>
+  <desc id="desc">A colorful arcade puzzle game logo with popping blocks and the BlockPopX wordmark.</desc>
+  <defs>
+    <linearGradient id="bg" x1="82" y1="74" x2="1058" y2="626" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#07143A"/>
+      <stop offset="0.52" stop-color="#150A33"/>
+      <stop offset="1" stop-color="#2D0632"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="328" y1="320" x2="518" y2="536" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67F7FF"/>
+      <stop offset="0.48" stop-color="#08CFF4"/>
+      <stop offset="1" stop-color="#0877FF"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="626" y1="319" x2="745" y2="547" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF06A"/>
+      <stop offset="0.48" stop-color="#FFB20B"/>
+      <stop offset="1" stop-color="#FF5A16"/>
+    </linearGradient>
+    <linearGradient id="pink" x1="770" y1="330" x2="1055" y2="557" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8AEF"/>
+      <stop offset="0.5" stop-color="#F61B96"/>
+      <stop offset="1" stop-color="#8A21FF"/>
+    </linearGradient>
+    <linearGradient id="word" x1="142" y1="431" x2="1050" y2="532" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#65F6FF"/>
+      <stop offset="0.48" stop-color="#08BFF6"/>
+      <stop offset="0.67" stop-color="#FFE14A"/>
+      <stop offset="0.83" stop-color="#FF3B72"/>
+      <stop offset="1" stop-color="#D83BFF"/>
+    </linearGradient>
+    <linearGradient id="greenBlock" x1="192" y1="260" x2="308" y2="408" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9FF2E"/>
+      <stop offset="1" stop-color="#38C80A"/>
+    </linearGradient>
+    <linearGradient id="blueBlock" x1="294" y1="160" x2="444" y2="322" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#71FBFF"/>
+      <stop offset="1" stop-color="#0876F6"/>
+    </linearGradient>
+    <linearGradient id="purpleBlock" x1="501" y1="170" x2="644" y2="333" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FB80FF"/>
+      <stop offset="1" stop-color="#7B21F5"/>
+    </linearGradient>
+    <linearGradient id="yellowBlock" x1="692" y1="241" x2="828" y2="401" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF66A"/>
+      <stop offset="1" stop-color="#FF8B00"/>
+    </linearGradient>
+    <linearGradient id="redBall" x1="529" y1="258" x2="617" y2="379" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7E75"/>
+      <stop offset="1" stop-color="#F70D28"/>
+    </linearGradient>
+    <filter id="glow" x="-60" y="-60" width="1320" height="795" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.02 0 0 0 0 0.67 0 0 0 0 1 0 0 0 0.85 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="shadow" x="40" y="74" width="1122" height="551" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="12" flood-color="#020617" flood-opacity="0.75"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="675" rx="54" fill="url(#bg)"/>
+  <g opacity="0.72">
+    <circle cx="165" cy="246" r="8" fill="#17D5FF"/>
+    <circle cx="216" cy="185" r="13" fill="#FF315E"/>
+    <circle cx="980" cy="245" r="10" fill="#A7F50B"/>
+    <circle cx="1036" cy="171" r="16" fill="#C135F6"/>
+    <path d="M937 134L947 154L969 157L953 172L957 194L937 183L917 194L921 172L905 157L927 154L937 134Z" fill="#FFD319"/>
+    <path d="M155 471L166 493L191 497L173 514L177 539L155 527L133 539L137 514L119 497L144 493L155 471Z" fill="#15D9FF"/>
+    <path d="M1046 470L1058 494L1085 498L1065 517L1070 544L1046 531L1022 544L1027 517L1007 498L1034 494L1046 470Z" fill="#FF4ED7"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <g opacity="0.95">
+      <path d="M469 190L496 90L521 198L500 233L469 190Z" fill="#FFE82D"/>
+      <path d="M651 212L761 119L714 247L667 260L651 212Z" fill="#FF9D13"/>
+      <path d="M394 216L298 119L428 176L438 226L394 216Z" fill="#21D2FF"/>
+      <path d="M797 242L918 209L816 288L777 278L797 242Z" fill="#FD4EC7"/>
+      <path d="M267 304L123 243L283 254L316 292L267 304Z" fill="#8EF71C"/>
+    </g>
+
+    <g filter="url(#glow)">
+      <rect x="242" y="162" width="166" height="166" rx="40" transform="rotate(-10 242 162)" fill="#061A4D" stroke="#F8FBFF" stroke-width="14"/>
+      <rect x="262" y="177" width="126" height="126" rx="31" transform="rotate(-10 262 177)" fill="url(#blueBlock)"/>
+      <rect x="456" y="154" width="166" height="166" rx="40" transform="rotate(9 456 154)" fill="#170B4D" stroke="#F8FBFF" stroke-width="14"/>
+      <rect x="476" y="174" width="126" height="126" rx="31" transform="rotate(9 476 174)" fill="url(#purpleBlock)"/>
+      <rect x="154" y="278" width="154" height="154" rx="38" transform="rotate(-13 154 278)" fill="#122B06" stroke="#F8FBFF" stroke-width="14"/>
+      <rect x="172" y="296" width="116" height="116" rx="29" transform="rotate(-13 172 296)" fill="url(#greenBlock)"/>
+      <circle cx="570" cy="320" r="83" fill="#420414" stroke="#F8FBFF" stroke-width="14"/>
+      <circle cx="570" cy="320" r="61" fill="url(#redBall)"/>
+      <rect x="715" y="263" width="154" height="154" rx="38" transform="rotate(13 715 263)" fill="#4A2500" stroke="#F8FBFF" stroke-width="14"/>
+      <rect x="734" y="282" width="116" height="116" rx="29" transform="rotate(13 734 282)" fill="url(#yellowBlock)"/>
+    </g>
+
+    <g font-family="Arial Black, Impact, Arial, sans-serif" font-weight="900" font-size="152" letter-spacing="-8">
+      <text x="143" y="520" stroke="#031231" stroke-width="44" stroke-linejoin="round">BlockPopX</text>
+      <text x="143" y="520" stroke="#FFFFFF" stroke-width="18" stroke-linejoin="round">BlockPopX</text>
+      <text x="143" y="520" fill="url(#word)">BlockPopX</text>
+      <text x="143" y="520" fill="white" opacity="0.28" transform="translate(0 -14)">BlockPopX</text>
+    </g>
+  </g>
+
+  <path d="M366 577H835" stroke="url(#pink)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M396 577H594" stroke="#18F4FF" stroke-width="5" stroke-linecap="round"/>
+</svg>
