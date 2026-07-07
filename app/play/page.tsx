@@ -5,13 +5,15 @@ import Link from "next/link";
 
 const rows = 6;
 const cols = 6;
-const maxMoves = 22;
+const maxMoves = 24;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"];
+
+type SpecialBlock = "bomb" | "rocket" | "lightning";
 
 type Block = {
   id: string;
   color: string;
-  special?: "bomb" | "rocket";
+  special?: SpecialBlock;
 };
 
 function randomBlock(row: number, col: number): Block {
@@ -29,29 +31,40 @@ function createBoard(): Block[][] {
 
 function getColorClass(block: Block) {
   if (block.special === "bomb") {
-    return "bg-gradient-to-br from-orange-300 via-red-500 to-pink-700";
+    return "bg-gradient-to-br from-orange-300 via-red-500 to-rose-700";
   }
 
   if (block.special === "rocket") {
-    return "bg-gradient-to-br from-cyan-300 via-blue-500 to-purple-700";
+    return "bg-gradient-to-br from-cyan-300 via-blue-500 to-indigo-700";
+  }
+
+  if (block.special === "lightning") {
+    return "bg-gradient-to-br from-yellow-200 via-amber-400 to-orange-600";
   }
 
   switch (block.color) {
     case "red":
-      return "bg-gradient-to-br from-red-400 to-red-600";
+      return "bg-gradient-to-br from-red-300 via-red-500 to-red-700";
     case "blue":
-      return "bg-gradient-to-br from-blue-400 to-blue-700";
+      return "bg-gradient-to-br from-sky-300 via-blue-500 to-blue-800";
     case "green":
-      return "bg-gradient-to-br from-emerald-300 to-green-600";
+      return "bg-gradient-to-br from-lime-300 via-emerald-500 to-green-700";
     case "yellow":
-      return "bg-gradient-to-br from-yellow-300 to-orange-400";
+      return "bg-gradient-to-br from-yellow-200 via-yellow-400 to-orange-500";
     case "purple":
-      return "bg-gradient-to-br from-purple-400 to-fuchsia-700";
+      return "bg-gradient-to-br from-violet-300 via-purple-500 to-fuchsia-800";
     case "pink":
-      return "bg-gradient-to-br from-pink-300 to-rose-600";
+      return "bg-gradient-to-br from-pink-300 via-rose-500 to-pink-700";
     default:
       return "bg-slate-500";
   }
+}
+
+function getSpecialIcon(block: Block) {
+  if (block.special === "bomb") return "💣";
+  if (block.special === "rocket") return "🚀";
+  if (block.special === "lightning") return "⚡";
+  return "";
 }
 
 export default function PlayPage() {
@@ -63,8 +76,11 @@ export default function PlayPage() {
   const [levelComplete, setLevelComplete] = useState(false);
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState(1);
-  const [targetScore, setTargetScore] = useState(1500);
+  const [targetScore, setTargetScore] = useState(1800);
   const [streak, setStreak] = useState(0);
+  const [bombsUsed, setBombsUsed] = useState(0);
+  const [rocketsUsed, setRocketsUsed] = useState(0);
+  const [lightningsUsed, setLightningsUsed] = useState(0);
 
   useEffect(() => {
     setBoard(createBoard());
@@ -91,6 +107,11 @@ export default function PlayPage() {
       return;
     }
 
+    if (selectedBlock.special === "lightning") {
+      activateLightning(colIndex);
+      return;
+    }
+
     const connected = findConnectedBlocks(
       rowIndex,
       colIndex,
@@ -104,18 +125,18 @@ export default function PlayPage() {
     }
 
     const newStreak = streak + 1;
-    const comboMultiplier = 1 + newStreak * 0.1;
+    const streakMultiplier = 1 + newStreak * 0.12;
 
     let pointsEarned = Math.floor(
-      connected.length * connected.length * 10 * comboMultiplier
+      connected.length * connected.length * 12 * streakMultiplier
     );
 
-    if (connected.length >= 8) {
-      pointsEarned += 300;
-    } else if (connected.length >= 6) {
-      pointsEarned += 150;
-    } else if (connected.length >= 4) {
-      pointsEarned += 60;
+    if (connected.length >= 9) {
+      pointsEarned += 450;
+    } else if (connected.length >= 7) {
+      pointsEarned += 250;
+    } else if (connected.length >= 5) {
+      pointsEarned += 120;
     }
 
     const newScore = score + pointsEarned;
@@ -126,7 +147,13 @@ export default function PlayPage() {
     setStreak(newStreak);
 
     const special =
-      connected.length >= 7 ? "rocket" : connected.length >= 5 ? "bomb" : null;
+      connected.length >= 9
+        ? "lightning"
+        : connected.length >= 7
+        ? "rocket"
+        : connected.length >= 5
+        ? "bomb"
+        : null;
 
     const newBoard = removeAndDropBlocks(board, connected, {
       row: rowIndex,
@@ -137,12 +164,14 @@ export default function PlayPage() {
 
     setBoard(newBoard);
 
-    if (connected.length >= 8) {
-      setMessage(`🔥 Mega Pop! +${pointsEarned} Rocket created!`);
+    if (connected.length >= 9) {
+      setMessage(`⚡ Power Pop! +${pointsEarned} Lightning created!`);
+    } else if (connected.length >= 7) {
+      setMessage(`🚀 Rocket Pop! +${pointsEarned} Rocket created!`);
     } else if (connected.length >= 5) {
-      setMessage(`💣 Big Pop! +${pointsEarned} Bomb created!`);
-    } else if (newStreak >= 3) {
-      setMessage(`⚡ Streak x${newStreak}! +${pointsEarned}`);
+      setMessage(`💣 Blast Pop! +${pointsEarned} Bomb created!`);
+    } else if (newStreak >= 4) {
+      setMessage(`🔥 Hot streak x${newStreak}! +${pointsEarned}`);
     } else {
       setMessage(`Nice Pop! +${pointsEarned}`);
     }
@@ -163,17 +192,17 @@ export default function PlayPage() {
       }
     }
 
-    const pointsEarned = affected.length * 80;
+    const pointsEarned = affected.length * 90;
     const newScore = score + pointsEarned;
     const newMovesLeft = movesLeft - 1;
 
     setScore(newScore);
     setMovesLeft(newMovesLeft);
     setStreak(streak + 1);
+    setBombsUsed(bombsUsed + 1);
     setMessage(`💣 Bomb Blast! +${pointsEarned}`);
 
     setBoard(removeAndDropBlocks(board, affected));
-
     finishMove(newScore, newMovesLeft);
   }
 
@@ -186,17 +215,40 @@ export default function PlayPage() {
       affected.push([rowIndex, col]);
     }
 
-    const pointsEarned = affected.length * 90;
+    const pointsEarned = affected.length * 110;
     const newScore = score + pointsEarned;
     const newMovesLeft = movesLeft - 1;
 
     setScore(newScore);
     setMovesLeft(newMovesLeft);
     setStreak(streak + 1);
-    setMessage(`🚀 Rocket Clear! +${pointsEarned}`);
+    setRocketsUsed(rocketsUsed + 1);
+    setMessage(`🚀 Rocket Row Clear! +${pointsEarned}`);
 
     setBoard(removeAndDropBlocks(board, affected));
+    finishMove(newScore, newMovesLeft);
+  }
 
+  function activateLightning(colIndex: number) {
+    if (!board) return;
+
+    const affected: [number, number][] = [];
+
+    for (let row = 0; row < rows; row++) {
+      affected.push([row, colIndex]);
+    }
+
+    const pointsEarned = affected.length * 120;
+    const newScore = score + pointsEarned;
+    const newMovesLeft = movesLeft - 1;
+
+    setScore(newScore);
+    setMovesLeft(newMovesLeft);
+    setStreak(streak + 1);
+    setLightningsUsed(lightningsUsed + 1);
+    setMessage(`⚡ Lightning Column Clear! +${pointsEarned}`);
+
+    setBoard(removeAndDropBlocks(board, affected));
     finishMove(newScore, newMovesLeft);
   }
 
@@ -256,7 +308,7 @@ export default function PlayPage() {
     specialBlock?: {
       row: number;
       col: number;
-      special: "bomb" | "rocket" | null;
+      special: SpecialBlock | null;
       color: string;
     }
   ) {
@@ -316,13 +368,16 @@ export default function PlayPage() {
     setLevelComplete(false);
     setMessage("");
     setStreak(0);
+    setBombsUsed(0);
+    setRocketsUsed(0);
+    setLightningsUsed(0);
   }
 
   function nextLevel() {
     const next = level + 1;
 
     setLevel(next);
-    setTargetScore(1500 + next * 600);
+    setTargetScore(1800 + next * 750);
     setBoard(createBoard());
     setScore(0);
     setMovesLeft(maxMoves);
@@ -330,6 +385,9 @@ export default function PlayPage() {
     setLevelComplete(false);
     setMessage(`Level ${next} started!`);
     setStreak(0);
+    setBombsUsed(0);
+    setRocketsUsed(0);
+    setLightningsUsed(0);
   }
 
   function resetHighScore() {
@@ -404,7 +462,7 @@ export default function PlayPage() {
       </header>
 
       <section className="px-4 py-6">
-        <div className="mx-auto max-w-[370px]">
+        <div className="mx-auto max-w-[390px]">
           <section className="mb-3 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">
               Power Puzzle Mode
@@ -415,7 +473,7 @@ export default function PlayPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-300">
-              Make combos, create bombs, launch rockets, beat the target.
+              Make combos, create boosters, and beat the level target.
             </p>
           </section>
 
@@ -452,6 +510,20 @@ export default function PlayPage() {
             <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
               <p className="text-xs text-slate-400">Streak</p>
               <p className="text-lg font-black text-green-300">{streak}</p>
+            </div>
+          </section>
+
+          <section className="mb-3 grid grid-cols-3 gap-2">
+            <div className="rounded-2xl bg-white/10 p-2 text-center text-xs">
+              💣 Bombs: {bombsUsed}
+            </div>
+
+            <div className="rounded-2xl bg-white/10 p-2 text-center text-xs">
+              🚀 Rockets: {rocketsUsed}
+            </div>
+
+            <div className="rounded-2xl bg-white/10 p-2 text-center text-xs">
+              ⚡ Bolts: {lightningsUsed}
             </div>
           </section>
 
@@ -506,15 +578,9 @@ export default function PlayPage() {
                     )} relative aspect-square rounded-2xl border border-white/30 shadow-lg shadow-black/30 transition hover:scale-110 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60`}
                     aria-label={`${block.color} block`}
                   >
-                    {block.special === "bomb" && (
+                    {getSpecialIcon(block) && (
                       <span className="absolute inset-0 flex items-center justify-center text-xl">
-                        💣
-                      </span>
-                    )}
-
-                    {block.special === "rocket" && (
-                      <span className="absolute inset-0 flex items-center justify-center text-xl">
-                        🚀
+                        {getSpecialIcon(block)}
                       </span>
                     )}
                   </button>
@@ -556,7 +622,7 @@ export default function PlayPage() {
           </div>
 
           <p className="mt-3 text-center text-xs text-slate-400">
-            5+ blocks creates 💣. 7+ blocks creates 🚀. Bigger groups score more.
+            5+ creates 💣. 7+ creates 🚀. 9+ creates ⚡. No rainbow blocks.
           </p>
         </div>
       </section>
