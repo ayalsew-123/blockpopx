@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
@@ -25,16 +26,23 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="px-6 py-20 md:py-28">
-        <div className="mx-auto max-w-5xl text-center">
+      <section className="px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-6xl text-center">
+          <Image
+            src="/blockpopx-logo.png"
+            alt="BlockPopX logo"
+            width={1200}
+            height={675}
+            priority
+            className="mx-auto mb-8 w-full max-w-4xl rounded-3xl"
+          />
+
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.3em] text-cyan-400">
             Free Online Puzzle Game
           </p>
 
-          <h1 className="text-5xl font-black leading-tight md:text-7xl">
-            Pop the blocks.
-            <br />
-            Beat the score.
+          <h1 className="text-4xl font-black leading-tight md:text-6xl">
+            Pop the blocks. Beat the score.
           </h1>
 
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300 md:text-xl">
@@ -141,24 +149,6 @@ export default function Home() {
               Read full instructions →
             </Link>
           </div>
-        </div>
-      </section>
-
-      <section className="border-t border-slate-800 px-6 py-16">
-        <div className="mx-auto max-w-4xl rounded-[2rem] bg-gradient-to-br from-slate-900 to-slate-950 p-10 text-center shadow-2xl">
-          <h2 className="text-4xl font-black">Ready to play?</h2>
-
-          <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-            Start a new game, pop matching blocks, and see how high you can
-            score.
-          </p>
-
-          <Link
-            href="/play"
-            className="mt-8 inline-block rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 transition hover:bg-cyan-300"
-          >
-            Start Playing
-          </Link>
         </div>
       </section>
 
