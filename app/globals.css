@@ -141,6 +141,58 @@ body {
   }
 }
 
+@keyframes showtimeRocket {
+  0% {
+    transform: translate3d(-118px, 118px, 0) rotate(-34deg) scale(0.68);
+    opacity: 0;
+  }
+  16% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate3d(34px, -28px, 0) rotate(-18deg) scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(132px, -132px, 0) rotate(8deg) scale(0.72);
+    opacity: 0;
+  }
+}
+
+@keyframes showtimeBurst {
+  0% {
+    transform: translateY(24px) scale(0.72);
+    opacity: 0;
+  }
+  22% {
+    transform: translateY(-8px) scale(1.06);
+    opacity: 1;
+  }
+  72% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-18px) scale(0.92);
+    opacity: 0;
+  }
+}
+
+@keyframes showtimeFlare {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.35);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
 .ball-move-down .game-ball {
   animation: ballMoveDown 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -175,4 +227,16 @@ body {
 
 .goal-sign {
   animation: signPop 1.7s ease-out both;
+}
+
+.showtime-rocket {
+  animation: showtimeRocket 1.35s cubic-bezier(0.16, 0.9, 0.2, 1) both;
+}
+
+.showtime-burst {
+  animation: showtimeBurst 1.65s cubic-bezier(0.16, 0.9, 0.2, 1) both;
+}
+
+.showtime-flare {
+  animation: showtimeFlare 1.45s ease-out both;
 }

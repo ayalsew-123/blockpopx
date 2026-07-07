@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -483,6 +483,8 @@ function mergePositions(...groups: [number, number][][]) {
 }
 
 export default function PlayPage() {
+  const showtimeTimers = useRef<number[]>([]);
+  const lastShowtimeScore = useRef(0);
   const [board, setBoard] = useState<Block[][] | null>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
@@ -505,6 +507,7 @@ export default function PlayPage() {
   const [pipCharge, setPipCharge] = useState(0);
   const [pipBlastsLeft, setPipBlastsLeft] = useState(0);
   const [goalSigns, setGoalSigns] = useState<string[]>([]);
+  const [showtimeSigns, setShowtimeSigns] = useState<string[]>([]);
   const [moveAnimation, setMoveAnimation] =
     useState<MoveAnimation>("none");
 
@@ -514,11 +517,20 @@ export default function PlayPage() {
       setBoard(createBoard(1));
 
       if (savedHighScore) {
-        setHighScore(Number(savedHighScore));
+        const parsedHighScore = Number(savedHighScore);
+        setHighScore(parsedHighScore);
+        lastShowtimeScore.current = parsedHighScore;
       }
     }, 0);
 
     return () => window.clearTimeout(boardTimer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      showtimeTimers.current.forEach((timer) => window.clearTimeout(timer));
+      showtimeTimers.current = [];
+    };
   }, []);
 
   useEffect(() => {
@@ -558,6 +570,80 @@ export default function PlayPage() {
     window.setTimeout(() => {
       setGoalSigns([]);
     }, 1800);
+  }
+
+  function queueShowtimeTimer(callback: () => void, delay: number) {
+    const timer = window.setTimeout(() => {
+      showtimeTimers.current = showtimeTimers.current.filter(
+        (activeTimer) => activeTimer !== timer
+      );
+      callback();
+    }, delay);
+
+    showtimeTimers.current.push(timer);
+  }
+
+  function uniqueSigns(signs: string[]) {
+    return Array.from(new Set(signs.filter(Boolean)));
+  }
+
+  function getShowtimeSigns(
+    newScore: number,
+    milestoneSigns: string[],
+    bonusSigns: string[] = []
+  ) {
+    const crossedBest = newScore > highScore;
+    const shouldCelebrateBest =
+      crossedBest &&
+      (lastShowtimeScore.current === 0 ||
+        newScore - lastShowtimeScore.current >= 350 ||
+        milestoneSigns.length > 0 ||
+        bonusSigns.length > 0);
+
+    return uniqueSigns([
+      ...bonusSigns,
+      ...(milestoneSigns.length > 0 ? ["Goal hit", "Rocket fire"] : []),
+      ...(shouldCelebrateBest ? ["New best", "Fire boost"] : []),
+    ]);
+  }
+
+  function triggerBoardShowtime(
+    signs: string[],
+    newScore: number,
+    cue: SoundCue = "big",
+    delay = 720
+  ) {
+    const showtime = uniqueSigns(signs);
+
+    if (showtime.length === 0) return;
+
+    lastShowtimeScore.current = Math.max(lastShowtimeScore.current, newScore);
+
+    queueShowtimeTimer(() => {
+      setSelectedBlock(null);
+      setIsMoving(true);
+      setMoveAnimation("rise");
+      setShowtimeSigns(showtime);
+      playGameSound(cue);
+    }, delay);
+
+    queueShowtimeTimer(() => {
+      setBoard((currentBoard) => {
+        if (!currentBoard) return currentBoard;
+        return rearrangeByGravity(
+          shuffleBoard(relocateBoard(currentBoard)),
+          gravity
+        );
+      });
+      setMoveAnimation("zigzag");
+      playGameSound("blast");
+    }, delay + 760);
+
+    queueShowtimeTimer(() => {
+      setIsMoving(false);
+      setMoveAnimation("none");
+      setShowtimeSigns([]);
+    }, delay + 2050);
   }
 
   function repairFouls(amount: number) {
@@ -797,6 +883,24 @@ export default function PlayPage() {
       pipResult.blastsEarned > 0 ? "blast" : "goal"
     );
 
+    const popShowtimeSigns = getShowtimeSigns(
+      newScore,
+      milestoneSigns,
+      [
+        ...(connected.length >= 7
+          ? ["Rocket launch", "Fire streak"]
+          : connected.length >= 5
+          ? ["Blast fire"]
+          : []),
+        ...(pipResult.blastsEarned > 0 ? ["Pip blast charged"] : []),
+      ]
+    );
+    triggerBoardShowtime(
+      popShowtimeSigns,
+      newScore,
+      connected.length >= 7 || pipResult.blastsEarned > 0 ? "big" : "blast"
+    );
+
     const special =
       connected.length >= 9
         ? "lightning"
@@ -948,6 +1052,14 @@ export default function PlayPage() {
       ],
       pipResult.blastsEarned > 0 ? "blast" : "goal"
     );
+    triggerBoardShowtime(
+      getShowtimeSigns(newScore, milestoneSigns, [
+        "Rocket fire",
+        ...(pipResult.blastsEarned > 0 ? ["Pip blast charged"] : []),
+      ]),
+      newScore,
+      "big"
+    );
 
     const nextBoard = removeAndRearrangeBlocks(board, affected);
 
@@ -1071,6 +1183,12 @@ export default function PlayPage() {
     setPrizeCharge(Math.min(prizeCharge + 18, maxPrizeCharge));
     playGameSound("prize");
     showGoalSigns(milestoneSigns, "goal");
+    triggerBoardShowtime(
+      getShowtimeSigns(newScore, milestoneSigns, ["Prize fire"]),
+      newScore,
+      "prize",
+      320
+    );
     setMessage(`Prize ball opened: ${reward.text}!`);
     finishMove(newScore, newMovesLeft, colorGoals);
   }
@@ -1115,6 +1233,15 @@ export default function PlayPage() {
     setMoveAnimation("shuffle");
     playGameSound(pointsEarned >= 900 ? "big" : "blast");
     showGoalSigns(milestoneSigns, "goal");
+    triggerBoardShowtime(
+      getShowtimeSigns(newScore, milestoneSigns, [
+        "Pip blast",
+        "Rocket fire",
+      ]),
+      newScore,
+      "big",
+      520
+    );
 
     setTimeout(() => {
       setIsMoving(false);
@@ -1146,6 +1273,12 @@ export default function PlayPage() {
       setTargetScore(newScore + 1800 + next * 550);
       setColorGoals(createLevelGoals(next));
       showGoalSigns(["Milestone clear", "New goals open"], "win");
+      triggerBoardShowtime(
+        ["Milestone clear", "Rocket fire", "Fire boost"],
+        newScore,
+        "win",
+        420
+      );
       setMessage("Milestone cleared! Keep playing for a bigger score.");
       return;
     }
@@ -1330,6 +1463,7 @@ export default function PlayPage() {
   function resetHighScore() {
     localStorage.removeItem("blockpopx-high-score");
     setHighScore(0);
+    lastShowtimeScore.current = 0;
     setMessage("High score reset.");
   }
 
@@ -1643,6 +1777,26 @@ export default function PlayPage() {
           )}
 
           <section className="relative rounded-[2rem] border border-white/10 bg-slate-900/90 p-2 shadow-2xl lg:p-3">
+            {showtimeSigns.length > 0 && (
+              <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-[2rem]">
+                <div className="showtime-flare absolute h-28 w-28 rounded-full bg-cyan-300/25 blur" />
+                <div className="showtime-rocket absolute text-5xl drop-shadow">
+                  🚀
+                </div>
+                <div className="showtime-burst flex flex-col items-center gap-2 rounded-3xl border border-white/30 bg-slate-950/80 px-5 py-4 text-center shadow-2xl backdrop-blur">
+                  <p className="text-3xl font-black">🔥</p>
+                  {showtimeSigns.map((sign) => (
+                    <p
+                      key={sign}
+                      className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100"
+                    >
+                      {sign}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {goalSigns.length > 0 && (
               <div className="pointer-events-none absolute inset-x-3 top-4 z-10 flex flex-col items-center gap-2">
                 {goalSigns.map((sign) => (
