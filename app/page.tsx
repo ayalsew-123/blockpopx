@@ -44,19 +44,21 @@ export default function Home() {
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/play"
-              className="rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-300"
-            >
-              Play Now
-            </Link>
+           <Link
+  href="/play"
+  target="_blank"
+  className="rounded-full bg-cyan-400 px-9 py-4 font-bold text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-300"
+>
+  Play Now
+</Link>
 
             <Link
-              href="/how-to-play"
-              className="rounded-full border border-slate-700 px-9 py-4 font-bold text-white transition hover:border-cyan-400 hover:text-cyan-400"
-            >
-              Learn How to Play
-            </Link>
+  href="/how-to-play"
+  target="_blank"
+  className="rounded-full border border-slate-700 px-9 py-4 font-bold text-white transition hover:border-cyan-400 hover:text-cyan-400"
+>
+  Learn How to Play
+</Link>
           </div>
         </div>
       </section>
