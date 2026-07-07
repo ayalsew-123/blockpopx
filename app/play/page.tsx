@@ -5,10 +5,12 @@ import Link from "next/link";
 
 const rows = 6;
 const cols = 6;
-const maxMoves = 24;
+const maxMoves = 26;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"];
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
+type GravityDirection = "down" | "up";
+type MoveAnimation = "none" | "up" | "down" | "shuffle";
 
 type Position = {
   row: number;
@@ -79,6 +81,26 @@ function isAdjacent(first: Position, second: Position) {
   return rowDistance + colDistance === 1;
 }
 
+function shuffleBoard(currentBoard: Block[][]) {
+  const flatBlocks = currentBoard.flat().map((block) => ({ ...block }));
+
+  for (let i = flatBlocks.length - 1; i > 0; i--) {
+    const randomIndex = Math.floor(Math.random() * (i + 1));
+    [flatBlocks[i], flatBlocks[randomIndex]] = [
+      flatBlocks[randomIndex],
+      flatBlocks[i],
+    ];
+  }
+
+  const newBoard: Block[][] = [];
+
+  for (let row = 0; row < rows; row++) {
+    newBoard.push(flatBlocks.slice(row * cols, row * cols + cols));
+  }
+
+  return newBoard;
+}
+
 export default function PlayPage() {
   const [board, setBoard] = useState<Block[][] | null>(null);
   const [score, setScore] = useState(0);
@@ -88,13 +110,14 @@ export default function PlayPage() {
   const [levelComplete, setLevelComplete] = useState(false);
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState(1);
-  const [targetScore, setTargetScore] = useState(1800);
+  const [targetScore, setTargetScore] = useState(2200);
   const [streak, setStreak] = useState(0);
-  const [bombsUsed, setBombsUsed] = useState(0);
-  const [rocketsUsed, setRocketsUsed] = useState(0);
-  const [lightningsUsed, setLightningsUsed] = useState(0);
   const [selectedBlock, setSelectedBlock] = useState<Position | null>(null);
   const [isMoving, setIsMoving] = useState(false);
+  const [gravity, setGravity] = useState<GravityDirection>("down");
+  const [shufflesLeft, setShufflesLeft] = useState(2);
+  const [moveAnimation, setMoveAnimation] =
+    useState<MoveAnimation>("none");
 
   useEffect(() => {
     setBoard(createBoard());
@@ -143,7 +166,7 @@ export default function PlayPage() {
       }
 
       setSelectedBlock(clickedPosition);
-      setMessage("Block selected. Tap a nearby block to swap.");
+      setMessage("Ball selected. Tap a nearby ball to swap.");
       return;
     }
 
@@ -155,17 +178,24 @@ export default function PlayPage() {
     );
 
     if (connected.length >= 2) {
-      popConnectedBlocks(board, connected, rowIndex, colIndex, clickedBlock.color);
+      popConnectedBlocks(
+        board,
+        connected,
+        rowIndex,
+        colIndex,
+        clickedBlock.color
+      );
       return;
     }
 
     setSelectedBlock(clickedPosition);
-    setMessage("Block selected. Tap a nearby block to swap.");
+    setMessage("Ball selected. Tap a nearby ball to make a smart move.");
   }
 
   function trySwap(first: Position, second: Position) {
     if (!board) return;
 
+    const oldBoard = board;
     const swappedBoard = board.map((row) => row.map((block) => ({ ...block })));
 
     const temp = swappedBoard[first.row][first.col];
@@ -175,6 +205,7 @@ export default function PlayPage() {
     setBoard(swappedBoard);
     setSelectedBlock(null);
     setIsMoving(true);
+    setMoveAnimation("shuffle");
     setMessage("Smart swap...");
 
     setTimeout(() => {
@@ -199,10 +230,11 @@ export default function PlayPage() {
         firstMatch.length >= secondMatch.length ? firstMatch : secondMatch;
 
       if (bestMatch.length < 2) {
-        setBoard(board);
+        setBoard(oldBoard);
         setStreak(0);
-        setMessage("No match. Blocks moved back.");
+        setMessage("No smart match. Balls moved back.");
         setIsMoving(false);
+        setMoveAnimation("none");
         return;
       }
 
@@ -214,9 +246,7 @@ export default function PlayPage() {
         swappedBoard[bestMatch[0][0]][bestMatch[0][1]].color,
         true
       );
-
-      setIsMoving(false);
-    }, 250);
+    }, 450);
   }
 
   function popConnectedBlocks(
@@ -228,24 +258,23 @@ export default function PlayPage() {
     usedSwap = false
   ) {
     setIsMoving(true);
+    setMoveAnimation(gravity === "down" ? "down" : "up");
 
     const newStreak = streak + 1;
-    const streakMultiplier = 1 + newStreak * 0.12;
+    const streakMultiplier = 1 + newStreak * 0.15;
 
     let pointsEarned = Math.floor(
-      connected.length * connected.length * 12 * streakMultiplier
+      connected.length * connected.length * 14 * streakMultiplier
     );
 
-    if (usedSwap) {
-      pointsEarned += 100;
-    }
+    if (usedSwap) pointsEarned += 150;
 
     if (connected.length >= 9) {
-      pointsEarned += 450;
+      pointsEarned += 500;
     } else if (connected.length >= 7) {
-      pointsEarned += 250;
+      pointsEarned += 300;
     } else if (connected.length >= 5) {
-      pointsEarned += 120;
+      pointsEarned += 150;
     }
 
     const newScore = score + pointsEarned;
@@ -264,7 +293,7 @@ export default function PlayPage() {
         ? "bomb"
         : null;
 
-    const newBoard = removeAndDropBlocks(currentBoard, connected, {
+    const newBoard = removeAndRearrangeBlocks(currentBoard, connected, {
       row: rowIndex,
       col: colIndex,
       special,
@@ -273,23 +302,27 @@ export default function PlayPage() {
 
     setTimeout(() => {
       setBoard(newBoard);
+    }, 180);
+
+    setTimeout(() => {
       setIsMoving(false);
-    }, 150);
+      setMoveAnimation("none");
+    }, 700);
 
     if (usedSwap && connected.length >= 5) {
-      setMessage(`🧠 Smart combo! +${pointsEarned} Booster created!`);
+      setMessage(`🧠 Smart trick! +${pointsEarned} Booster created!`);
     } else if (usedSwap) {
       setMessage(`🧠 Smart move! +${pointsEarned}`);
     } else if (connected.length >= 9) {
-      setMessage(`⚡ Power Pop! +${pointsEarned} Lightning created!`);
+      setMessage(`⚡ Power trick! +${pointsEarned} Lightning created!`);
     } else if (connected.length >= 7) {
-      setMessage(`🚀 Rocket Pop! +${pointsEarned} Rocket created!`);
+      setMessage(`🚀 Rocket trick! +${pointsEarned} Rocket created!`);
     } else if (connected.length >= 5) {
-      setMessage(`💣 Blast Pop! +${pointsEarned} Bomb created!`);
+      setMessage(`💣 Blast trick! +${pointsEarned} Bomb created!`);
     } else if (newStreak >= 4) {
       setMessage(`🔥 Hot streak x${newStreak}! +${pointsEarned}`);
     } else {
-      setMessage(`Nice Pop! +${pointsEarned}`);
+      setMessage(`Nice pop! +${pointsEarned}`);
     }
 
     finishMove(newScore, newMovesLeft);
@@ -297,8 +330,6 @@ export default function PlayPage() {
 
   function activateBomb(rowIndex: number, colIndex: number) {
     if (!board) return;
-
-    setIsMoving(true);
 
     const affected: [number, number][] = [];
 
@@ -310,86 +341,119 @@ export default function PlayPage() {
       }
     }
 
-    const pointsEarned = affected.length * 90;
-    const newScore = score + pointsEarned;
-    const newMovesLeft = movesLeft - 1;
-
-    setScore(newScore);
-    setMovesLeft(newMovesLeft);
-    setStreak(streak + 1);
-    setBombsUsed(bombsUsed + 1);
-    setMessage(`💣 Bomb Blast! +${pointsEarned}`);
-
-    const nextBoard = removeAndDropBlocks(board, affected);
-
-    setTimeout(() => {
-      setBoard(nextBoard);
-      setIsMoving(false);
-    }, 150);
-
-    finishMove(newScore, newMovesLeft);
+    activateSpecialMove(affected, 100, "💣 Bomb blast!");
   }
 
   function activateRocket(rowIndex: number) {
-    if (!board) return;
-
-    setIsMoving(true);
-
     const affected: [number, number][] = [];
 
     for (let col = 0; col < cols; col++) {
       affected.push([rowIndex, col]);
     }
 
-    const pointsEarned = affected.length * 110;
-    const newScore = score + pointsEarned;
-    const newMovesLeft = movesLeft - 1;
-
-    setScore(newScore);
-    setMovesLeft(newMovesLeft);
-    setStreak(streak + 1);
-    setRocketsUsed(rocketsUsed + 1);
-    setMessage(`🚀 Rocket Row Clear! +${pointsEarned}`);
-
-    const nextBoard = removeAndDropBlocks(board, affected);
-
-    setTimeout(() => {
-      setBoard(nextBoard);
-      setIsMoving(false);
-    }, 150);
-
-    finishMove(newScore, newMovesLeft);
+    activateSpecialMove(affected, 120, "🚀 Rocket row clear!");
   }
 
   function activateLightning(colIndex: number) {
-    if (!board) return;
-
-    setIsMoving(true);
-
     const affected: [number, number][] = [];
 
     for (let row = 0; row < rows; row++) {
       affected.push([row, colIndex]);
     }
 
-    const pointsEarned = affected.length * 120;
+    activateSpecialMove(affected, 130, "⚡ Lightning column clear!");
+  }
+
+  function activateSpecialMove(
+    affected: [number, number][],
+    pointValue: number,
+    text: string
+  ) {
+    if (!board || isMoving) return;
+
+    setIsMoving(true);
+    setMoveAnimation(gravity === "down" ? "down" : "up");
+
+    const pointsEarned = affected.length * pointValue;
     const newScore = score + pointsEarned;
     const newMovesLeft = movesLeft - 1;
 
     setScore(newScore);
     setMovesLeft(newMovesLeft);
     setStreak(streak + 1);
-    setLightningsUsed(lightningsUsed + 1);
-    setMessage(`⚡ Lightning Column Clear! +${pointsEarned}`);
 
-    const nextBoard = removeAndDropBlocks(board, affected);
+    const nextBoard = removeAndRearrangeBlocks(board, affected);
 
     setTimeout(() => {
       setBoard(nextBoard);
-      setIsMoving(false);
-    }, 150);
+    }, 180);
 
+    setTimeout(() => {
+      setIsMoving(false);
+      setMoveAnimation("none");
+    }, 700);
+
+    setMessage(`${text} +${pointsEarned}`);
     finishMove(newScore, newMovesLeft);
+  }
+
+  function flipGravity() {
+    if (!board || isMoving || gameOver || levelComplete) return;
+
+    const newMovesLeft = movesLeft - 1;
+    const nextGravity = gravity === "down" ? "up" : "down";
+
+    setGravity(nextGravity);
+    setMovesLeft(newMovesLeft);
+    setSelectedBlock(null);
+    setIsMoving(true);
+    setMoveAnimation(nextGravity === "down" ? "down" : "up");
+    setMessage(nextGravity === "down" ? "Gravity down!" : "Gravity up!");
+
+    const rearrangedBoard = rearrangeByGravity(board, nextGravity);
+
+    setTimeout(() => {
+      setBoard(rearrangedBoard);
+    }, 180);
+
+    setTimeout(() => {
+      setIsMoving(false);
+      setMoveAnimation("none");
+    }, 750);
+
+    finishMove(score, newMovesLeft);
+  }
+
+  function smartShuffle() {
+    if (!board || isMoving || gameOver || levelComplete) return;
+
+    if (shufflesLeft <= 0) {
+      setMessage("No shuffles left. Use smart swaps.");
+      return;
+    }
+
+    const newMovesLeft = movesLeft - 1;
+
+    setShufflesLeft(shufflesLeft - 1);
+    setMovesLeft(newMovesLeft);
+    setSelectedBlock(null);
+    setIsMoving(true);
+    setMoveAnimation("shuffle");
+    setStreak(0);
+    setMessage("Balls rearranged. Find the best trick!");
+
+    const shuffled = shuffleBoard(board);
+
+    setTimeout(() => {
+      setBoard(rearrangeByGravity(shuffled, gravity));
+    }, 220);
+
+    setTimeout(() => {
+      setIsMoving(false);
+      setMoveAnimation("none");
+    }, 800);
+
+    finishMove(score, newMovesLeft);
   }
 
   function finishMove(newScore: number, newMovesLeft: number) {
@@ -400,13 +464,13 @@ export default function PlayPage() {
 
     if (newScore >= targetScore) {
       setLevelComplete(true);
-      setMessage("🎉 Level Complete! You reached the target!");
+      setMessage("🎉 Puzzle solved! You reached the target!");
       return;
     }
 
-    if (newMovesLeft === 0) {
+    if (newMovesLeft <= 0) {
       setGameOver(true);
-      setMessage("Game Over! Try again.");
+      setMessage("Game Over! Try smarter moves.");
     }
   }
 
@@ -441,7 +505,7 @@ export default function PlayPage() {
     return result;
   }
 
-  function removeAndDropBlocks(
+  function removeAndRearrangeBlocks(
     currentBoard: Block[][],
     connected: [number, number][],
     specialBlock?: {
@@ -465,6 +529,24 @@ export default function PlayPage() {
       };
     }
 
+    return fillEmptySpaces(temporaryBoard, gravity);
+  }
+
+  function rearrangeByGravity(
+    currentBoard: Block[][],
+    direction: GravityDirection
+  ) {
+    const temporaryBoard: (Block | null)[][] = currentBoard.map((row) =>
+      row.map((block) => block)
+    );
+
+    return fillEmptySpaces(temporaryBoard, direction);
+  }
+
+  function fillEmptySpaces(
+    temporaryBoard: (Block | null)[][],
+    direction: GravityDirection
+  ) {
     const nextBoard: Block[][] = Array.from({ length: rows }, () =>
       Array.from({ length: cols }, () => randomBlock(0, 0))
     );
@@ -472,27 +554,48 @@ export default function PlayPage() {
     for (let col = 0; col < cols; col++) {
       const remainingBlocks: Block[] = [];
 
-      for (let row = rows - 1; row >= 0; row--) {
-        const block = temporaryBoard[row][col];
+      if (direction === "down") {
+        for (let row = rows - 1; row >= 0; row--) {
+          const block = temporaryBoard[row][col];
 
-        if (block) {
-          remainingBlocks.push(block);
+          if (block) remainingBlocks.push(block);
         }
-      }
 
-      let writeRow = rows - 1;
+        let writeRow = rows - 1;
 
-      for (const block of remainingBlocks) {
-        nextBoard[writeRow][col] = {
-          ...block,
-          id: `${writeRow}-${col}-${Date.now()}-${Math.random()}`,
-        };
-        writeRow--;
-      }
+        for (const block of remainingBlocks) {
+          nextBoard[writeRow][col] = {
+            ...block,
+            id: `${writeRow}-${col}-${Date.now()}-${Math.random()}`,
+          };
+          writeRow--;
+        }
 
-      while (writeRow >= 0) {
-        nextBoard[writeRow][col] = randomBlock(writeRow, col);
-        writeRow--;
+        while (writeRow >= 0) {
+          nextBoard[writeRow][col] = randomBlock(writeRow, col);
+          writeRow--;
+        }
+      } else {
+        for (let row = 0; row < rows; row++) {
+          const block = temporaryBoard[row][col];
+
+          if (block) remainingBlocks.push(block);
+        }
+
+        let writeRow = 0;
+
+        for (const block of remainingBlocks) {
+          nextBoard[writeRow][col] = {
+            ...block,
+            id: `${writeRow}-${col}-${Date.now()}-${Math.random()}`,
+          };
+          writeRow++;
+        }
+
+        while (writeRow < rows) {
+          nextBoard[writeRow][col] = randomBlock(writeRow, col);
+          writeRow++;
+        }
       }
     }
 
@@ -507,30 +610,30 @@ export default function PlayPage() {
     setLevelComplete(false);
     setMessage("");
     setStreak(0);
-    setBombsUsed(0);
-    setRocketsUsed(0);
-    setLightningsUsed(0);
     setSelectedBlock(null);
     setIsMoving(false);
+    setMoveAnimation("none");
+    setGravity("down");
+    setShufflesLeft(2);
   }
 
   function nextLevel() {
     const next = level + 1;
 
     setLevel(next);
-    setTargetScore(1800 + next * 750);
+    setTargetScore(2200 + next * 850);
     setBoard(createBoard());
     setScore(0);
     setMovesLeft(maxMoves);
     setGameOver(false);
     setLevelComplete(false);
-    setMessage(`Level ${next} started!`);
+    setMessage(`Level ${next} started. Solve the new puzzle!`);
     setStreak(0);
-    setBombsUsed(0);
-    setRocketsUsed(0);
-    setLightningsUsed(0);
     setSelectedBlock(null);
     setIsMoving(false);
+    setMoveAnimation("none");
+    setGravity(next % 2 === 0 ? "up" : "down");
+    setShufflesLeft(2);
   }
 
   function resetHighScore() {
@@ -605,10 +708,10 @@ export default function PlayPage() {
       </header>
 
       <section className="px-4 py-6">
-        <div className="mx-auto max-w-[390px]">
+        <div className="mx-auto max-w-[410px]">
           <section className="mb-3 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">
-              Smart Puzzle Mode
+              Smart Ball Puzzle
             </p>
 
             <h1 className="mt-2 text-4xl font-black">
@@ -616,7 +719,7 @@ export default function PlayPage() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-300">
-              Pop groups or swap nearby blocks to create smart combos.
+              Move balls, flip gravity, rearrange, and solve smart combos.
             </p>
           </section>
 
@@ -657,23 +760,33 @@ export default function PlayPage() {
           </section>
 
           <section className="mb-3 grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-white/10 p-2 text-center text-xs">
-              💣 {bombsUsed}
-            </div>
+            <button
+              type="button"
+              onClick={flipGravity}
+              disabled={isMoving || gameOver || levelComplete}
+              className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+            >
+              {gravity === "down" ? "⬇ Down" : "⬆ Up"}
+            </button>
 
-            <div className="rounded-2xl bg-white/10 p-2 text-center text-xs">
-              🚀 {rocketsUsed}
-            </div>
+            <button
+              type="button"
+              onClick={smartShuffle}
+              disabled={isMoving || gameOver || levelComplete}
+              className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+            >
+              🔀 {shufflesLeft}
+            </button>
 
-            <div className="rounded-2xl bg-white/10 p-2 text-center text-xs">
-              ⚡ {lightningsUsed}
+            <div className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold">
+              🧠 Smart
             </div>
           </section>
 
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">
-                {levelComplete ? "Level Complete!" : "Game Over"}
+                {levelComplete ? "Puzzle Solved!" : "Game Over"}
               </h2>
 
               <p className="mt-2 text-sm text-slate-300">
@@ -687,7 +800,7 @@ export default function PlayPage() {
                     onClick={nextLevel}
                     className="rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400 px-5 py-2 text-sm font-black text-slate-950"
                   >
-                    Next Level
+                    Next Puzzle
                   </button>
                 ) : (
                   <button
@@ -706,6 +819,14 @@ export default function PlayPage() {
             <div
               className={`grid gap-2 transition-all duration-300 ${
                 isMoving ? "scale-95 opacity-90" : "scale-100 opacity-100"
+              } ${
+                moveAnimation === "down"
+                  ? "ball-move-down"
+                  : moveAnimation === "up"
+                  ? "ball-move-up"
+                  : moveAnimation === "shuffle"
+                  ? "ball-shuffle"
+                  : ""
               }`}
               style={{
                 gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
@@ -723,15 +844,17 @@ export default function PlayPage() {
                       key={block.id}
                       onClick={() => handleBlockClick(rowIndex, colIndex)}
                       disabled={gameOver || levelComplete || isMoving}
-                      className={`${getColorClass(
+                      className={`game-ball ${getColorClass(
                         block
-                      )} relative aspect-square rounded-2xl border shadow-lg shadow-black/30 transition-all duration-300 hover:scale-110 active:scale-90 disabled:cursor-not-allowed disabled:opacity-70 ${
+                      )} relative aspect-square rounded-full border shadow-lg shadow-black/30 transition-all duration-300 hover:scale-110 active:scale-90 disabled:cursor-not-allowed disabled:opacity-70 ${
                         isSelected
                           ? "border-yellow-300 ring-4 ring-yellow-300 scale-105"
-                          : "border-white/30"
+                          : "border-white/40"
                       }`}
-                      aria-label={`${block.color} block`}
+                      aria-label={`${block.color} ball`}
                     >
+                      <span className="absolute inset-1 rounded-full bg-white/20" />
+
                       {getSpecialIcon(block) && (
                         <span className="absolute inset-0 flex items-center justify-center text-xl">
                           {getSpecialIcon(block)}
@@ -777,7 +900,7 @@ export default function PlayPage() {
           </div>
 
           <p className="mt-3 text-center text-xs text-slate-400">
-            Tap groups to pop. Tap one block then nearby block to swap smart.
+            Tap groups to pop. Swap nearby balls. Flip gravity to solve tricks.
           </p>
         </div>
       </section>

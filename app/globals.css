@@ -24,3 +24,59 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@keyframes ballMoveDown {
+  0% {
+    transform: translateY(-22px) scale(0.9);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translateY(6px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ballMoveUp {
+  0% {
+    transform: translateY(22px) scale(0.9);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translateY(-6px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ballShuffle {
+  0% {
+    transform: rotate(-12deg) scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: rotate(12deg) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.ball-move-down .game-ball {
+  animation: ballMoveDown 0.45s ease-out;
+}
+
+.ball-move-up .game-ball {
+  animation: ballMoveUp 0.45s ease-out;
+}
+
+.ball-shuffle .game-ball {
+  animation: ballShuffle 0.55s ease-out;
+}
