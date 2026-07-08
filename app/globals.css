@@ -122,6 +122,24 @@ body {
   }
 }
 
+@keyframes ballClearPop {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  42% {
+    transform: translate3d(0, -16px, 0) scale(1.18);
+    opacity: 1;
+    filter: brightness(1.35);
+  }
+  100% {
+    transform: translate3d(0, 18px, 0) scale(0.12);
+    opacity: 0;
+    filter: brightness(1.6);
+  }
+}
+
 @keyframes signPop {
   0% {
     transform: translateY(12px) scale(0.88);
@@ -223,6 +241,13 @@ body {
     (var(--ball-col, 0) * 0.055s) + (var(--ball-row, 0) * 0.035s)
   );
   will-change: transform, opacity;
+}
+
+.game-ball.ball-clearing,
+.clearing-ball.ball-clearing {
+  animation: ballClearPop 0.56s cubic-bezier(0.16, 0.9, 0.2, 1) both;
+  pointer-events: none;
+  will-change: transform, opacity, filter;
 }
 
 .goal-sign {

@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const rows = 6;
-const cols = 6;
+const rows = 7;
+const cols = 7;
 const maxMoves = 20;
 const maxFouls = 5;
 const maxPrizeCharge = 100;
@@ -39,6 +39,13 @@ type Block = {
   locked?: boolean;
   prize?: PrizeType;
   pips?: number;
+};
+
+type ClearingBurst = {
+  key: string;
+  row: number;
+  col: number;
+  colorClass: string;
 };
 
 const colorLabels: Record<BlockColor, string> = {
@@ -508,6 +515,8 @@ export default function PlayPage() {
   const [pipBlastsLeft, setPipBlastsLeft] = useState(0);
   const [goalSigns, setGoalSigns] = useState<string[]>([]);
   const [showtimeSigns, setShowtimeSigns] = useState<string[]>([]);
+  const [clearingBlockKeys, setClearingBlockKeys] = useState<string[]>([]);
+  const [clearingBursts, setClearingBursts] = useState<ClearingBurst[]>([]);
   const [moveAnimation, setMoveAnimation] =
     useState<MoveAnimation>("none");
 
@@ -583,7 +592,7 @@ export default function PlayPage() {
     signs: string[],
     newScore: number,
     cue: SoundCue = "big",
-    delay = 720
+    delay = 940
   ) {
     const showtime = uniqueSigns(signs);
 
@@ -616,6 +625,21 @@ export default function PlayPage() {
       setMoveAnimation("none");
       setShowtimeSigns([]);
     }, delay + 2050);
+  }
+
+  function markClearingBlocks(
+    currentBoard: Block[][],
+    positions: [number, number][]
+  ) {
+    setClearingBlockKeys(positions.map(([row, col]) => `${row}-${col}`));
+    setClearingBursts(
+      positions.map(([row, col]) => ({
+        key: `${currentBoard[row][col].id}-${row}-${col}`,
+        row,
+        col,
+        colorClass: getColorClass(currentBoard[row][col]),
+      }))
+    );
   }
 
   function repairFouls(amount: number) {
@@ -887,14 +911,18 @@ export default function PlayPage() {
       prize,
     });
 
+    markClearingBlocks(currentBoard, clearedBlocks);
+
     setTimeout(() => {
       setBoard(newBoard);
-    }, 180);
+      setClearingBlockKeys([]);
+      setClearingBursts([]);
+    }, 560);
 
     setTimeout(() => {
       setIsMoving(false);
       setMoveAnimation("none");
-    }, 700);
+    }, 1040);
 
     const lockText =
       crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : "";
@@ -1031,14 +1059,18 @@ export default function PlayPage() {
 
     const nextBoard = removeAndRearrangeBlocks(board, affected);
 
+    markClearingBlocks(board, affected);
+
     setTimeout(() => {
       setBoard(nextBoard);
-    }, 180);
+      setClearingBlockKeys([]);
+      setClearingBursts([]);
+    }, 560);
 
     setTimeout(() => {
       setIsMoving(false);
       setMoveAnimation("none");
-    }, 700);
+    }, 1040);
 
     setMessage(
       `${text} +${pointsEarned}${
@@ -1142,12 +1174,13 @@ export default function PlayPage() {
     const milestoneSigns =
       score < targetScore && newScore >= targetScore ? ["Score goal hit"] : [];
 
-    setBoard(nextBoard);
     setScore(newScore);
     setMovesLeft(newMovesLeft);
     repairFouls(reward.moves);
     setShufflesLeft(newShufflesLeft);
     setSelectedBlock(null);
+    setIsMoving(true);
+    setMoveAnimation(gravity === "down" ? "down" : "up");
     setPrizeCharge(Math.min(prizeCharge + 18, maxPrizeCharge));
     playGameSound("prize");
     showGoalSigns(milestoneSigns, "goal");
@@ -1155,8 +1188,21 @@ export default function PlayPage() {
       getShowtimeSigns(newScore, milestoneSigns, ["Prize fire"]),
       newScore,
       "prize",
-      320
+      940
     );
+
+    markClearingBlocks(board, [[rowIndex, colIndex]]);
+
+    setTimeout(() => {
+      setBoard(nextBoard);
+      setClearingBlockKeys([]);
+      setClearingBursts([]);
+    }, 560);
+
+    setTimeout(() => {
+      setIsMoving(false);
+      setMoveAnimation("none");
+    }, 1040);
     setMessage(`Prize ball opened: ${reward.text}!`);
     finishMove(newScore, newMovesLeft, colorGoals);
   }
@@ -1192,7 +1238,6 @@ export default function PlayPage() {
     );
     const nextBoard = removeAndRearrangeBlocks(board, clearedBlocks);
 
-    setBoard(nextBoard);
     setScore(newScore);
     setColorGoals(newColorGoals);
     setPipBlastsLeft(pipBlastsLeft - 1);
@@ -1208,13 +1253,21 @@ export default function PlayPage() {
       ]),
       newScore,
       "big",
-      520
+      940
     );
+
+    markClearingBlocks(board, clearedBlocks);
+
+    setTimeout(() => {
+      setBoard(nextBoard);
+      setClearingBlockKeys([]);
+      setClearingBursts([]);
+    }, 560);
 
     setTimeout(() => {
       setIsMoving(false);
       setMoveAnimation("none");
-    }, 650);
+    }, 1040);
 
     setMessage(
       `Pip Blast cleared ${colorLabels[blastColor]} blocks! +${pointsEarned}${
@@ -1397,6 +1450,8 @@ export default function PlayPage() {
     setSelectedBlock(null);
     setIsMoving(false);
     setMoveAnimation("none");
+    setClearingBlockKeys([]);
+    setClearingBursts([]);
     setGravity("down");
     setShufflesLeft(2);
     setPrizeCharge(0);
@@ -1421,6 +1476,8 @@ export default function PlayPage() {
     setSelectedBlock(null);
     setIsMoving(false);
     setMoveAnimation("none");
+    setClearingBlockKeys([]);
+    setClearingBursts([]);
     setGravity(next % 2 === 0 ? "up" : "down");
     setShufflesLeft(2);
     setPrizeCharge(0);
@@ -1778,92 +1835,123 @@ export default function PlayPage() {
               </div>
             )}
 
-            <div
-              className={`grid gap-2 transition-all duration-300 ${
-                isMoving ? "scale-95 opacity-90" : "scale-100 opacity-100"
-              } ${
-                moveAnimation === "down"
-                  ? "ball-move-down"
-                  : moveAnimation === "up"
-                  ? "ball-move-up"
-                  : moveAnimation === "shuffle"
-                  ? "ball-shuffle"
-                  : moveAnimation === "relocate"
-                  ? "ball-relocate"
-                  : moveAnimation === "rise"
-                  ? "ball-rise-away"
-                  : moveAnimation === "zigzag"
-                  ? "ball-zigzag-return"
-                  : ""
-              }`}
-              style={{
-                gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-              }}
-            >
-              {board.map((row, rowIndex) =>
-                row.map((block, colIndex) => {
-                  const isSelected =
-                    selectedBlock?.row === rowIndex &&
-                    selectedBlock?.col === colIndex;
+            <div className="relative">
+              <div
+                className={`grid gap-2 transition-all duration-300 ${
+                  isMoving ? "scale-95 opacity-90" : "scale-100 opacity-100"
+                } ${
+                  moveAnimation === "down"
+                    ? "ball-move-down"
+                    : moveAnimation === "up"
+                    ? "ball-move-up"
+                    : moveAnimation === "shuffle"
+                    ? "ball-shuffle"
+                    : moveAnimation === "relocate"
+                    ? "ball-relocate"
+                    : moveAnimation === "rise"
+                    ? "ball-rise-away"
+                    : moveAnimation === "zigzag"
+                    ? "ball-zigzag-return"
+                    : ""
+                }`}
+                style={{
+                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                }}
+              >
+                {board.map((row, rowIndex) =>
+                  row.map((block, colIndex) => {
+                    const isSelected =
+                      selectedBlock?.row === rowIndex &&
+                      selectedBlock?.col === colIndex;
+                    const isClearing = clearingBlockKeys.includes(
+                      `${rowIndex}-${colIndex}`
+                    );
 
-                  return (
-                    <button
-                      type="button"
-                      key={block.id}
-                      onClick={() => handleBlockClick(rowIndex, colIndex)}
-                      disabled={gameOver || levelComplete || isMoving}
-                      className={`game-ball ${getColorClass(
-                        block
-                      )} relative aspect-square rounded-full border shadow-lg shadow-black/30 transition-all duration-300 hover:scale-110 active:scale-90 disabled:cursor-not-allowed disabled:opacity-70 ${
-                        isSelected
-                          ? "border-yellow-300 ring-4 ring-yellow-300 scale-105"
-                          : "border-white/40"
-                      }`}
-                      aria-label={getBlockLabel(block)}
-                      style={
-                        {
-                          "--ball-row": rowIndex,
-                          "--ball-col": colIndex,
-                          "--zigzag-start-x":
-                            colIndex % 2 === 0 ? "-72px" : "72px",
-                          "--zigzag-mid-x":
-                            (rowIndex + colIndex) % 2 === 0
-                              ? "42px"
-                              : "-42px",
-                          "--zigzag-cross-x":
-                            (rowIndex + colIndex) % 2 === 0
-                              ? "-24px"
-                              : "24px",
-                        } as CSSProperties
-                      }
+                    return (
+                      <button
+                        type="button"
+                        key={block.id}
+                        onClick={() => handleBlockClick(rowIndex, colIndex)}
+                        disabled={gameOver || levelComplete || isMoving}
+                        className={`game-ball ${getColorClass(
+                          block
+                        )} relative aspect-square rounded-full border shadow-lg shadow-black/30 transition-all duration-300 hover:scale-110 active:scale-90 disabled:cursor-not-allowed disabled:opacity-70 ${
+                          isClearing
+                            ? "ball-clearing border-white/70"
+                            : ""
+                        } ${
+                          isSelected
+                            ? "border-yellow-300 ring-4 ring-yellow-300 scale-105"
+                            : "border-white/40"
+                        }`}
+                        aria-label={getBlockLabel(block)}
+                        style={
+                          {
+                            "--ball-row": rowIndex,
+                            "--ball-col": colIndex,
+                            "--zigzag-start-x":
+                              colIndex % 2 === 0 ? "-72px" : "72px",
+                            "--zigzag-mid-x":
+                              (rowIndex + colIndex) % 2 === 0
+                                ? "42px"
+                                : "-42px",
+                            "--zigzag-cross-x":
+                              (rowIndex + colIndex) % 2 === 0
+                                ? "-24px"
+                                : "24px",
+                          } as CSSProperties
+                        }
+                      >
+                        <span className="absolute inset-1 rounded-full bg-white/20" />
+
+                        {getSpecialIcon(block) && (
+                          <span
+                            className={`absolute inset-0 flex items-center justify-center font-black ${
+                              block.locked || block.prize
+                                ? "text-[0.56rem] tracking-wide text-white drop-shadow"
+                                : "text-xl"
+                            }`}
+                          >
+                            {getSpecialIcon(block)}
+                          </span>
+                        )}
+
+                        {block.pips && !block.locked && !block.prize && (
+                          <span className="absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-0.5">
+                            {Array.from({ length: block.pips }, (_, pipIndex) => (
+                              <span
+                                key={pipIndex}
+                                className="h-1.5 w-1.5 rounded-full bg-white shadow shadow-black/50"
+                              />
+                            ))}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {clearingBursts.length > 0 && (
+                <div
+                  className="pointer-events-none absolute inset-0 grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {clearingBursts.map((burst) => (
+                    <div
+                      key={burst.key}
+                      className={`clearing-ball ball-clearing ${burst.colorClass} relative aspect-square rounded-full border border-white/80 shadow-xl shadow-cyan-400/30`}
+                      style={{
+                        gridColumn: burst.col + 1,
+                        gridRow: burst.row + 1,
+                      }}
                     >
-                      <span className="absolute inset-1 rounded-full bg-white/20" />
-
-                      {getSpecialIcon(block) && (
-                        <span
-                          className={`absolute inset-0 flex items-center justify-center font-black ${
-                            block.locked || block.prize
-                              ? "text-[0.56rem] tracking-wide text-white drop-shadow"
-                              : "text-xl"
-                          }`}
-                        >
-                          {getSpecialIcon(block)}
-                        </span>
-                      )}
-
-                      {block.pips && !block.locked && !block.prize && (
-                        <span className="absolute bottom-1 left-1/2 flex -translate-x-1/2 gap-0.5">
-                          {Array.from({ length: block.pips }, (_, pipIndex) => (
-                            <span
-                              key={pipIndex}
-                              className="h-1.5 w-1.5 rounded-full bg-white shadow shadow-black/50"
-                            />
-                          ))}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
+                      <span className="absolute inset-1 rounded-full bg-white/25" />
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </section>
