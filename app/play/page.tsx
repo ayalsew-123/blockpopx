@@ -967,10 +967,11 @@ export default function PlayPage() {
     );
   }
 
-  function settleBoardAfterClear(nextBoard: Block[][]) {
-    const emptyKeys = Array.from({ length: rows }, (_, row) =>
-      Array.from({ length: cols }, (_, col) => `${row}-${col}`)
-    ).flat();
+  function settleBoardAfterClear(
+    nextBoard: Block[][],
+    clearedPositions: [number, number][]
+  ) {
+    const emptyKeys = clearedPositions.map(([row, col]) => `${row}-${col}`);
 
     window.setTimeout(() => {
       setClearingBlockKeys([]);
@@ -1329,7 +1330,7 @@ export default function PlayPage() {
     });
 
     markClearingBlocks(currentBoard, clearedBlocks);
-    settleBoardAfterClear(newBoard);
+    settleBoardAfterClear(newBoard, clearedBlocks);
 
     const lockText =
       crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : "";
@@ -1467,7 +1468,7 @@ export default function PlayPage() {
     const nextBoard = removeAndRearrangeBlocks(board, affected);
 
     markClearingBlocks(board, affected);
-    settleBoardAfterClear(nextBoard);
+    settleBoardAfterClear(nextBoard, affected);
 
     setMessage(
       `${text} +${pointsEarned}${
@@ -1589,7 +1590,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, [[rowIndex, colIndex]]);
-    settleBoardAfterClear(nextBoard);
+    settleBoardAfterClear(nextBoard, [[rowIndex, colIndex]]);
     setMessage(`Prize ball opened: ${reward.text}!`);
     finishMove(newScore, newMovesLeft, colorGoals, 1);
   }
@@ -1644,7 +1645,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, clearedBlocks);
-    settleBoardAfterClear(nextBoard);
+    settleBoardAfterClear(nextBoard, clearedBlocks);
 
     setMessage(
       `Pip Blast cleared ${colorLabels[blastColor]} blocks! +${pointsEarned}${
