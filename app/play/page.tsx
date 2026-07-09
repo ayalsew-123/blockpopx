@@ -4,15 +4,15 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const rows = 9;
-const cols = 9;
+const rows = 10;
+const cols = 10;
 const maxMoves = 20;
 const maxFouls = 5;
 const maxPrizeCharge = 100;
 const maxPipCharge = 12;
 const maxPileDanger = 100;
-const startingDropStock = 420;
-const minVisibleBeforeWaveDrop = 13;
+const startingDropStock = 620;
+const minVisibleBeforeWaveDrop = 16;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
@@ -343,13 +343,15 @@ function getPuzzlePlan(currentLevel: number) {
 
     const color = colors[(currentLevel - 1 + offset) % colors.length];
     const baseCount = template.goalCounts[index] ?? template.goalCounts[0] ?? 8;
-    goals[color] += baseCount + currentLevel + cycle * 2;
+    goals[color] += baseCount + currentLevel + cycle * 3 + 2;
   });
 
   return {
     ...template,
     goals,
-    scoreTarget: template.scoreBase + currentLevel * template.scoreStep,
+    scoreTarget: Math.floor(
+      (template.scoreBase + currentLevel * template.scoreStep) * 1.18
+    ),
   };
 }
 
@@ -358,17 +360,20 @@ function getRushMode(currentLevel: number) {
 }
 
 function getDropStockForLevel(currentLevel: number) {
-  return startingDropStock + (currentLevel - 1) * 52;
+  return startingDropStock + (currentLevel - 1) * 74;
 }
 
 function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockColor {
-  const pattern = (currentLevel - 1) % 12;
+  const pattern = (currentLevel - 1) % 24;
   const shift = currentLevel - 1;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
   const rowDistance = Math.abs(row - centerRow);
   const colDistance = Math.abs(col - centerCol);
   const ring = Math.max(rowDistance, colDistance);
+  const mirrorRow = row <= centerRow ? row : rows - 1 - row;
+  const mirrorCol = col <= centerCol ? col : cols - 1 - col;
+  const diamond = rowDistance + colDistance;
 
   if (pattern === 0) {
     return colors[(Math.floor(col / 2) + shift + (row % 2)) % colors.length];
@@ -404,7 +409,6 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
   }
 
   if (pattern === 8) {
-    const mirrorCol = col <= centerCol ? col : cols - 1 - col;
     return colors[(Math.floor(row / 2) + mirrorCol + shift) % colors.length];
   }
 
@@ -420,15 +424,80 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
 
   const spiralBand =
     ring + Math.floor((row + col + Math.abs(row - col)) / 4);
-  return colors[(spiralBand + shift) % colors.length];
+
+  if (pattern === 11) {
+    return colors[(spiralBand + shift) % colors.length];
+  }
+
+  if (pattern === 12) {
+    return colors[((row % 3) * 2 + (col % 3) + shift) % colors.length];
+  }
+
+  if (pattern === 13) {
+    const hourglass =
+      Math.abs(row - col) + Math.abs(row + col - (cols - 1));
+    return colors[(Math.floor(hourglass / 2) + shift) % colors.length];
+  }
+
+  if (pattern === 14) {
+    const rail = row % 4 === 1 || col % 4 === 1 ? 1 : 3;
+    return colors[(rail + Math.floor((row + col) / 3) + shift) % colors.length];
+  }
+
+  if (pattern === 15) {
+    return colors[(ring + Math.floor(row / 3) + Math.floor(col / 3) + shift) % colors.length];
+  }
+
+  if (pattern === 16) {
+    const arrow = row < centerRow ? centerRow - row + (col % 3) : row - centerRow + ((cols - 1 - col) % 3);
+    return colors[(arrow + shift) % colors.length];
+  }
+
+  if (pattern === 17) {
+    const island = Math.floor(row / 3) * 2 + Math.floor(col / 3) + ((row + col) % 2);
+    return colors[(island + shift) % colors.length];
+  }
+
+  if (pattern === 18) {
+    const xGate =
+      Math.abs(row - col) <= 1 || Math.abs(row + col - (cols - 1)) <= 1
+        ? 0
+        : 3;
+    return colors[(xGate + ring + shift) % colors.length];
+  }
+
+  if (pattern === 19) {
+    const maze = row * 2 + col + Math.floor(row / 3) + Math.floor(col / 4);
+    return colors[(maze + shift) % colors.length];
+  }
+
+  if (pattern === 20) {
+    return colors[(Math.floor((row + 2 * col) / 3) + shift) % colors.length];
+  }
+
+  if (pattern === 21) {
+    const bracket = mirrorRow + Math.floor(Math.abs(col - centerCol) / 2);
+    return colors[(bracket + shift) % colors.length];
+  }
+
+  if (pattern === 22) {
+    return colors[(diamond + Math.floor((row + col) / 4) + shift) % colors.length];
+  }
+
+  const snake = row % 2 === 0 ? col : cols - 1 - col;
+  return colors[(Math.floor(snake / 2) + Math.floor(row / 2) + shift) % colors.length];
 }
 
 function addPuzzleFixture(block: Block, row: number, col: number, currentLevel = 1) {
   if (block.locked || block.prize || block.special) return block;
 
-  const pattern = (currentLevel - 1) % 12;
+  const pattern = (currentLevel - 1) % 24;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
+  const rowDistance = Math.abs(row - centerRow);
+  const colDistance = Math.abs(col - centerCol);
+  const mirrorRow = row <= centerRow ? row : rows - 1 - row;
+  const mirrorCol = col <= centerCol ? col : cols - 1 - col;
   const nextBlock = { ...block };
 
   if (
@@ -482,6 +551,120 @@ function addPuzzleFixture(block: Block, row: number, col: number, currentLevel =
     (row + col + currentLevel) % 7 === 0
   ) {
     nextBlock.special = randomSpecialType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 12 &&
+    row % 3 === 1 &&
+    col % 3 === 1 &&
+    (row + col + currentLevel) % 4 === 0
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 13 &&
+    (Math.abs(row - col) <= 1 || Math.abs(row + col - (cols - 1)) <= 1) &&
+    (row + currentLevel) % 5 === 0
+  ) {
+    nextBlock.pips = Math.max(nextBlock.pips ?? 0, 3);
+  }
+
+  if (
+    pattern === 14 &&
+    (row % 4 === 1 || col % 4 === 1) &&
+    row > 0 &&
+    col > 0 &&
+    row < rows - 1 &&
+    col < cols - 1 &&
+    (row + col + currentLevel) % 6 === 0
+  ) {
+    nextBlock.special = randomSpecialType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 15 &&
+    Math.max(rowDistance, colDistance) === 3 &&
+    (row + col + currentLevel) % 5 === 0
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 16 &&
+    (col === centerCol - 1 || col === centerCol) &&
+    row % 3 === currentLevel % 3
+  ) {
+    nextBlock.prize = randomPrizeType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 17 &&
+    mirrorRow % 3 === 1 &&
+    mirrorCol % 3 === 1 &&
+    (row + col + currentLevel) % 2 === 0
+  ) {
+    nextBlock.pips = Math.max(nextBlock.pips ?? 0, 2);
+  }
+
+  if (
+    pattern === 18 &&
+    (Math.abs(row - col) === 2 || Math.abs(row + col - (cols - 1)) === 2) &&
+    (row + col + currentLevel) % 4 === 0
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 19 &&
+    row > 1 &&
+    col > 1 &&
+    row < rows - 2 &&
+    col < cols - 2 &&
+    (row * 2 + col + currentLevel) % 8 === 0
+  ) {
+    nextBlock.prize = randomPrizeType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 20 &&
+    (row + 2 * col + currentLevel) % 9 === 0
+  ) {
+    nextBlock.pips = Math.max(nextBlock.pips ?? 0, 3);
+  }
+
+  if (
+    pattern === 21 &&
+    (mirrorRow === 1 || mirrorCol === 1) &&
+    (row + col + currentLevel) % 5 === 0
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 22 &&
+    rowDistance + colDistance === 3 &&
+    (row + col + currentLevel) % 3 === 0
+  ) {
+    nextBlock.special = randomSpecialType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 23 &&
+    row % 2 === 1 &&
+    (col === 2 || col === cols - 3) &&
+    (row + currentLevel) % 3 === 0
+  ) {
+    nextBlock.locked = true;
     delete nextBlock.pips;
   }
 
@@ -2463,12 +2646,12 @@ export default function PlayPage() {
           </div>
 
           <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
-            Clear the puzzle screen. Cut lanes, crosses, rings, and zigzags to
-            drop unsupported sections for bigger points.
+            Clear the puzzle screen. Solve gates, islands, rails, rings, and
+            zigzags by cutting support for bigger drops.
           </p>
           </div>
 
-          <div className="order-3 lg:order-2 lg:w-[min(600px,calc(100vh-112px))] lg:justify-self-center">
+          <div className="order-3 lg:order-2 lg:w-[min(620px,calc(100vh-104px))] lg:justify-self-center">
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">
@@ -2569,7 +2752,7 @@ export default function PlayPage() {
 
             <div className="relative">
               <div
-                className={`grid gap-1.5 transition-all duration-300 sm:gap-2 ${
+                className={`grid gap-1 transition-all duration-300 sm:gap-1.5 ${
                   isMoving ? "scale-95 opacity-90" : "scale-100 opacity-100"
                 } ${
                   moveAnimation === "down"
@@ -2684,7 +2867,7 @@ export default function PlayPage() {
 
               {clearingBursts.length > 0 && (
                 <div
-                  className="pointer-events-none absolute inset-0 grid gap-1.5 sm:gap-2"
+                  className="pointer-events-none absolute inset-0 grid gap-1 sm:gap-1.5"
                   style={{
                     gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                   }}
