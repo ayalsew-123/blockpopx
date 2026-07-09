@@ -967,6 +967,78 @@ export default function PlayPage() {
     return positions.filter(([row, col]) => !isCellEmpty(row, col));
   }
 
+  function findCutDropBlocks(clearedPositions: [number, number][]) {
+    const hidden = new Set(emptyBlockKeys);
+
+    for (const [row, col] of clearedPositions) {
+      hidden.add(getCellKey(row, col));
+    }
+
+    const supported = new Set<string>();
+    const queue: [number, number][] = [];
+
+    for (let col = 0; col < cols; col++) {
+      const key = getCellKey(0, col);
+
+      if (!hidden.has(key)) {
+        supported.add(key);
+        queue.push([0, col]);
+      }
+    }
+
+    for (let index = 0; index < queue.length; index++) {
+      const [row, col] = queue[index];
+      const neighbors = [
+        [row - 1, col],
+        [row + 1, col],
+        [row, col - 1],
+        [row, col + 1],
+      ];
+
+      for (const [nextRow, nextCol] of neighbors) {
+        if (nextRow < 0 || nextRow >= rows) continue;
+        if (nextCol < 0 || nextCol >= cols) continue;
+
+        const key = getCellKey(nextRow, nextCol);
+
+        if (hidden.has(key) || supported.has(key)) continue;
+
+        supported.add(key);
+        queue.push([nextRow, nextCol]);
+      }
+    }
+
+    const dropped: [number, number][] = [];
+
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const key = getCellKey(row, col);
+
+        if (!hidden.has(key) && !supported.has(key)) {
+          dropped.push([row, col]);
+        }
+      }
+    }
+
+    return dropped;
+  }
+
+  function getCutDropBonus(droppedCount: number) {
+    if (droppedCount <= 0) return 0;
+
+    return droppedCount * 115 + (droppedCount >= 8 ? 350 : droppedCount >= 5 ? 180 : 0);
+  }
+
+  function expandClearWithCutDrop(clearedPositions: [number, number][]) {
+    const cutDropBlocks = findCutDropBlocks(clearedPositions);
+
+    return {
+      clearedBlocks: mergePositions(clearedPositions, cutDropBlocks),
+      cutDropBlocks,
+      cutDropBonus: getCutDropBonus(cutDropBlocks.length),
+    };
+  }
+
   function countVisibleCells(keys = emptyBlockKeys) {
     return rows * cols - new Set(keys).size;
   }
@@ -1311,9 +1383,11 @@ export default function PlayPage() {
       connected,
       emptyBlockKeys
     );
-    const clearedBlocks = mergePositions(connected, crackedLocks);
+    const directClearedBlocks = mergePositions(connected, crackedLocks);
+    const { clearedBlocks, cutDropBlocks, cutDropBonus } =
+      expandClearWithCutDrop(directClearedBlocks);
 
-    pointsEarned += crackedLocks.length * 90;
+    pointsEarned += crackedLocks.length * 90 + cutDropBonus;
 
     if (connected.length >= 9) {
       pointsEarned += 500;
@@ -1324,7 +1398,10 @@ export default function PlayPage() {
     }
 
     const prizeResult = resolvePrizeCharge(
-      connected.length * 8 + crackedLocks.length * 14 + (usedSwap ? 12 : 0)
+      connected.length * 8 +
+        crackedLocks.length * 14 +
+        cutDropBlocks.length * 5 +
+        (usedSwap ? 12 : 0)
     );
     const meterReward = prizeResult.prize
       ? getPrizeReward(prizeResult.prize)
@@ -1367,9 +1444,12 @@ export default function PlayPage() {
     showGoalSigns(
       [
         ...milestoneSigns,
+        ...(cutDropBlocks.length > 0
+          ? [`Cut drop x${cutDropBlocks.length}`]
+          : []),
         ...(pipResult.blastsEarned > 0 ? ["Pip Blast ready"] : []),
       ],
-      pipResult.blastsEarned > 0 ? "blast" : "goal"
+      cutDropBlocks.length > 0 || pipResult.blastsEarned > 0 ? "blast" : "goal"
     );
 
     const popShowtimeSigns = getShowtimeSigns(
@@ -1377,6 +1457,7 @@ export default function PlayPage() {
       milestoneSigns,
       [
         ...(meterReward ? ["Prize won"] : []),
+        ...(cutDropBlocks.length > 0 ? ["Cut drop"] : []),
         ...(pipResult.blastsEarned > 0 ? ["Pip blast charged"] : []),
       ]
     );
@@ -1394,31 +1475,39 @@ export default function PlayPage() {
     const prizeText = meterReward ? ` Prize meter: ${meterReward.text}!` : "";
     const pipText =
       pipResult.blastsEarned > 0 ? " Pip Blast charged!" : "";
+    const cutText =
+      cutDropBlocks.length > 0
+        ? ` Cut drop ${cutDropBlocks.length} balls! +${cutDropBonus}`
+        : "";
 
     if (usedSwap && connected.length >= 5) {
       setMessage(
-        `Smart trick! +${pointsEarned}${lockText}${prizeText}${pipText}`
+        `Smart trick! +${pointsEarned}${cutText}${lockText}${prizeText}${pipText}`
       );
     } else if (usedSwap) {
-      setMessage(`Smart move! +${pointsEarned}${lockText}${prizeText}${pipText}`);
+      setMessage(
+        `Smart move! +${pointsEarned}${cutText}${lockText}${prizeText}${pipText}`
+      );
     } else if (connected.length >= 9) {
       setMessage(
-        `Power clear! +${pointsEarned}${lockText}${prizeText}${pipText}`
+        `Power clear! +${pointsEarned}${cutText}${lockText}${prizeText}${pipText}`
       );
     } else if (connected.length >= 7) {
       setMessage(
-        `Rocket-size clear! +${pointsEarned}${lockText}${prizeText}${pipText}`
+        `Rocket-size clear! +${pointsEarned}${cutText}${lockText}${prizeText}${pipText}`
       );
     } else if (connected.length >= 5) {
       setMessage(
-        `Big clear! +${pointsEarned}${lockText}${prizeText}${pipText}`
+        `Big clear! +${pointsEarned}${cutText}${lockText}${prizeText}${pipText}`
       );
     } else if (newStreak >= 4) {
       setMessage(
-        `Hot streak x${newStreak}! +${pointsEarned}${lockText}${prizeText}${pipText}`
+        `Hot streak x${newStreak}! +${pointsEarned}${cutText}${lockText}${prizeText}${pipText}`
       );
     } else {
-      setMessage(`Nice pop! +${pointsEarned}${lockText}${prizeText}${pipText}`);
+      setMessage(
+        `Nice pop! +${pointsEarned}${cutText}${lockText}${prizeText}${pipText}`
+      );
     }
 
     finishMove(newScore, newMovesLeft, newColorGoals, clearedBlocks.length);
@@ -1481,15 +1570,19 @@ export default function PlayPage() {
     setIsMoving(true);
     setMoveAnimation("none");
 
-    const prizeResult = resolvePrizeCharge(visibleAffected.length * 6);
+    const { clearedBlocks, cutDropBlocks, cutDropBonus } =
+      expandClearWithCutDrop(visibleAffected);
+    const prizeResult = resolvePrizeCharge(
+      visibleAffected.length * 6 + cutDropBlocks.length * 5
+    );
     const meterReward = prizeResult.prize
       ? getPrizeReward(prizeResult.prize)
       : null;
-    const pointsEarned = visibleAffected.length * pointValue;
+    const pointsEarned = visibleAffected.length * pointValue + cutDropBonus;
     const newScore = score + pointsEarned + (meterReward?.score ?? 0);
     const newMovesLeft = movesLeft + (meterReward?.moves ?? 0);
     const newShufflesLeft = shufflesLeft + (meterReward?.shuffles ?? 0);
-    const collectedBlocks = visibleAffected.map(([row, col]) => board[row][col]);
+    const collectedBlocks = clearedBlocks.map(([row, col]) => board[row][col]);
     const newColorGoals = reduceColorGoals(colorGoals, collectedBlocks);
     const milestoneSigns = getGoalMilestones(
       score,
@@ -1499,7 +1592,7 @@ export default function PlayPage() {
       newColorGoals
     );
     const pipResult = resolvePipCharge(
-      Math.ceil(visibleAffected.length / 2) + countCollectedPips(collectedBlocks)
+      Math.ceil(clearedBlocks.length / 2) + countCollectedPips(collectedBlocks)
     );
     const newPipBlastsLeft = pipBlastsLeft + pipResult.blastsEarned;
 
@@ -1516,28 +1609,36 @@ export default function PlayPage() {
     showGoalSigns(
       [
         ...milestoneSigns,
+        ...(cutDropBlocks.length > 0
+          ? [`Cut drop x${cutDropBlocks.length}`]
+          : []),
         ...(pipResult.blastsEarned > 0 ? ["Pip Blast ready"] : []),
       ],
-      pipResult.blastsEarned > 0 ? "blast" : "goal"
+      cutDropBlocks.length > 0 || pipResult.blastsEarned > 0 ? "blast" : "goal"
     );
     triggerBoardShowtime(
       getShowtimeSigns(newScore, milestoneSigns, [
         "Rocket fire",
+        ...(cutDropBlocks.length > 0 ? ["Cut drop"] : []),
         ...(pipResult.blastsEarned > 0 ? ["Pip blast charged"] : []),
       ]),
       newScore,
       "big"
     );
 
-    markClearingBlocks(board, visibleAffected);
-    settleBoardAfterClear(visibleAffected);
+    markClearingBlocks(board, clearedBlocks);
+    settleBoardAfterClear(clearedBlocks);
 
     setMessage(
       `${text} +${pointsEarned}${
+        cutDropBlocks.length > 0
+          ? ` Cut drop ${cutDropBlocks.length} balls! +${cutDropBonus}`
+          : ""
+      }${
         meterReward ? ` Prize meter: ${meterReward.text}!` : ""
       }${pipResult.blastsEarned > 0 ? " Pip Blast charged!" : ""}`
     );
-    finishMove(newScore, newMovesLeft, newColorGoals, visibleAffected.length);
+    finishMove(newScore, newMovesLeft, newColorGoals, clearedBlocks.length);
   }
 
   function flipGravity() {
@@ -1620,11 +1721,20 @@ export default function PlayPage() {
     if (isCellEmpty(rowIndex, colIndex)) return;
 
     const reward = getPrizeReward(prize);
-    const newScore = score + reward.score;
+    const { clearedBlocks, cutDropBlocks, cutDropBonus } =
+      expandClearWithCutDrop([[rowIndex, colIndex]]);
+    const collectedBlocks = clearedBlocks.map(([row, col]) => board[row][col]);
+    const newColorGoals = reduceColorGoals(colorGoals, collectedBlocks);
+    const newScore = score + reward.score + cutDropBonus;
     const newMovesLeft = movesLeft + reward.moves;
     const newShufflesLeft = shufflesLeft + reward.shuffles;
-    const milestoneSigns =
-      score < targetScore && newScore >= targetScore ? ["Score goal hit"] : [];
+    const milestoneSigns = getGoalMilestones(
+      score,
+      newScore,
+      targetScore,
+      colorGoals,
+      newColorGoals
+    );
 
     setScore(newScore);
     setMovesLeft(newMovesLeft);
@@ -1635,18 +1745,36 @@ export default function PlayPage() {
     setMoveAnimation("none");
     setPrizeCharge(Math.min(prizeCharge + 18, maxPrizeCharge));
     playGameSound("prize");
-    showGoalSigns(milestoneSigns, "goal");
+    showGoalSigns(
+      [
+        ...milestoneSigns,
+        ...(cutDropBlocks.length > 0
+          ? [`Cut drop x${cutDropBlocks.length}`]
+          : []),
+      ],
+      cutDropBlocks.length > 0 ? "blast" : "goal"
+    );
     triggerBoardShowtime(
-      getShowtimeSigns(newScore, milestoneSigns, ["Prize fire"]),
+      getShowtimeSigns(newScore, milestoneSigns, [
+        "Prize fire",
+        ...(cutDropBlocks.length > 0 ? ["Cut drop"] : []),
+      ]),
       newScore,
       "prize",
       940
     );
+    setColorGoals(newColorGoals);
 
-    markClearingBlocks(board, [[rowIndex, colIndex]]);
-    settleBoardAfterClear([[rowIndex, colIndex]]);
-    setMessage(`Prize ball opened: ${reward.text}!`);
-    finishMove(newScore, newMovesLeft, colorGoals, 1);
+    markClearingBlocks(board, clearedBlocks);
+    settleBoardAfterClear(clearedBlocks);
+    setMessage(
+      `Prize ball opened: ${reward.text}!${
+        cutDropBlocks.length > 0
+          ? ` Cut drop ${cutDropBlocks.length} balls! +${cutDropBonus}`
+          : ""
+      }`
+    );
+    finishMove(newScore, newMovesLeft, newColorGoals, clearedBlocks.length);
   }
 
   function activatePipBlast() {
@@ -1670,9 +1798,12 @@ export default function PlayPage() {
       blastTargets,
       emptyBlockKeys
     );
-    const clearedBlocks = mergePositions(blastTargets, crackedLocks);
+    const directClearedBlocks = mergePositions(blastTargets, crackedLocks);
+    const { clearedBlocks, cutDropBlocks, cutDropBonus } =
+      expandClearWithCutDrop(directClearedBlocks);
     const collectedBlocks = clearedBlocks.map(([row, col]) => board[row][col]);
-    const pointsEarned = blastTargets.length * 130 + crackedLocks.length * 120;
+    const pointsEarned =
+      blastTargets.length * 130 + crackedLocks.length * 120 + cutDropBonus;
     const newScore = score + pointsEarned;
     const newColorGoals = reduceColorGoals(colorGoals, collectedBlocks);
     const milestoneSigns = getGoalMilestones(
@@ -1689,11 +1820,20 @@ export default function PlayPage() {
     setIsMoving(true);
     setMoveAnimation("none");
     playGameSound(pointsEarned >= 900 ? "big" : "blast");
-    showGoalSigns(milestoneSigns, "goal");
+    showGoalSigns(
+      [
+        ...milestoneSigns,
+        ...(cutDropBlocks.length > 0
+          ? [`Cut drop x${cutDropBlocks.length}`]
+          : []),
+      ],
+      cutDropBlocks.length > 0 ? "blast" : "goal"
+    );
     triggerBoardShowtime(
       getShowtimeSigns(newScore, milestoneSigns, [
         "Pip blast",
         "Rocket fire",
+        ...(cutDropBlocks.length > 0 ? ["Cut drop"] : []),
       ]),
       newScore,
       "big",
@@ -1705,6 +1845,10 @@ export default function PlayPage() {
 
     setMessage(
       `Pip Blast cleared ${colorLabels[blastColor]} blocks! +${pointsEarned}${
+        cutDropBlocks.length > 0
+          ? ` Cut drop ${cutDropBlocks.length} balls! +${cutDropBonus}`
+          : ""
+      }${
         crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : ""
       }`
     );
