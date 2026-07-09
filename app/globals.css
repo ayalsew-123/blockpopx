@@ -345,7 +345,7 @@ body {
 }
 
 .empty-cell {
-  animation: emptyCellPulse 0.62s ease-in-out infinite;
+  opacity: 0.78;
 }
 
 .goal-sign {

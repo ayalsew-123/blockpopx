@@ -11,7 +11,7 @@ const maxFouls = 5;
 const maxPrizeCharge = 100;
 const maxPipCharge = 12;
 const maxPileDanger = 100;
-const startingDropStock = 260;
+const startingDropStock = 420;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
@@ -357,7 +357,7 @@ function getRushMode(currentLevel: number) {
 }
 
 function getDropStockForLevel(currentLevel: number) {
-  return startingDropStock + (currentLevel - 1) * 38;
+  return startingDropStock + (currentLevel - 1) * 52;
 }
 
 function randomBlock(row: number, col: number, currentLevel = 1): Block {
@@ -546,7 +546,12 @@ function countCollectedPips(collectedBlocks: Block[]) {
   return collectedBlocks.reduce((total, block) => total + (block.pips ?? 0), 0);
 }
 
-function choosePipBlastColor(currentBoard: Block[][], goals: ColorGoals) {
+function choosePipBlastColor(
+  currentBoard: Block[][],
+  goals: ColorGoals,
+  emptyKeys: string[] = []
+) {
+  const hidden = new Set(emptyKeys);
   const goalColor = colors.reduce<BlockColor | null>((bestColor, color) => {
     if (!bestColor || goals[color] > goals[bestColor]) {
       return color;
@@ -561,8 +566,12 @@ function choosePipBlastColor(currentBoard: Block[][], goals: ColorGoals) {
 
   const counts = createEmptyGoals();
 
-  for (const row of currentBoard) {
-    for (const block of row) {
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const block = currentBoard[row][col];
+
+      if (hidden.has(`${row}-${col}`)) continue;
+
       if (!block.locked && !block.prize && !block.special) {
         counts[block.color] += 1;
       }
@@ -574,13 +583,19 @@ function choosePipBlastColor(currentBoard: Block[][], goals: ColorGoals) {
   );
 }
 
-function findPipBlastTargets(currentBoard: Block[][], color: BlockColor) {
+function findPipBlastTargets(
+  currentBoard: Block[][],
+  color: BlockColor,
+  emptyKeys: string[] = []
+) {
+  const hidden = new Set(emptyKeys);
   const targets: [number, number][] = [];
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const block = currentBoard[row][col];
 
+      if (hidden.has(`${row}-${col}`)) continue;
       if (!block.locked && !block.prize && !block.special && block.color === color) {
         targets.push([row, col]);
       }
@@ -664,24 +679,38 @@ function isAdjacent(first: Position, second: Position) {
   return rowDistance + colDistance === 1;
 }
 
-function shuffleBoard(currentBoard: Block[][]) {
-  const flatBlocks = currentBoard.flat().map((block) => ({ ...block }));
+function shuffleVisibleBoard(currentBoard: Block[][], emptyKeys: string[]) {
+  const hidden = new Set(emptyKeys);
+  const visiblePositions: [number, number][] = [];
+  const visibleBlocks: Block[] = [];
 
-  for (let i = flatBlocks.length - 1; i > 0; i--) {
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (hidden.has(`${row}-${col}`)) continue;
+
+      visiblePositions.push([row, col]);
+      visibleBlocks.push({ ...currentBoard[row][col] });
+    }
+  }
+
+  for (let i = visibleBlocks.length - 1; i > 0; i--) {
     const randomIndex = Math.floor(Math.random() * (i + 1));
-    [flatBlocks[i], flatBlocks[randomIndex]] = [
-      flatBlocks[randomIndex],
-      flatBlocks[i],
+    [visibleBlocks[i], visibleBlocks[randomIndex]] = [
+      visibleBlocks[randomIndex],
+      visibleBlocks[i],
     ];
   }
 
-  const newBoard: Block[][] = [];
+  const nextBoard = currentBoard.map((row) => row.map((block) => ({ ...block })));
 
-  for (let row = 0; row < rows; row++) {
-    newBoard.push(flatBlocks.slice(row * cols, row * cols + cols));
-  }
+  visiblePositions.forEach(([row, col], index) => {
+    nextBoard[row][col] = {
+      ...visibleBlocks[index],
+      id: createBlockId(row, col),
+    };
+  });
 
-  return newBoard;
+  return nextBoard;
 }
 
 function getBlockLabel(block: Block) {
@@ -702,60 +731,13 @@ function getBlockLabel(block: Block) {
     : `${block.color} ball`;
 }
 
-function canRelocateBlock(block: Block) {
-  return !block.locked && !block.prize && !block.special;
-}
-
-function relocateBoard(currentBoard: Block[][]) {
-  const nextBoard = currentBoard.map((row) =>
-    row.map((block) => ({ ...block }))
-  );
-  const candidates: Position[] = [];
-
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      if (canRelocateBlock(nextBoard[row][col])) {
-        candidates.push({ row, col });
-      }
-    }
-  }
-
-  if (candidates.length < 4) {
-    return nextBoard;
-  }
-
-  for (let swapCount = 0; swapCount < 3; swapCount++) {
-    const first = candidates[Math.floor(Math.random() * candidates.length)];
-    const nearby = candidates.filter(
-      (candidate) =>
-        Math.abs(candidate.row - first.row) + Math.abs(candidate.col - first.col) <=
-          3 &&
-        (candidate.row !== first.row || candidate.col !== first.col)
-    );
-    const second =
-      nearby.length > 0
-        ? nearby[Math.floor(Math.random() * nearby.length)]
-        : candidates[Math.floor(Math.random() * candidates.length)];
-
-    const temporary = nextBoard[first.row][first.col];
-    nextBoard[first.row][first.col] = {
-      ...nextBoard[second.row][second.col],
-      id: createBlockId(first.row, first.col),
-    };
-    nextBoard[second.row][second.col] = {
-      ...temporary,
-      id: createBlockId(second.row, second.col),
-    };
-  }
-
-  return nextBoard;
-}
-
 function findAdjacentLockedBlocks(
   currentBoard: Block[][],
-  positions: [number, number][]
+  positions: [number, number][],
+  emptyKeys: string[] = []
 ) {
   const locked = new Set<string>();
+  const hidden = new Set(emptyKeys);
 
   for (const [row, col] of positions) {
     const adjacent = [
@@ -768,11 +750,12 @@ function findAdjacentLockedBlocks(
     for (const [adjacentRow, adjacentCol] of adjacent) {
       if (
         adjacentRow >= 0 &&
-        adjacentRow < rows &&
-        adjacentCol >= 0 &&
-        adjacentCol < cols &&
-        currentBoard[adjacentRow][adjacentCol].locked
-      ) {
+          adjacentRow < rows &&
+          adjacentCol >= 0 &&
+          adjacentCol < cols &&
+          !hidden.has(`${adjacentRow}-${adjacentCol}`) &&
+          currentBoard[adjacentRow][adjacentCol].locked
+        ) {
         locked.add(`${adjacentRow}-${adjacentCol}`);
       }
     }
@@ -838,7 +821,7 @@ export default function PlayPage() {
   const [wavesSurvived, setWavesSurvived] = useState(0);
   const [lastDropWave, setLastDropWave] = useState(0);
   const [goalSigns, setGoalSigns] = useState<string[]>([]);
-  const [showtimeSigns, setShowtimeSigns] = useState<string[]>([]);
+  const [showtimeSigns] = useState<string[]>([]);
   const [clearingBlockKeys, setClearingBlockKeys] = useState<string[]>([]);
   const [clearingBursts, setClearingBursts] = useState<ClearingBurst[]>([]);
   const [emptyBlockKeys, setEmptyBlockKeys] = useState<string[]>([]);
@@ -893,6 +876,36 @@ export default function PlayPage() {
     return Array.from(new Set(signs.filter(Boolean)));
   }
 
+  function getCellKey(row: number, col: number) {
+    return `${row}-${col}`;
+  }
+
+  function getNextEmptyKeys(positions: [number, number][]) {
+    const nextKeys = new Set(emptyBlockKeys);
+
+    for (const [row, col] of positions) {
+      nextKeys.add(getCellKey(row, col));
+    }
+
+    return Array.from(nextKeys);
+  }
+
+  function isCellEmpty(row: number, col: number, keys = emptyBlockKeys) {
+    return keys.includes(getCellKey(row, col));
+  }
+
+  function filterVisiblePositions(positions: [number, number][]) {
+    return positions.filter(([row, col]) => !isCellEmpty(row, col));
+  }
+
+  function countVisibleCells(keys = emptyBlockKeys) {
+    return rows * cols - keys.length;
+  }
+
+  function createWaveBoard() {
+    return createBoard(level);
+  }
+
   function getShowtimeSigns(
     newScore: number,
     milestoneSigns: string[],
@@ -924,74 +937,47 @@ export default function PlayPage() {
     if (showtime.length === 0) return;
 
     lastShowtimeScore.current = Math.max(lastShowtimeScore.current, newScore);
-
-    queueShowtimeTimer(() => {
-      setSelectedBlock(null);
-      setIsMoving(true);
-      setMoveAnimation("rise");
-      setShowtimeSigns(showtime);
-      playGameSound(cue);
-    }, delay);
-
-    queueShowtimeTimer(() => {
-      setBoard((currentBoard) => {
-        if (!currentBoard) return currentBoard;
-        return rearrangeByGravity(
-          shuffleBoard(relocateBoard(currentBoard)),
-          gravity
-        );
-      });
-      setMoveAnimation("zigzag");
-      playGameSound("blast");
-    }, delay + 760);
-
-    queueShowtimeTimer(() => {
-      setIsMoving(false);
-      setMoveAnimation("none");
-      setShowtimeSigns([]);
-    }, delay + 2050);
+    void cue;
+    void delay;
   }
 
   function markClearingBlocks(
     currentBoard: Block[][],
     positions: [number, number][]
   ) {
-    const positionKeys = positions.map(([row, col]) => `${row}-${col}`);
-
-    setClearingBlockKeys(positionKeys);
-    setEmptyBlockKeys(positionKeys);
-    setClearingBursts(
-      positions.map(([row, col]) => ({
-        key: `${currentBoard[row][col].id}-${row}-${col}`,
-        row,
-        col,
-        colorClass: getColorClass(currentBoard[row][col]),
-      }))
-    );
+    void currentBoard;
+    setSelectedBlock(null);
+    setClearingBlockKeys([]);
+    setClearingBursts([]);
+    setEmptyBlockKeys(getNextEmptyKeys(positions));
   }
 
-  function settleBoardAfterClear(
-    nextBoard: Block[][],
-    clearedPositions: [number, number][]
-  ) {
-    const emptyKeys = clearedPositions.map(([row, col]) => `${row}-${col}`);
+  function settleBoardAfterClear(clearedPositions: [number, number][]) {
+    const nextEmptyKeys = getNextEmptyKeys(clearedPositions);
+    const shouldDropNewWave = countVisibleCells(nextEmptyKeys) <= 0;
+
+    setEmptyBlockKeys(nextEmptyKeys);
+    setClearingBlockKeys([]);
+    setClearingBursts([]);
+
+    if (!shouldDropNewWave) {
+      setIsMoving(false);
+      setMoveAnimation("none");
+      return;
+    }
 
     window.setTimeout(() => {
-      setClearingBlockKeys([]);
-      setClearingBursts([]);
-      setEmptyBlockKeys(emptyKeys);
-    }, 920);
-
-    window.setTimeout(() => {
-      setBoard(nextBoard);
+      setBoard(createWaveBoard());
       setEmptyBlockKeys([]);
       setMoveAnimation("settleDown");
-    }, 1160);
+      setMessage("New wave dropped from the top. Keep clearing the screen.");
+      playGameSound("blast");
+    }, 260);
 
     window.setTimeout(() => {
       setIsMoving(false);
       setMoveAnimation("none");
-    }, 2780);
+    }, 1760);
   }
 
   function repairFouls(amount: number) {
@@ -1092,6 +1078,11 @@ export default function PlayPage() {
     const clickedPosition = { row: rowIndex, col: colIndex };
     const clickedBlock = board[rowIndex][colIndex];
 
+    if (isCellEmpty(rowIndex, colIndex)) {
+      setSelectedBlock(null);
+      return;
+    }
+
     if (clickedBlock.locked) {
       setSelectedBlock(null);
       addFoul("Locked blocks only crack when you pop beside them.");
@@ -1143,7 +1134,8 @@ export default function PlayPage() {
       board,
       rowIndex,
       colIndex,
-      clickedBlock.color
+      clickedBlock.color,
+      emptyBlockKeys
     );
 
     if (connected.length >= 2) {
@@ -1163,6 +1155,10 @@ export default function PlayPage() {
 
   function trySwap(first: Position, second: Position) {
     if (!board) return;
+    if (isCellEmpty(first.row, first.col) || isCellEmpty(second.row, second.col)) {
+      setSelectedBlock(null);
+      return;
+    }
 
     const oldBoard = board;
     const swappedBoard = board.map((row) => row.map((block) => ({ ...block })));
@@ -1185,14 +1181,16 @@ export default function PlayPage() {
         swappedBoard,
         first.row,
         first.col,
-        firstBlock.color
+        firstBlock.color,
+        emptyBlockKeys
       );
 
       const secondMatch = findConnectedBlocks(
         swappedBoard,
         second.row,
         second.col,
-        secondBlock.color
+        secondBlock.color,
+        emptyBlockKeys
       );
 
       const bestMatch =
@@ -1238,7 +1236,11 @@ export default function PlayPage() {
 
     if (usedSwap) pointsEarned += 150;
 
-    const crackedLocks = findAdjacentLockedBlocks(currentBoard, connected);
+    const crackedLocks = findAdjacentLockedBlocks(
+      currentBoard,
+      connected,
+      emptyBlockKeys
+    );
     const clearedBlocks = mergePositions(connected, crackedLocks);
 
     pointsEarned += crackedLocks.length * 90;
@@ -1314,26 +1316,8 @@ export default function PlayPage() {
       connected.length >= 7 || pipResult.blastsEarned > 0 ? "big" : "blast"
     );
 
-    const special =
-      connected.length >= 9
-        ? "lightning"
-        : connected.length >= 7
-        ? "rocket"
-        : connected.length >= 5
-        ? "bomb"
-        : null;
-    const prize = special || connected.length < 4 ? null : randomPrizeType();
-
-    const newBoard = removeAndRearrangeBlocks(currentBoard, clearedBlocks, {
-      row: rowIndex,
-      col: colIndex,
-      special,
-      color,
-      prize,
-    });
-
     markClearingBlocks(currentBoard, clearedBlocks);
-    settleBoardAfterClear(newBoard, clearedBlocks);
+    settleBoardAfterClear(clearedBlocks);
 
     const lockText =
       crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : "";
@@ -1343,29 +1327,25 @@ export default function PlayPage() {
 
     if (usedSwap && connected.length >= 5) {
       setMessage(
-        `🧠 Smart trick! +${pointsEarned} Booster created!${lockText}${prizeText}${pipText}`
+        `Smart trick! +${pointsEarned}${lockText}${prizeText}${pipText}`
       );
     } else if (usedSwap) {
-      setMessage(`🧠 Smart move! +${pointsEarned}${lockText}${prizeText}${pipText}`);
+      setMessage(`Smart move! +${pointsEarned}${lockText}${prizeText}${pipText}`);
     } else if (connected.length >= 9) {
       setMessage(
-        `⚡ Power trick! +${pointsEarned} Lightning created!${lockText}${prizeText}${pipText}`
+        `Power clear! +${pointsEarned}${lockText}${prizeText}${pipText}`
       );
     } else if (connected.length >= 7) {
       setMessage(
-        `🚀 Rocket trick! +${pointsEarned} Rocket created!${lockText}${prizeText}${pipText}`
+        `Rocket-size clear! +${pointsEarned}${lockText}${prizeText}${pipText}`
       );
     } else if (connected.length >= 5) {
       setMessage(
-        `💣 Blast trick! +${pointsEarned} Bomb created!${lockText}${prizeText}${pipText}`
-      );
-    } else if (prize) {
-      setMessage(
-        `Prize ball created! +${pointsEarned}${lockText}${prizeText}${pipText}`
+        `Big clear! +${pointsEarned}${lockText}${prizeText}${pipText}`
       );
     } else if (newStreak >= 4) {
       setMessage(
-        `🔥 Hot streak x${newStreak}! +${pointsEarned}${lockText}${prizeText}${pipText}`
+        `Hot streak x${newStreak}! +${pointsEarned}${lockText}${prizeText}${pipText}`
       );
     } else {
       setMessage(`Nice pop! +${pointsEarned}${lockText}${prizeText}${pipText}`);
@@ -1381,7 +1361,7 @@ export default function PlayPage() {
 
     for (let r = rowIndex - 1; r <= rowIndex + 1; r++) {
       for (let c = colIndex - 1; c <= colIndex + 1; c++) {
-        if (r >= 0 && r < rows && c >= 0 && c < cols) {
+        if (r >= 0 && r < rows && c >= 0 && c < cols && !isCellEmpty(r, c)) {
           affected.push([r, c]);
         }
       }
@@ -1394,7 +1374,9 @@ export default function PlayPage() {
     const affected: [number, number][] = [];
 
     for (let col = 0; col < cols; col++) {
-      affected.push([rowIndex, col]);
+      if (!isCellEmpty(rowIndex, col)) {
+        affected.push([rowIndex, col]);
+      }
     }
 
     activateSpecialMove(affected, 120, "🚀 Rocket row clear!");
@@ -1404,7 +1386,9 @@ export default function PlayPage() {
     const affected: [number, number][] = [];
 
     for (let row = 0; row < rows; row++) {
-      affected.push([row, colIndex]);
+      if (!isCellEmpty(row, colIndex)) {
+        affected.push([row, colIndex]);
+      }
     }
 
     activateSpecialMove(affected, 130, "⚡ Lightning column clear!");
@@ -1416,19 +1400,26 @@ export default function PlayPage() {
     text: string
   ) {
     if (!board || isMoving) return;
+    const visibleAffected = filterVisiblePositions(affected);
+
+    if (visibleAffected.length === 0) {
+      setIsMoving(false);
+      setMoveAnimation("none");
+      return;
+    }
 
     setIsMoving(true);
     setMoveAnimation("none");
 
-    const prizeResult = resolvePrizeCharge(affected.length * 6);
+    const prizeResult = resolvePrizeCharge(visibleAffected.length * 6);
     const meterReward = prizeResult.prize
       ? getPrizeReward(prizeResult.prize)
       : null;
-    const pointsEarned = affected.length * pointValue;
+    const pointsEarned = visibleAffected.length * pointValue;
     const newScore = score + pointsEarned + (meterReward?.score ?? 0);
     const newMovesLeft = movesLeft + (meterReward?.moves ?? 0);
     const newShufflesLeft = shufflesLeft + (meterReward?.shuffles ?? 0);
-    const collectedBlocks = affected.map(([row, col]) => board[row][col]);
+    const collectedBlocks = visibleAffected.map(([row, col]) => board[row][col]);
     const newColorGoals = reduceColorGoals(colorGoals, collectedBlocks);
     const milestoneSigns = getGoalMilestones(
       score,
@@ -1438,7 +1429,7 @@ export default function PlayPage() {
       newColorGoals
     );
     const pipResult = resolvePipCharge(
-      Math.ceil(affected.length / 2) + countCollectedPips(collectedBlocks)
+      Math.ceil(visibleAffected.length / 2) + countCollectedPips(collectedBlocks)
     );
     const newPipBlastsLeft = pipBlastsLeft + pipResult.blastsEarned;
 
@@ -1468,17 +1459,15 @@ export default function PlayPage() {
       "big"
     );
 
-    const nextBoard = removeAndRearrangeBlocks(board, affected);
-
-    markClearingBlocks(board, affected);
-    settleBoardAfterClear(nextBoard, affected);
+    markClearingBlocks(board, visibleAffected);
+    settleBoardAfterClear(visibleAffected);
 
     setMessage(
       `${text} +${pointsEarned}${
         meterReward ? ` Prize meter: ${meterReward.text}!` : ""
       }${pipResult.blastsEarned > 0 ? " Pip Blast charged!" : ""}`
     );
-    finishMove(newScore, newMovesLeft, newColorGoals, affected.length);
+    finishMove(newScore, newMovesLeft, newColorGoals, visibleAffected.length);
   }
 
   function flipGravity() {
@@ -1488,20 +1477,12 @@ export default function PlayPage() {
 
     setGravity(nextGravity);
     setSelectedBlock(null);
-    setIsMoving(true);
-    setMoveAnimation(nextGravity === "down" ? "down" : "up");
-    setMessage(nextGravity === "down" ? "Gravity down!" : "Gravity up!");
-
-    const rearrangedBoard = rearrangeByGravity(board, nextGravity);
-
-    setTimeout(() => {
-      setBoard(rearrangedBoard);
-    }, 180);
-
-    setTimeout(() => {
-      setIsMoving(false);
-      setMoveAnimation("none");
-    }, 750);
+    setMoveAnimation("none");
+    setMessage(
+      nextGravity === "down"
+        ? "Next full wave will drop from the top."
+        : "Puzzle direction saved. New balls still drop from the top."
+    );
 
     finishMove(score, movesLeft, colorGoals);
   }
@@ -1521,10 +1502,10 @@ export default function PlayPage() {
     setStreak(0);
     setMessage("Balls rearranged. Find the best trick!");
 
-    const shuffled = shuffleBoard(board);
+    const shuffled = shuffleVisibleBoard(board, emptyBlockKeys);
 
     setTimeout(() => {
-      setBoard(rearrangeByGravity(shuffled, gravity));
+      setBoard(shuffled);
     }, 220);
 
     setTimeout(() => {
@@ -1566,12 +1547,12 @@ export default function PlayPage() {
     prize: PrizeType
   ) {
     if (!board || isMoving) return;
+    if (isCellEmpty(rowIndex, colIndex)) return;
 
     const reward = getPrizeReward(prize);
     const newScore = score + reward.score;
     const newMovesLeft = movesLeft + reward.moves;
     const newShufflesLeft = shufflesLeft + reward.shuffles;
-    const nextBoard = removeAndRearrangeBlocks(board, [[rowIndex, colIndex]]);
     const milestoneSigns =
       score < targetScore && newScore >= targetScore ? ["Score goal hit"] : [];
 
@@ -1593,7 +1574,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, [[rowIndex, colIndex]]);
-    settleBoardAfterClear(nextBoard, [[rowIndex, colIndex]]);
+    settleBoardAfterClear([[rowIndex, colIndex]]);
     setMessage(`Prize ball opened: ${reward.text}!`);
     finishMove(newScore, newMovesLeft, colorGoals, 1);
   }
@@ -1606,15 +1587,19 @@ export default function PlayPage() {
       return;
     }
 
-    const blastColor = choosePipBlastColor(board, colorGoals);
-    const blastTargets = findPipBlastTargets(board, blastColor);
+    const blastColor = choosePipBlastColor(board, colorGoals, emptyBlockKeys);
+    const blastTargets = findPipBlastTargets(board, blastColor, emptyBlockKeys);
 
     if (blastTargets.length === 0) {
       addFoul("No clear path for Pip Blast yet.");
       return;
     }
 
-    const crackedLocks = findAdjacentLockedBlocks(board, blastTargets);
+    const crackedLocks = findAdjacentLockedBlocks(
+      board,
+      blastTargets,
+      emptyBlockKeys
+    );
     const clearedBlocks = mergePositions(blastTargets, crackedLocks);
     const collectedBlocks = clearedBlocks.map(([row, col]) => board[row][col]);
     const pointsEarned = blastTargets.length * 130 + crackedLocks.length * 120;
@@ -1627,8 +1612,6 @@ export default function PlayPage() {
       colorGoals,
       newColorGoals
     );
-    const nextBoard = removeAndRearrangeBlocks(board, clearedBlocks);
-
     setScore(newScore);
     setColorGoals(newColorGoals);
     setPipBlastsLeft(pipBlastsLeft - 1);
@@ -1648,7 +1631,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, clearedBlocks);
-    settleBoardAfterClear(nextBoard, clearedBlocks);
+    settleBoardAfterClear(clearedBlocks);
 
     setMessage(
       `Pip Blast cleared ${colorLabels[blastColor]} blocks! +${pointsEarned}${
@@ -1713,9 +1696,11 @@ export default function PlayPage() {
     currentBoard: Block[][],
     rowIndex: number,
     colIndex: number,
-    color: BlockColor
+    color: BlockColor,
+    emptyKeys: string[] = []
   ) {
     const visited = new Set<string>();
+    const hidden = new Set(emptyKeys);
     const result: [number, number][] = [];
 
     function search(r: number, c: number) {
@@ -1724,6 +1709,7 @@ export default function PlayPage() {
       if (r < 0 || r >= rows) return;
       if (c < 0 || c >= cols) return;
       if (visited.has(key)) return;
+      if (hidden.has(key)) return;
       if (currentBoard[r][c].locked) return;
       if (currentBoard[r][c].prize) return;
       if (currentBoard[r][c].special) return;
@@ -1740,105 +1726,6 @@ export default function PlayPage() {
 
     search(rowIndex, colIndex);
     return result;
-  }
-
-  function removeAndRearrangeBlocks(
-    currentBoard: Block[][],
-    connected: [number, number][],
-    specialBlock?: {
-      row: number;
-      col: number;
-      special: SpecialBlock | null;
-      color: BlockColor;
-      prize?: PrizeType | null;
-    }
-  ) {
-    const removeSet = new Set(connected.map(([r, c]) => `${r}-${c}`));
-
-    const temporaryBoard: (Block | null)[][] = currentBoard.map((row, r) =>
-      row.map((block, c) => (removeSet.has(`${r}-${c}`) ? null : block))
-    );
-
-    if (specialBlock?.special || specialBlock?.prize) {
-      temporaryBoard[specialBlock.row][specialBlock.col] = {
-        id: createBlockId(specialBlock.row, specialBlock.col),
-        color: specialBlock.color,
-        special: specialBlock.special ?? undefined,
-        prize: specialBlock.prize ?? undefined,
-      };
-    }
-
-    return fillEmptySpaces(temporaryBoard, gravity);
-  }
-
-  function rearrangeByGravity(
-    currentBoard: Block[][],
-    direction: GravityDirection
-  ) {
-    const temporaryBoard: (Block | null)[][] = currentBoard.map((row) =>
-      row.map((block) => block)
-    );
-
-    return fillEmptySpaces(temporaryBoard, direction);
-  }
-
-  function fillEmptySpaces(
-    temporaryBoard: (Block | null)[][],
-    direction: GravityDirection
-  ) {
-    const nextBoard: Block[][] = Array.from({ length: rows }, () =>
-      Array.from({ length: cols }, () => randomBlock(0, 0, level))
-    );
-
-    for (let col = 0; col < cols; col++) {
-      const remainingBlocks: Block[] = [];
-
-      if (direction === "down") {
-        for (let row = rows - 1; row >= 0; row--) {
-          const block = temporaryBoard[row][col];
-
-          if (block) remainingBlocks.push(block);
-        }
-
-        let writeRow = rows - 1;
-
-        for (const block of remainingBlocks) {
-          nextBoard[writeRow][col] = {
-            ...block,
-            id: createBlockId(writeRow, col),
-          };
-          writeRow--;
-        }
-
-        while (writeRow >= 0) {
-          nextBoard[writeRow][col] = randomBlock(writeRow, col, level);
-          writeRow--;
-        }
-      } else {
-        for (let row = 0; row < rows; row++) {
-          const block = temporaryBoard[row][col];
-
-          if (block) remainingBlocks.push(block);
-        }
-
-        let writeRow = 0;
-
-        for (const block of remainingBlocks) {
-          nextBoard[writeRow][col] = {
-            ...block,
-            id: createBlockId(writeRow, col),
-          };
-          writeRow++;
-        }
-
-        while (writeRow < rows) {
-          nextBoard[writeRow][col] = randomBlock(writeRow, col, level);
-          writeRow++;
-        }
-      }
-    }
-
-    return nextBoard;
   }
 
   function restartGame() {
