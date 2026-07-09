@@ -4,15 +4,15 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const rows = 8;
-const cols = 8;
+const rows = 9;
+const cols = 9;
 const maxMoves = 20;
 const maxFouls = 5;
 const maxPrizeCharge = 100;
 const maxPipCharge = 12;
 const maxPileDanger = 100;
 const startingDropStock = 420;
-const minVisibleBeforeWaveDrop = 10;
+const minVisibleBeforeWaveDrop = 13;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
@@ -362,8 +362,13 @@ function getDropStockForLevel(currentLevel: number) {
 }
 
 function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockColor {
-  const pattern = (currentLevel - 1) % 6;
+  const pattern = (currentLevel - 1) % 12;
   const shift = currentLevel - 1;
+  const centerRow = Math.floor(rows / 2);
+  const centerCol = Math.floor(cols / 2);
+  const rowDistance = Math.abs(row - centerRow);
+  const colDistance = Math.abs(col - centerCol);
+  const ring = Math.max(rowDistance, colDistance);
 
   if (pattern === 0) {
     return colors[(Math.floor(col / 2) + shift + (row % 2)) % colors.length];
@@ -385,7 +390,102 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
     return colors[(Math.floor((row + col) / 2) + shift) % colors.length];
   }
 
-  return colors[(Math.abs(row - col) + Math.floor(col / 3) + shift) % colors.length];
+  if (pattern === 5) {
+    return colors[(Math.abs(row - col) + Math.floor(col / 3) + shift) % colors.length];
+  }
+
+  if (pattern === 6) {
+    const crossLane = row === centerRow || col === centerCol ? 0 : 2;
+    return colors[(crossLane + Math.floor((row + col) / 2) + shift) % colors.length];
+  }
+
+  if (pattern === 7) {
+    return colors[(ring + shift + (row + col) % 2) % colors.length];
+  }
+
+  if (pattern === 8) {
+    const mirrorCol = col <= centerCol ? col : cols - 1 - col;
+    return colors[(Math.floor(row / 2) + mirrorCol + shift) % colors.length];
+  }
+
+  if (pattern === 9) {
+    const stair = Math.floor((row + Math.max(0, col - row)) / 2);
+    return colors[(stair + shift + (col % 3 === 0 ? 1 : 0)) % colors.length];
+  }
+
+  if (pattern === 10) {
+    const lane = col < centerCol ? row + col : row + (cols - 1 - col);
+    return colors[(Math.floor(lane / 2) + shift) % colors.length];
+  }
+
+  const spiralBand =
+    ring + Math.floor((row + col + Math.abs(row - col)) / 4);
+  return colors[(spiralBand + shift) % colors.length];
+}
+
+function addPuzzleFixture(block: Block, row: number, col: number, currentLevel = 1) {
+  if (block.locked || block.prize || block.special) return block;
+
+  const pattern = (currentLevel - 1) % 12;
+  const centerRow = Math.floor(rows / 2);
+  const centerCol = Math.floor(cols / 2);
+  const nextBlock = { ...block };
+
+  if (
+    pattern === 6 &&
+    (row === centerRow || col === centerCol) &&
+    (row + col + currentLevel) % 5 === 0
+  ) {
+    nextBlock.pips = Math.max(nextBlock.pips ?? 0, 3);
+  }
+
+  if (
+    pattern === 7 &&
+    Math.max(Math.abs(row - centerRow), Math.abs(col - centerCol)) === 2 &&
+    (row + col + currentLevel) % 6 === 0
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 8 &&
+    col === centerCol &&
+    row > 0 &&
+    row < rows - 1 &&
+    (row + currentLevel) % 4 === 0
+  ) {
+    nextBlock.prize = randomPrizeType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 9 &&
+    Math.abs(row - col) <= 1 &&
+    (row + col + currentLevel) % 4 === 0
+  ) {
+    nextBlock.pips = Math.max(nextBlock.pips ?? 0, 2);
+  }
+
+  if (
+    pattern === 10 &&
+    (col === 1 || col === cols - 2) &&
+    row % 3 === currentLevel % 3
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    pattern === 11 &&
+    (row === 1 || row === rows - 2 || col === 1 || col === cols - 2) &&
+    (row + col + currentLevel) % 7 === 0
+  ) {
+    nextBlock.special = randomSpecialType();
+    delete nextBlock.pips;
+  }
+
+  return nextBlock;
 }
 
 function randomBlock(row: number, col: number, currentLevel = 1): Block {
@@ -417,7 +517,7 @@ function randomBlock(row: number, col: number, currentLevel = 1): Block {
     block.pips = Math.floor(Math.random() * 3) + 1;
   }
 
-  return block;
+  return addPuzzleFixture(block, row, col, currentLevel);
 }
 
 function createBlockId(row: number, col: number) {
@@ -2363,12 +2463,12 @@ export default function PlayPage() {
           </div>
 
           <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
-            Clear the puzzle screen. Empty spaces stay open, and a new wave
-            drops from the top when the board runs out of useful moves.
+            Clear the puzzle screen. Cut lanes, crosses, rings, and zigzags to
+            drop unsupported sections for bigger points.
           </p>
           </div>
 
-          <div className="order-3 lg:order-2 lg:w-[min(560px,calc(100vh-130px))] lg:justify-self-center">
+          <div className="order-3 lg:order-2 lg:w-[min(600px,calc(100vh-112px))] lg:justify-self-center">
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">
@@ -2469,7 +2569,7 @@ export default function PlayPage() {
 
             <div className="relative">
               <div
-                className={`grid gap-2 transition-all duration-300 ${
+                className={`grid gap-1.5 transition-all duration-300 sm:gap-2 ${
                   isMoving ? "scale-95 opacity-90" : "scale-100 opacity-100"
                 } ${
                   moveAnimation === "down"
@@ -2584,7 +2684,7 @@ export default function PlayPage() {
 
               {clearingBursts.length > 0 && (
                 <div
-                  className="pointer-events-none absolute inset-0 grid gap-2"
+                  className="pointer-events-none absolute inset-0 grid gap-1.5 sm:gap-2"
                   style={{
                     gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                   }}
