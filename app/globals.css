@@ -170,13 +170,13 @@ body {
     opacity: 1;
     filter: brightness(1);
   }
-  42% {
-    transform: translate3d(0, -16px, 0) scale(1.18);
+  45% {
+    transform: translate3d(0, -22px, 0) scale(1.16);
     opacity: 1;
     filter: brightness(1.35);
   }
   100% {
-    transform: translate3d(0, 18px, 0) scale(0.12);
+    transform: translate3d(0, -86px, 0) scale(0.18);
     opacity: 0;
     filter: brightness(1.6);
   }
@@ -339,7 +339,7 @@ body {
 
 .game-ball.ball-clearing,
 .clearing-ball.ball-clearing {
-  animation: ballClearPop 0.56s cubic-bezier(0.16, 0.9, 0.2, 1) both;
+  animation: ballClearPop 0.9s cubic-bezier(0.16, 0.9, 0.2, 1) both;
   pointer-events: none;
   will-change: transform, opacity, filter;
 }

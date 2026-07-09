@@ -956,7 +956,10 @@ export default function PlayPage() {
     currentBoard: Block[][],
     positions: [number, number][]
   ) {
-    setClearingBlockKeys(positions.map(([row, col]) => `${row}-${col}`));
+    const positionKeys = positions.map(([row, col]) => `${row}-${col}`);
+
+    setClearingBlockKeys(positionKeys);
+    setEmptyBlockKeys(positionKeys);
     setClearingBursts(
       positions.map(([row, col]) => ({
         key: `${currentBoard[row][col].id}-${row}-${col}`,
@@ -977,18 +980,18 @@ export default function PlayPage() {
       setClearingBlockKeys([]);
       setClearingBursts([]);
       setEmptyBlockKeys(emptyKeys);
-    }, 560);
+    }, 920);
 
     window.setTimeout(() => {
       setBoard(nextBoard);
       setEmptyBlockKeys([]);
       setMoveAnimation("settleDown");
-    }, 980);
+    }, 1160);
 
     window.setTimeout(() => {
       setIsMoving(false);
       setMoveAnimation("none");
-    }, 2600);
+    }, 2780);
   }
 
   function repairFouls(amount: number) {
