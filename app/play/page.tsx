@@ -7,7 +7,7 @@ import Link from "next/link";
 const rows = 10;
 const cols = 10;
 const maxMoves = 20;
-const maxFouls = 5;
+const maxFouls = 3;
 const maxPrizeCharge = 100;
 const maxPipCharge = 12;
 const maxPileDanger = 100;
@@ -897,6 +897,87 @@ function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
   );
 }
 
+function getConnectedColorGroup(
+  board: Block[][],
+  startRow: number,
+  startCol: number,
+  visited: Set<string>
+) {
+  const startBlock = board[startRow][startCol];
+  const group: [number, number][] = [];
+  const queue: [number, number][] = [[startRow, startCol]];
+
+  visited.add(`${startRow}-${startCol}`);
+
+  for (let index = 0; index < queue.length; index++) {
+    const [row, col] = queue[index];
+    group.push([row, col]);
+
+    const neighbors = [
+      [row - 1, col],
+      [row + 1, col],
+      [row, col - 1],
+      [row, col + 1],
+    ];
+
+    for (const [nextRow, nextCol] of neighbors) {
+      const key = `${nextRow}-${nextCol}`;
+
+      if (nextRow < 0 || nextRow >= rows) continue;
+      if (nextCol < 0 || nextCol >= cols) continue;
+      if (visited.has(key)) continue;
+
+      const nextBlock = board[nextRow][nextCol];
+
+      if (nextBlock.locked || nextBlock.prize || nextBlock.special) continue;
+      if (nextBlock.color !== startBlock.color) continue;
+
+      visited.add(key);
+      queue.push([nextRow, nextCol]);
+    }
+  }
+
+  return group;
+}
+
+function rebalanceEasyColorGroups(board: Block[][], currentLevel = 1) {
+  const nextBoard = board.map((row) => row.map((block) => ({ ...block })));
+  const visited = new Set<string>();
+  const maxEasyGroupSize = 5;
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const key = `${row}-${col}`;
+      const block = nextBoard[row][col];
+
+      if (visited.has(key)) continue;
+      if (block.locked || block.prize || block.special) {
+        visited.add(key);
+        continue;
+      }
+
+      const group = getConnectedColorGroup(nextBoard, row, col, visited);
+
+      if (group.length <= maxEasyGroupSize) continue;
+
+      group.forEach(([groupRow, groupCol], index) => {
+        if (index < maxEasyGroupSize && index % 2 === 0) return;
+
+        const colorShift =
+          1 + ((groupRow * 2 + groupCol * 3 + currentLevel + index) % (colors.length - 1));
+        const currentColorIndex = colors.indexOf(nextBoard[groupRow][groupCol].color);
+
+        nextBoard[groupRow][groupCol] = {
+          ...nextBoard[groupRow][groupCol],
+          color: colors[(currentColorIndex + colorShift) % colors.length],
+        };
+      });
+    }
+  }
+
+  return nextBoard;
+}
+
 function createBlockId(row: number, col: number) {
   return `${row}-${col}-${Date.now()}-${Math.random()}`;
 }
@@ -908,7 +989,10 @@ function createBoard(currentLevel = 1): Block[][] {
     )
   );
 
-  return applyPuzzleArchitecture(board, currentLevel);
+  return rebalanceEasyColorGroups(
+    applyPuzzleArchitecture(board, currentLevel),
+    currentLevel
+  );
 }
 
 function randomPrizeType(): PrizeType {
@@ -1502,6 +1586,46 @@ export default function PlayPage() {
     return dropped;
   }
 
+  function isStrategicCut(
+    clearedPositions: [number, number][],
+    droppedPositions: [number, number][]
+  ) {
+    if (droppedPositions.length < 4 || clearedPositions.length < 3) return false;
+
+    const clearedRows = clearedPositions.map(([row]) => row);
+    const clearedCols = clearedPositions.map(([, col]) => col);
+    const minRow = Math.min(...clearedRows);
+    const maxRow = Math.max(...clearedRows);
+    const minCol = Math.min(...clearedCols);
+    const maxCol = Math.max(...clearedCols);
+    const rowSpan = maxRow - minRow + 1;
+    const colSpan = maxCol - minCol + 1;
+    const uniqueRows = new Set(clearedRows);
+    const uniqueCols = new Set(clearedCols);
+    const centerRows = [Math.floor((rows - 1) / 2), Math.ceil((rows - 1) / 2)];
+    const centerCols = [Math.floor((cols - 1) / 2), Math.ceil((cols - 1) / 2)];
+    const horizontalCut = uniqueRows.size <= 2 && colSpan >= 4;
+    const verticalCut = uniqueCols.size <= 2 && rowSpan >= 4;
+    const bridgeCut = minCol <= 1 && maxCol >= cols - 2 && rowSpan <= 3;
+    const gateCut = clearedPositions.some(
+      ([row, col]) => centerRows.includes(row) || centerCols.includes(col)
+    );
+    const deepCut = minRow >= Math.floor(rows * 0.5);
+    const diagonalCut =
+      clearedPositions.length >= 3 &&
+      (new Set(clearedPositions.map(([row, col]) => row - col)).size <= 2 ||
+        new Set(clearedPositions.map(([row, col]) => row + col)).size <= 2);
+
+    return (
+      horizontalCut ||
+      verticalCut ||
+      bridgeCut ||
+      (gateCut && droppedPositions.length >= 6) ||
+      (deepCut && droppedPositions.length >= 5) ||
+      diagonalCut
+    );
+  }
+
   function getCutDropBonus(droppedCount: number) {
     if (droppedCount <= 0) return 0;
 
@@ -1614,7 +1738,10 @@ export default function PlayPage() {
   }
 
   function expandClearWithCutDrop(clearedPositions: [number, number][]) {
-    const cutDropBlocks = findCutDropBlocks(clearedPositions);
+    const candidateCutDropBlocks = findCutDropBlocks(clearedPositions);
+    const cutDropBlocks = isStrategicCut(clearedPositions, candidateCutDropBlocks)
+      ? candidateCutDropBlocks
+      : [];
     const insight = getPuzzleCutInsight(clearedPositions, cutDropBlocks);
 
     return {
@@ -2953,8 +3080,8 @@ export default function PlayPage() {
           </div>
 
           <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
-            Clear the puzzle screen. Solve gates, islands, rails, rings, and
-            zigzags by cutting support for bigger drops.
+            Plan before you touch. Only real line, bridge, gate, deep, and
+            diagonal cuts drop unsupported sections.
           </p>
           </div>
 
