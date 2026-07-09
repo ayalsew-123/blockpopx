@@ -11,9 +11,9 @@ const maxFouls = 5;
 const maxPrizeCharge = 100;
 const maxPipCharge = 12;
 const maxPileDanger = 100;
-const startingDropStock = 2400;
+const startingDropStock = 5200;
 const minVisibleBeforeWaveDrop = 16;
-const puzzleVariantCount = 120;
+const puzzleVariantCount = 360;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
@@ -361,7 +361,15 @@ function getRushMode(currentLevel: number) {
 }
 
 function getDropStockForLevel(currentLevel: number) {
-  return startingDropStock + (currentLevel - 1) * 180;
+  return startingDropStock + (currentLevel - 1) * 260;
+}
+
+function puzzleHash(row: number, col: number, currentLevel: number, salt = 0) {
+  const value =
+    Math.sin((row + 1) * 17.13 + (col + 1) * 31.71 + currentLevel * 9.37 + salt) *
+    10000;
+
+  return value - Math.floor(value);
 }
 
 function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockColor {
@@ -757,16 +765,150 @@ function randomBlock(row: number, col: number, currentLevel = 1): Block {
   return addPuzzleFixture(block, row, col, currentLevel);
 }
 
+function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
+  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const architecture = Math.floor(variant / 24) % 15;
+  const centerRow = Math.floor(rows / 2);
+  const centerCol = Math.floor(cols / 2);
+  const paletteShift = Math.floor((currentLevel - 1) / 3);
+
+  return board.map((rowBlocks, row) =>
+    rowBlocks.map((block, col) => {
+      const nextBlock = { ...block };
+      const rowDistance = Math.abs(row - centerRow);
+      const colDistance = Math.abs(col - centerCol);
+      const ring = Math.max(rowDistance, colDistance);
+      const diamond = rowDistance + colDistance;
+      const roomRow = row < centerRow ? 0 : 1;
+      const roomCol = col < centerCol ? 0 : 1;
+      const room = roomRow * 2 + roomCol;
+      const leftGate = col === centerCol - 1;
+      const rightGate = col === centerCol;
+      const topGate = row === centerRow - 1;
+      const bottomGate = row === centerRow;
+      const randomish = puzzleHash(row, col, currentLevel, architecture);
+
+      if (architecture === 0) {
+        nextBlock.color =
+          colors[(room + Math.floor(row / 3) + paletteShift) % colors.length];
+      } else if (architecture === 1) {
+        nextBlock.color =
+          colors[(ring + (row + col) % 3 + paletteShift) % colors.length];
+      } else if (architecture === 2) {
+        nextBlock.color =
+          colors[(diamond + Math.floor(col / 2) + paletteShift) % colors.length];
+      } else if (architecture === 3) {
+        nextBlock.color =
+          colors[
+            (Math.floor((row * row + col * 2) / 5) + paletteShift) %
+              colors.length
+          ];
+      } else if (architecture === 4) {
+        const braid = row % 2 === 0 ? col : cols - 1 - col;
+        nextBlock.color =
+          colors[(Math.floor(braid / 3) + room + paletteShift) % colors.length];
+      } else if (architecture === 5) {
+        const corridor = leftGate || rightGate || topGate || bottomGate ? 0 : 3;
+        nextBlock.color =
+          colors[(corridor + ring + Math.floor(row / 2) + paletteShift) % colors.length];
+      } else if (architecture === 6) {
+        const chamber =
+          Math.floor(row / 2) * 3 + Math.floor(col / 2) + (randomish > 0.62 ? 2 : 0);
+        nextBlock.color = colors[(chamber + paletteShift) % colors.length];
+      } else if (architecture === 7) {
+        const zipper = Math.abs(row - col) <= 1 ? 0 : Math.abs(row + col - (cols - 1)) <= 1 ? 2 : 4;
+        nextBlock.color =
+          colors[(zipper + Math.floor(diamond / 2) + paletteShift) % colors.length];
+      } else if (architecture === 8) {
+        const steps = Math.floor((row + Math.max(0, centerCol - col)) / 2);
+        nextBlock.color = colors[(steps + roomCol * 2 + paletteShift) % colors.length];
+      } else if (architecture === 9) {
+        const vault = rowDistance <= 1 || colDistance <= 1 ? 1 : room + 3;
+        nextBlock.color =
+          colors[(vault + Math.floor((row + col) / 3) + paletteShift) % colors.length];
+      } else if (architecture === 10) {
+        const orbit = (ring + Math.floor((row + col) / 2) + (row * col) % 3);
+        nextBlock.color = colors[(orbit + paletteShift) % colors.length];
+      } else if (architecture === 11) {
+        const mirror = Math.min(row, rows - 1 - row) + Math.min(col, cols - 1 - col);
+        nextBlock.color = colors[(mirror + paletteShift) % colors.length];
+      } else if (architecture === 12) {
+        const fork =
+          row < centerRow ? Math.abs(col - centerCol) : Math.abs(col - row + 1);
+        nextBlock.color = colors[(fork + paletteShift) % colors.length];
+      } else if (architecture === 13) {
+        const trap = randomish > 0.72 ? ring + 2 : Math.floor((row + col) / 2);
+        nextBlock.color = colors[(trap + paletteShift) % colors.length];
+      } else {
+        const knot = (row * 3 + col * 5 + ring * 2 + diamond) % colors.length;
+        nextBlock.color = colors[(knot + paletteShift) % colors.length];
+      }
+
+      const isGateWall =
+        (leftGate || rightGate) &&
+        row > 1 &&
+        row < rows - 2 &&
+        row % 3 !== architecture % 3;
+      const isShelfWall =
+        (topGate || bottomGate) &&
+        col > 1 &&
+        col < cols - 2 &&
+        col % 4 === architecture % 4;
+      const isRingLock =
+        ring === 3 && (row + col + currentLevel + architecture) % 5 === 0;
+      const isCornerKey =
+        (row === 1 || row === rows - 2) &&
+        (col === 1 || col === cols - 2) &&
+        (currentLevel + row + col) % 2 === 0;
+      const isDeepPrize =
+        row >= rows - 3 &&
+        col > 1 &&
+        col < cols - 2 &&
+        (row * 2 + col + architecture + currentLevel) % 9 === 0;
+      const isCenterTool =
+        rowDistance <= 1 &&
+        colDistance <= 1 &&
+        (row + col + currentLevel + architecture) % 7 === 0;
+
+      if (isGateWall || isShelfWall || isRingLock) {
+        nextBlock.locked = true;
+        delete nextBlock.prize;
+        delete nextBlock.special;
+        delete nextBlock.pips;
+      } else if (isCenterTool) {
+        nextBlock.special = randomSpecialType();
+        delete nextBlock.prize;
+        delete nextBlock.pips;
+      } else if (isDeepPrize || isCornerKey) {
+        nextBlock.prize = randomPrizeType();
+        delete nextBlock.special;
+        delete nextBlock.pips;
+      } else if (
+        !nextBlock.special &&
+        !nextBlock.prize &&
+        !nextBlock.locked &&
+        (randomish > 0.78 || (architecture + row + col) % 12 === 0)
+      ) {
+        nextBlock.pips = Math.max(nextBlock.pips ?? 0, randomish > 0.9 ? 3 : 2);
+      }
+
+      return nextBlock;
+    })
+  );
+}
+
 function createBlockId(row: number, col: number) {
   return `${row}-${col}-${Date.now()}-${Math.random()}`;
 }
 
 function createBoard(currentLevel = 1): Block[][] {
-  return Array.from({ length: rows }, (_, row) =>
+  const board = Array.from({ length: rows }, (_, row) =>
     Array.from({ length: cols }, (_, col) =>
       randomBlock(row, col, currentLevel)
     )
   );
+
+  return applyPuzzleArchitecture(board, currentLevel);
 }
 
 function randomPrizeType(): PrizeType {
@@ -2567,7 +2709,7 @@ export default function PlayPage() {
             </h1>
 
             <p className="mt-2 text-sm leading-6 text-slate-200">
-              Clear waves from the table before hundreds of falling balls push
+              Clear puzzle waves before thousands of falling balls push
               the pile to the bottom.
             </p>
           </section>
