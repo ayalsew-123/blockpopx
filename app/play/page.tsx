@@ -26,6 +26,7 @@ type MoveAnimation =
 type SoundCue = "pop" | "goal" | "prize" | "blast" | "win" | "big" | "foul";
 type BlockColor = (typeof colors)[number];
 type ColorGoals = Record<BlockColor, number>;
+type PuzzleKind = "color" | "pip" | "lock" | "prize" | "rocket" | "twist";
 
 type Position = {
   row: number;
@@ -48,6 +49,21 @@ type ClearingBurst = {
   colorClass: string;
 };
 
+type PuzzleTemplate = {
+  title: string;
+  badge: string;
+  kind: PuzzleKind;
+  hint: string;
+  scoreBase: number;
+  scoreStep: number;
+  colorOffsets: [number, number, number?];
+  goalCounts: [number, number, number?];
+  startingGravity: GravityDirection;
+  startingShuffles: number;
+  startingPrizeCharge: number;
+  startingPipCharge: number;
+};
+
 const colorLabels: Record<BlockColor, string> = {
   red: "Ruby",
   blue: "Aqua",
@@ -57,20 +73,133 @@ const colorLabels: Record<BlockColor, string> = {
   pink: "Rose",
 };
 
+const puzzleTemplates: PuzzleTemplate[] = [
+  {
+    title: "Ruby Sprint",
+    badge: "Color Chase",
+    kind: "color",
+    hint: "Clear two hot color goals and keep the streak alive.",
+    scoreBase: 2200,
+    scoreStep: 840,
+    colorOffsets: [0, 3],
+    goalCounts: [10, 6],
+    startingGravity: "down",
+    startingShuffles: 2,
+    startingPrizeCharge: 0,
+    startingPipCharge: 0,
+  },
+  {
+    title: "Pip Rush",
+    badge: "Blast Build",
+    kind: "pip",
+    hint: "More pip balls appear. Charge Pip Blast faster.",
+    scoreBase: 2500,
+    scoreStep: 880,
+    colorOffsets: [1, 4],
+    goalCounts: [9, 8],
+    startingGravity: "down",
+    startingShuffles: 2,
+    startingPrizeCharge: 10,
+    startingPipCharge: 4,
+  },
+  {
+    title: "Lock Breaker",
+    badge: "Crack Cells",
+    kind: "lock",
+    hint: "Extra locks are on the board. Pop beside them to crack through.",
+    scoreBase: 2800,
+    scoreStep: 920,
+    colorOffsets: [2, 5, 0],
+    goalCounts: [8, 7, 5],
+    startingGravity: "down",
+    startingShuffles: 3,
+    startingPrizeCharge: 0,
+    startingPipCharge: 2,
+  },
+  {
+    title: "Prize Chase",
+    badge: "Reward Hunt",
+    kind: "prize",
+    hint: "Prize balls show up more often. Open them for big swings.",
+    scoreBase: 2600,
+    scoreStep: 900,
+    colorOffsets: [3, 0],
+    goalCounts: [11, 7],
+    startingGravity: "down",
+    startingShuffles: 2,
+    startingPrizeCharge: 45,
+    startingPipCharge: 0,
+  },
+  {
+    title: "Rocket Lab",
+    badge: "Big Groups",
+    kind: "rocket",
+    hint: "Build larger groups to create bombs, rockets, and lightning.",
+    scoreBase: 3100,
+    scoreStep: 960,
+    colorOffsets: [4, 1, 3],
+    goalCounts: [9, 7, 6],
+    startingGravity: "down",
+    startingShuffles: 3,
+    startingPrizeCharge: 20,
+    startingPipCharge: 3,
+  },
+  {
+    title: "Gravity Twist",
+    badge: "Upside Puzzle",
+    kind: "twist",
+    hint: "The board starts upward. Flip gravity when the path gets tight.",
+    scoreBase: 3000,
+    scoreStep: 940,
+    colorOffsets: [5, 2],
+    goalCounts: [12, 8],
+    startingGravity: "up",
+    startingShuffles: 2,
+    startingPrizeCharge: 15,
+    startingPipCharge: 1,
+  },
+];
+
+function getPuzzlePlan(currentLevel: number) {
+  const template =
+    puzzleTemplates[(currentLevel - 1) % puzzleTemplates.length];
+  const cycle = Math.floor((currentLevel - 1) / puzzleTemplates.length);
+  const goals = createEmptyGoals();
+
+  template.colorOffsets.forEach((offset, index) => {
+    if (offset === undefined) return;
+
+    const color = colors[(currentLevel - 1 + offset) % colors.length];
+    const baseCount = template.goalCounts[index] ?? template.goalCounts[0];
+    goals[color] += baseCount + currentLevel + cycle * 2;
+  });
+
+  return {
+    ...template,
+    goals,
+    scoreTarget: template.scoreBase + currentLevel * template.scoreStep,
+  };
+}
+
 function randomBlock(row: number, col: number, currentLevel = 1): Block {
+  const puzzle = getPuzzlePlan(currentLevel);
   const block: Block = {
     id: createBlockId(row, col),
     color: colors[Math.floor(Math.random() * colors.length)],
   };
 
-  const lockChance = Math.min(0.025 + currentLevel * 0.008, 0.095);
-  const prizeChance = 0.025;
+  const lockChance = Math.min(
+    0.025 + currentLevel * 0.008 + (puzzle.kind === "lock" ? 0.045 : 0),
+    0.14
+  );
+  const prizeChance = puzzle.kind === "prize" ? 0.055 : 0.025;
+  const pipChance = puzzle.kind === "pip" ? 0.34 : 0.22;
 
   if (Math.random() < lockChance) {
     block.locked = true;
   } else if (Math.random() < prizeChance) {
     block.prize = randomPrizeType();
-  } else if (Math.random() < 0.22) {
+  } else if (Math.random() < pipChance) {
     block.pips = Math.floor(Math.random() * 3) + 1;
   }
 
@@ -181,14 +310,7 @@ function createEmptyGoals(): ColorGoals {
 }
 
 function createLevelGoals(currentLevel: number): ColorGoals {
-  const primaryColor = colors[(currentLevel - 1) % colors.length];
-  const secondaryColor = colors[(currentLevel + 2) % colors.length];
-
-  return {
-    ...createEmptyGoals(),
-    [primaryColor]: 8 + currentLevel * 2,
-    [secondaryColor]: 5 + currentLevel,
-  };
+  return getPuzzlePlan(currentLevel).goals;
 }
 
 function getRemainingGoalCount(goals: ColorGoals) {
@@ -492,6 +614,7 @@ function mergePositions(...groups: [number, number][][]) {
 export default function PlayPage() {
   const showtimeTimers = useRef<number[]>([]);
   const lastShowtimeScore = useRef(0);
+  const firstPuzzle = getPuzzlePlan(1);
   const [board, setBoard] = useState<Block[][] | null>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
@@ -501,17 +624,23 @@ export default function PlayPage() {
   const [levelComplete, setLevelComplete] = useState(false);
   const [message, setMessage] = useState("");
   const [level, setLevel] = useState(1);
-  const [targetScore, setTargetScore] = useState(2200);
+  const [targetScore, setTargetScore] = useState(firstPuzzle.scoreTarget);
   const [colorGoals, setColorGoals] = useState<ColorGoals>(() =>
     createLevelGoals(1)
   );
   const [streak, setStreak] = useState(0);
   const [selectedBlock, setSelectedBlock] = useState<Position | null>(null);
   const [isMoving, setIsMoving] = useState(false);
-  const [gravity, setGravity] = useState<GravityDirection>("down");
-  const [shufflesLeft, setShufflesLeft] = useState(2);
-  const [prizeCharge, setPrizeCharge] = useState(0);
-  const [pipCharge, setPipCharge] = useState(0);
+  const [gravity, setGravity] = useState<GravityDirection>(
+    firstPuzzle.startingGravity
+  );
+  const [shufflesLeft, setShufflesLeft] = useState(
+    firstPuzzle.startingShuffles
+  );
+  const [prizeCharge, setPrizeCharge] = useState(
+    firstPuzzle.startingPrizeCharge
+  );
+  const [pipCharge, setPipCharge] = useState(firstPuzzle.startingPipCharge);
   const [pipBlastsLeft, setPipBlastsLeft] = useState(0);
   const [goalSigns, setGoalSigns] = useState<string[]>([]);
   const [showtimeSigns, setShowtimeSigns] = useState<string[]>([]);
@@ -1289,10 +1418,11 @@ export default function PlayPage() {
 
     if (newScore >= targetScore && getRemainingGoalCount(newColorGoals) === 0) {
       const next = level + 1;
+      const nextPuzzle = getPuzzlePlan(next);
 
       setLevel(next);
-      setTargetScore(newScore + 1800 + next * 550);
-      setColorGoals(createLevelGoals(next));
+      setTargetScore(nextPuzzle.scoreTarget);
+      setColorGoals(nextPuzzle.goals);
       showGoalSigns(["Milestone clear", "New goals open"], "win");
       triggerBoardShowtime(
         ["Milestone clear", "Rocket fire", "Fire boost"],
@@ -1300,7 +1430,7 @@ export default function PlayPage() {
         "win",
         420
       );
-      setMessage("Milestone cleared! Keep playing for a bigger score.");
+      setMessage(`Milestone cleared! ${nextPuzzle.title} is open.`);
       return;
     }
   }
@@ -1438,6 +1568,8 @@ export default function PlayPage() {
   }
 
   function restartGame() {
+    const puzzle = getPuzzlePlan(level);
+
     setBoard(createBoard(level));
     setScore(0);
     setMovesLeft(maxMoves);
@@ -1445,43 +1577,45 @@ export default function PlayPage() {
     setGameOver(false);
     setLevelComplete(false);
     setMessage("");
-    setColorGoals(createLevelGoals(level));
+    setTargetScore(puzzle.scoreTarget);
+    setColorGoals(puzzle.goals);
     setStreak(0);
     setSelectedBlock(null);
     setIsMoving(false);
     setMoveAnimation("none");
     setClearingBlockKeys([]);
     setClearingBursts([]);
-    setGravity("down");
-    setShufflesLeft(2);
-    setPrizeCharge(0);
-    setPipCharge(0);
+    setGravity(puzzle.startingGravity);
+    setShufflesLeft(puzzle.startingShuffles);
+    setPrizeCharge(puzzle.startingPrizeCharge);
+    setPipCharge(puzzle.startingPipCharge);
     setPipBlastsLeft(0);
   }
 
   function nextLevel() {
     const next = level + 1;
+    const nextPuzzle = getPuzzlePlan(next);
 
     setLevel(next);
-    setTargetScore(2200 + next * 850);
-    setColorGoals(createLevelGoals(next));
+    setTargetScore(nextPuzzle.scoreTarget);
+    setColorGoals(nextPuzzle.goals);
     setBoard(createBoard(next));
     setScore(0);
     setMovesLeft(maxMoves);
     setFouls(0);
     setGameOver(false);
     setLevelComplete(false);
-    setMessage(`Level ${next} started. Solve the new puzzle!`);
+    setMessage(`Level ${next}: ${nextPuzzle.title}. ${nextPuzzle.hint}`);
     setStreak(0);
     setSelectedBlock(null);
     setIsMoving(false);
     setMoveAnimation("none");
     setClearingBlockKeys([]);
     setClearingBursts([]);
-    setGravity(next % 2 === 0 ? "up" : "down");
-    setShufflesLeft(2);
-    setPrizeCharge(0);
-    setPipCharge(0);
+    setGravity(nextPuzzle.startingGravity);
+    setShufflesLeft(nextPuzzle.startingShuffles);
+    setPrizeCharge(nextPuzzle.startingPrizeCharge);
+    setPipCharge(nextPuzzle.startingPipCharge);
     setPipBlastsLeft(0);
   }
 
@@ -1520,8 +1654,9 @@ export default function PlayPage() {
     }
   }
 
+  const puzzlePlan = getPuzzlePlan(level);
   const scoreProgress = Math.min((score / targetScore) * 100, 100);
-  const totalGoalCount = getRemainingGoalCount(createLevelGoals(level));
+  const totalGoalCount = getRemainingGoalCount(puzzlePlan.goals);
   const goalsRemaining = getRemainingGoalCount(colorGoals);
   const goalProgress = Math.min(
     ((totalGoalCount - goalsRemaining) / totalGoalCount) * 100,
@@ -1601,6 +1736,25 @@ export default function PlayPage() {
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-bold text-amber-200">Level {level}</p>
               <p className="text-sm text-slate-200">Score goal: {targetScore}</p>
+            </div>
+
+            <div className="mb-3 rounded-2xl border border-cyan-300/25 bg-cyan-300/10 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-200">
+                  {puzzlePlan.badge}
+                </p>
+                <p className="rounded-full bg-white/10 px-2 py-1 text-[0.65rem] font-black uppercase tracking-wide text-amber-100">
+                  Puzzle {((level - 1) % puzzleTemplates.length) + 1}/
+                  {puzzleTemplates.length}
+                </p>
+              </div>
+
+              <p className="mt-1 text-lg font-black text-white">
+                {puzzlePlan.title}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-200">
+                {puzzlePlan.hint}
+              </p>
             </div>
 
             <div className="h-3 overflow-hidden rounded-full bg-black/35">
