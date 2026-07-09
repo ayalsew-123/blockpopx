@@ -11,8 +11,9 @@ const maxFouls = 5;
 const maxPrizeCharge = 100;
 const maxPipCharge = 12;
 const maxPileDanger = 100;
-const startingDropStock = 620;
+const startingDropStock = 2400;
 const minVisibleBeforeWaveDrop = 16;
+const puzzleVariantCount = 120;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
@@ -360,11 +361,13 @@ function getRushMode(currentLevel: number) {
 }
 
 function getDropStockForLevel(currentLevel: number) {
-  return startingDropStock + (currentLevel - 1) * 74;
+  return startingDropStock + (currentLevel - 1) * 180;
 }
 
 function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockColor {
-  const pattern = (currentLevel - 1) % 24;
+  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const pattern = variant % 24;
+  const modifier = Math.floor(variant / 24);
   const shift = currentLevel - 1;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
@@ -374,88 +377,97 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
   const mirrorRow = row <= centerRow ? row : rows - 1 - row;
   const mirrorCol = col <= centerCol ? col : cols - 1 - col;
   const diamond = rowDistance + colDistance;
+  const modifierShift = [
+    0,
+    Math.floor(row / 2) + (col % 2),
+    Math.floor(col / 2) + (row % 2),
+    (row * 2 + col * 3) % colors.length,
+    (ring + diamond + Math.floor((row + col) / 3)) % colors.length,
+  ][modifier];
+  const finish = (colorIndex: number) =>
+    colors[(colorIndex + modifierShift) % colors.length];
 
   if (pattern === 0) {
-    return colors[(Math.floor(col / 2) + shift + (row % 2)) % colors.length];
+    return finish(Math.floor(col / 2) + shift + (row % 2));
   }
 
   if (pattern === 1) {
-    return colors[(Math.floor(row / 2) + shift + (col % 2)) % colors.length];
+    return finish(Math.floor(row / 2) + shift + (col % 2));
   }
 
   if (pattern === 2) {
-    return colors[(Math.floor(row / 2) + Math.floor(col / 2) + shift) % colors.length];
+    return finish(Math.floor(row / 2) + Math.floor(col / 2) + shift);
   }
 
   if (pattern === 3) {
-    return colors[(row + col + shift) % colors.length];
+    return finish(row + col + shift);
   }
 
   if (pattern === 4) {
-    return colors[(Math.floor((row + col) / 2) + shift) % colors.length];
+    return finish(Math.floor((row + col) / 2) + shift);
   }
 
   if (pattern === 5) {
-    return colors[(Math.abs(row - col) + Math.floor(col / 3) + shift) % colors.length];
+    return finish(Math.abs(row - col) + Math.floor(col / 3) + shift);
   }
 
   if (pattern === 6) {
     const crossLane = row === centerRow || col === centerCol ? 0 : 2;
-    return colors[(crossLane + Math.floor((row + col) / 2) + shift) % colors.length];
+    return finish(crossLane + Math.floor((row + col) / 2) + shift);
   }
 
   if (pattern === 7) {
-    return colors[(ring + shift + (row + col) % 2) % colors.length];
+    return finish(ring + shift + (row + col) % 2);
   }
 
   if (pattern === 8) {
-    return colors[(Math.floor(row / 2) + mirrorCol + shift) % colors.length];
+    return finish(Math.floor(row / 2) + mirrorCol + shift);
   }
 
   if (pattern === 9) {
     const stair = Math.floor((row + Math.max(0, col - row)) / 2);
-    return colors[(stair + shift + (col % 3 === 0 ? 1 : 0)) % colors.length];
+    return finish(stair + shift + (col % 3 === 0 ? 1 : 0));
   }
 
   if (pattern === 10) {
     const lane = col < centerCol ? row + col : row + (cols - 1 - col);
-    return colors[(Math.floor(lane / 2) + shift) % colors.length];
+    return finish(Math.floor(lane / 2) + shift);
   }
 
   const spiralBand =
     ring + Math.floor((row + col + Math.abs(row - col)) / 4);
 
   if (pattern === 11) {
-    return colors[(spiralBand + shift) % colors.length];
+    return finish(spiralBand + shift);
   }
 
   if (pattern === 12) {
-    return colors[((row % 3) * 2 + (col % 3) + shift) % colors.length];
+    return finish((row % 3) * 2 + (col % 3) + shift);
   }
 
   if (pattern === 13) {
     const hourglass =
       Math.abs(row - col) + Math.abs(row + col - (cols - 1));
-    return colors[(Math.floor(hourglass / 2) + shift) % colors.length];
+    return finish(Math.floor(hourglass / 2) + shift);
   }
 
   if (pattern === 14) {
     const rail = row % 4 === 1 || col % 4 === 1 ? 1 : 3;
-    return colors[(rail + Math.floor((row + col) / 3) + shift) % colors.length];
+    return finish(rail + Math.floor((row + col) / 3) + shift);
   }
 
   if (pattern === 15) {
-    return colors[(ring + Math.floor(row / 3) + Math.floor(col / 3) + shift) % colors.length];
+    return finish(ring + Math.floor(row / 3) + Math.floor(col / 3) + shift);
   }
 
   if (pattern === 16) {
     const arrow = row < centerRow ? centerRow - row + (col % 3) : row - centerRow + ((cols - 1 - col) % 3);
-    return colors[(arrow + shift) % colors.length];
+    return finish(arrow + shift);
   }
 
   if (pattern === 17) {
     const island = Math.floor(row / 3) * 2 + Math.floor(col / 3) + ((row + col) % 2);
-    return colors[(island + shift) % colors.length];
+    return finish(island + shift);
   }
 
   if (pattern === 18) {
@@ -463,35 +475,37 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
       Math.abs(row - col) <= 1 || Math.abs(row + col - (cols - 1)) <= 1
         ? 0
         : 3;
-    return colors[(xGate + ring + shift) % colors.length];
+    return finish(xGate + ring + shift);
   }
 
   if (pattern === 19) {
     const maze = row * 2 + col + Math.floor(row / 3) + Math.floor(col / 4);
-    return colors[(maze + shift) % colors.length];
+    return finish(maze + shift);
   }
 
   if (pattern === 20) {
-    return colors[(Math.floor((row + 2 * col) / 3) + shift) % colors.length];
+    return finish(Math.floor((row + 2 * col) / 3) + shift);
   }
 
   if (pattern === 21) {
     const bracket = mirrorRow + Math.floor(Math.abs(col - centerCol) / 2);
-    return colors[(bracket + shift) % colors.length];
+    return finish(bracket + shift);
   }
 
   if (pattern === 22) {
-    return colors[(diamond + Math.floor((row + col) / 4) + shift) % colors.length];
+    return finish(diamond + Math.floor((row + col) / 4) + shift);
   }
 
   const snake = row % 2 === 0 ? col : cols - 1 - col;
-  return colors[(Math.floor(snake / 2) + Math.floor(row / 2) + shift) % colors.length];
+  return finish(Math.floor(snake / 2) + Math.floor(row / 2) + shift);
 }
 
 function addPuzzleFixture(block: Block, row: number, col: number, currentLevel = 1) {
   if (block.locked || block.prize || block.special) return block;
 
-  const pattern = (currentLevel - 1) % 24;
+  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const pattern = variant % 24;
+  const modifier = Math.floor(variant / 24);
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
   const rowDistance = Math.abs(row - centerRow);
@@ -665,6 +679,46 @@ function addPuzzleFixture(block: Block, row: number, col: number, currentLevel =
     (row + currentLevel) % 3 === 0
   ) {
     nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    modifier === 1 &&
+    row > 0 &&
+    row < rows - 1 &&
+    (row + col + currentLevel) % 11 === 0
+  ) {
+    nextBlock.pips = Math.max(nextBlock.pips ?? 0, 2);
+  }
+
+  if (
+    modifier === 2 &&
+    col > 0 &&
+    col < cols - 1 &&
+    (row * 3 + col + currentLevel) % 13 === 0
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
+  if (
+    modifier === 3 &&
+    row > 1 &&
+    col > 1 &&
+    row < rows - 2 &&
+    col < cols - 2 &&
+    (row + col * 2 + currentLevel) % 17 === 0
+  ) {
+    nextBlock.special = randomSpecialType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    modifier === 4 &&
+    Math.abs(row - centerRow) + Math.abs(col - centerCol) <= 3 &&
+    (row * 2 + col + currentLevel) % 10 === 0
+  ) {
+    nextBlock.prize = randomPrizeType();
     delete nextBlock.pips;
   }
 
@@ -2530,8 +2584,8 @@ export default function PlayPage() {
                   {puzzlePlan.badge}
                 </p>
                 <p className="rounded-full bg-white/10 px-2 py-1 text-[0.65rem] font-black uppercase tracking-wide text-amber-100">
-                  Puzzle {((level - 1) % puzzleTemplates.length) + 1}/
-                  {puzzleTemplates.length}
+                  Puzzle {((level - 1) % puzzleVariantCount) + 1}/
+                  {puzzleVariantCount}
                 </p>
               </div>
 
