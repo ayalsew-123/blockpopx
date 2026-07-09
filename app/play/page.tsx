@@ -981,11 +981,11 @@ export default function PlayPage() {
 
     window.setTimeout(() => {
       setBoard(nextBoard);
-      setEmptyBlockKeys([]);
       setMoveAnimation(gravity === "down" ? "settleDown" : "settleUp");
     }, 980);
 
     window.setTimeout(() => {
+      setEmptyBlockKeys([]);
       setIsMoving(false);
       setMoveAnimation("none");
     }, 2600);
