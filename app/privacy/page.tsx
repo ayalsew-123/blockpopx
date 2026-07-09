@@ -1,5 +1,19 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy",
+  description:
+    "Read the BlockPopX privacy policy for the free online puzzle game, including local high score storage and sharing details.",
+  alternates: {
+    canonical: "/privacy",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function PrivacyPage() {
   return (
@@ -93,7 +107,7 @@ export default function PrivacyPage() {
       </section>
 
       <footer className="border-t border-slate-800 px-6 py-8 text-center text-sm text-slate-400">
-        <p>© 2026 BlockPopX. All rights reserved.</p>
+        <p>(c) 2026 BlockPopX. All rights reserved.</p>
 
         <div className="mt-4 flex flex-wrap justify-center gap-6">
           <Link href="/" className="hover:text-cyan-400">

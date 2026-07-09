@@ -2241,7 +2241,7 @@ export default function PlayPage() {
       </section>
 
       <footer className="border-t border-white/10 px-6 py-8 text-center text-sm text-slate-400">
-        <p>© 2026 BlockPopX. All rights reserved.</p>
+        <p>(c) 2026 BlockPopX. All rights reserved.</p>
 
         <div className="mt-4 flex flex-wrap justify-center gap-6">
           <Link href="/" className="hover:text-cyan-400">
