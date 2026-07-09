@@ -10,6 +10,8 @@ const maxMoves = 20;
 const maxFouls = 5;
 const maxPrizeCharge = 100;
 const maxPipCharge = 12;
+const maxPileDanger = 100;
+const startingDropStock = 260;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
@@ -78,6 +80,15 @@ type PuzzleTemplate = {
   prizeChance?: number;
   pipChance?: number;
   specialChance?: number;
+};
+
+type RushMode = {
+  title: string;
+  badge: string;
+  hint: string;
+  waveBase: number;
+  levelScale: number;
+  clearRelief: number;
 };
 
 const colorLabels: Record<BlockColor, string> = {
@@ -275,6 +286,49 @@ const puzzleTemplates: PuzzleTemplate[] = [
   },
 ];
 
+const rushModes: RushMode[] = [
+  {
+    title: "Drop Rush",
+    badge: "Falling Balls",
+    hint: "Hundreds of balls are waiting above the table. Clear groups before the pile danger fills.",
+    waveBase: 12,
+    levelScale: 1.2,
+    clearRelief: 2.4,
+  },
+  {
+    title: "Zigzag Rain",
+    badge: "Side Drift",
+    hint: "New balls slide in with crooked drops. Big groups slow the pile fastest.",
+    waveBase: 15,
+    levelScale: 1.45,
+    clearRelief: 2.2,
+  },
+  {
+    title: "Lock Flood",
+    badge: "Pressure Locks",
+    hint: "More locked balls enter the rush. Crack them from the side to keep space open.",
+    waveBase: 17,
+    levelScale: 1.65,
+    clearRelief: 2,
+  },
+  {
+    title: "Prize Storm",
+    badge: "Reward Waves",
+    hint: "Prize balls can rescue the table, but small clears let the pile push down.",
+    waveBase: 19,
+    levelScale: 1.8,
+    clearRelief: 1.95,
+  },
+  {
+    title: "Boss Rain",
+    badge: "Overflow Run",
+    hint: "Fast drops, hard goals, and a tight danger meter. Use every blast.",
+    waveBase: 22,
+    levelScale: 2,
+    clearRelief: 1.85,
+  },
+];
+
 function getPuzzlePlan(currentLevel: number) {
   const template =
     puzzleTemplates[(currentLevel - 1) % puzzleTemplates.length];
@@ -294,6 +348,14 @@ function getPuzzlePlan(currentLevel: number) {
     goals,
     scoreTarget: template.scoreBase + currentLevel * template.scoreStep,
   };
+}
+
+function getRushMode(currentLevel: number) {
+  return rushModes[(currentLevel - 1) % rushModes.length];
+}
+
+function getDropStockForLevel(currentLevel: number) {
+  return startingDropStock + (currentLevel - 1) * 38;
 }
 
 function randomBlock(row: number, col: number, currentLevel = 1): Block {
@@ -769,6 +831,10 @@ export default function PlayPage() {
   );
   const [pipCharge, setPipCharge] = useState(firstPuzzle.startingPipCharge);
   const [pipBlastsLeft, setPipBlastsLeft] = useState(0);
+  const [dropStock, setDropStock] = useState(getDropStockForLevel(1));
+  const [pileDanger, setPileDanger] = useState(18);
+  const [wavesSurvived, setWavesSurvived] = useState(0);
+  const [lastDropWave, setLastDropWave] = useState(0);
   const [goalSigns, setGoalSigns] = useState<string[]>([]);
   const [showtimeSigns, setShowtimeSigns] = useState<string[]>([]);
   const [clearingBlockKeys, setClearingBlockKeys] = useState<string[]>([]);
@@ -905,20 +971,89 @@ export default function PlayPage() {
 
   function addFoul(reason: string) {
     const nextFouls = Math.min(maxFouls, fouls + 1);
+    const nextDanger = Math.min(maxPileDanger, pileDanger + 8);
 
     setFouls(nextFouls);
+    setPileDanger(nextDanger);
     setSelectedBlock(null);
     setStreak(0);
 
-    if (nextFouls >= maxFouls) {
+    if (nextFouls >= maxFouls || nextDanger >= maxPileDanger) {
       setGameOver(true);
-      showGoalSigns(["Too many fouls"], "foul");
-      setMessage("Too many fouls. Restart and try a cleaner run.");
+      showGoalSigns(
+        [nextDanger >= maxPileDanger ? "Pile overflow" : "Too many fouls"],
+        "foul"
+      );
+      setMessage(
+        nextDanger >= maxPileDanger
+          ? "The pile reached the bottom. Clear bigger groups next run."
+          : "Too many fouls. Restart and try a cleaner run."
+      );
       return;
     }
 
     showGoalSigns([`Foul ${nextFouls}/${maxFouls}`], "foul");
     setMessage(`${reason} Foul ${nextFouls}/${maxFouls}.`);
+  }
+
+  function applyRushDrop(clearedCount: number) {
+    if (clearedCount <= 0) {
+      return {
+        overflow: false,
+        nextDropStock: dropStock,
+      };
+    }
+
+    const rushMode = getRushMode(level);
+    const waveSize = Math.min(
+      dropStock,
+      Math.ceil(
+        rushMode.waveBase +
+          level * rushMode.levelScale +
+          Math.floor(wavesSurvived / 3)
+      )
+    );
+    const clearPower =
+      clearedCount * rushMode.clearRelief + (streak >= 3 ? 5 : 0);
+    const dangerChange = Math.ceil(waveSize - clearPower);
+    const nextDanger = Math.max(
+      0,
+      Math.min(maxPileDanger, pileDanger + dangerChange)
+    );
+    const nextDropStock = Math.max(0, dropStock - clearedCount);
+
+    setDropStock(nextDropStock);
+    setPileDanger(nextDanger);
+    setWavesSurvived(wavesSurvived + 1);
+    setLastDropWave(waveSize);
+
+    queueShowtimeTimer(() => {
+      setLastDropWave(0);
+    }, 1200);
+
+    if (nextDanger >= maxPileDanger) {
+      setGameOver(true);
+      showGoalSigns(["Pile overflow", "Table full"], "foul");
+      setMessage(
+        "The falling balls reached the bottom. Use bigger clears and blasts."
+      );
+
+      return {
+        overflow: true,
+        nextDropStock,
+      };
+    }
+
+    if (dangerChange <= -8) {
+      showGoalSigns(["Pile pushed back"], "big");
+    } else if (dangerChange >= 10) {
+      showGoalSigns(["Fast drop incoming"], "foul");
+    }
+
+    return {
+      overflow: false,
+      nextDropStock,
+    };
   }
 
   function handleBlockClick(rowIndex: number, colIndex: number) {
@@ -1216,7 +1351,7 @@ export default function PlayPage() {
       setMessage(`Nice pop! +${pointsEarned}${lockText}${prizeText}${pipText}`);
     }
 
-    finishMove(newScore, newMovesLeft, newColorGoals);
+    finishMove(newScore, newMovesLeft, newColorGoals, clearedBlocks.length);
   }
 
   function activateBomb(rowIndex: number, colIndex: number) {
@@ -1333,7 +1468,7 @@ export default function PlayPage() {
         meterReward ? ` Prize meter: ${meterReward.text}!` : ""
       }${pipResult.blastsEarned > 0 ? " Pip Blast charged!" : ""}`
     );
-    finishMove(newScore, newMovesLeft, newColorGoals);
+    finishMove(newScore, newMovesLeft, newColorGoals, affected.length);
   }
 
   function flipGravity() {
@@ -1460,7 +1595,7 @@ export default function PlayPage() {
       setMoveAnimation("none");
     }, 1040);
     setMessage(`Prize ball opened: ${reward.text}!`);
-    finishMove(newScore, newMovesLeft, colorGoals);
+    finishMove(newScore, newMovesLeft, colorGoals, 1);
   }
 
   function activatePipBlast() {
@@ -1530,34 +1665,56 @@ export default function PlayPage() {
         crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : ""
       }`
     );
-    finishMove(newScore, movesLeft, newColorGoals);
+    finishMove(newScore, movesLeft, newColorGoals, clearedBlocks.length);
   }
 
   function finishMove(
     newScore: number,
     _newMovesLeft: number,
-    newColorGoals: ColorGoals
+    newColorGoals: ColorGoals,
+    clearedCount = 0
   ) {
     if (newScore > highScore) {
       setHighScore(newScore);
       localStorage.setItem("blockpopx-high-score", String(newScore));
     }
 
-    if (newScore >= targetScore && getRemainingGoalCount(newColorGoals) === 0) {
+    const rushResult = applyRushDrop(clearedCount);
+
+    if (rushResult.overflow) {
+      return;
+    }
+
+    const rushStockCleared = rushResult.nextDropStock <= 0;
+    const puzzleGoalsCleared =
+      newScore >= targetScore && getRemainingGoalCount(newColorGoals) === 0;
+
+    if (rushStockCleared || puzzleGoalsCleared) {
       const next = level + 1;
       const nextPuzzle = getPuzzlePlan(next);
+      const nextRushMode = getRushMode(next);
 
       setLevel(next);
       setTargetScore(nextPuzzle.scoreTarget);
       setColorGoals(nextPuzzle.goals);
+      setDropStock(getDropStockForLevel(next));
+      setPileDanger(Math.max(8, Math.floor(pileDanger * 0.35)));
+      setWavesSurvived(0);
       showGoalSigns(["Milestone clear", "New goals open"], "win");
       triggerBoardShowtime(
-        ["Milestone clear", "Rocket fire", "Fire boost"],
+        [
+          "Milestone clear",
+          nextRushMode.badge,
+          "More balls above",
+          "Fire boost",
+        ],
         newScore,
         "win",
         420
       );
-      setMessage(`Milestone cleared! ${nextPuzzle.title} is open.`);
+      setMessage(
+        `${nextRushMode.title} unlocked! ${nextPuzzle.title} is open with more falling balls.`
+      );
       return;
     }
   }
@@ -1717,6 +1874,10 @@ export default function PlayPage() {
     setPrizeCharge(puzzle.startingPrizeCharge);
     setPipCharge(puzzle.startingPipCharge);
     setPipBlastsLeft(0);
+    setDropStock(getDropStockForLevel(level));
+    setPileDanger(18);
+    setWavesSurvived(0);
+    setLastDropWave(0);
   }
 
   function nextLevel() {
@@ -1744,6 +1905,10 @@ export default function PlayPage() {
     setPrizeCharge(nextPuzzle.startingPrizeCharge);
     setPipCharge(nextPuzzle.startingPipCharge);
     setPipBlastsLeft(0);
+    setDropStock(getDropStockForLevel(next));
+    setPileDanger(18);
+    setWavesSurvived(0);
+    setLastDropWave(0);
   }
 
   function resetHighScore() {
@@ -1782,6 +1947,7 @@ export default function PlayPage() {
   }
 
   const puzzlePlan = getPuzzlePlan(level);
+  const rushMode = getRushMode(level);
   const scoreProgress = Math.min((score / targetScore) * 100, 100);
   const totalGoalCount = getRemainingGoalCount(puzzlePlan.goals);
   const goalsRemaining = getRemainingGoalCount(colorGoals);
@@ -1791,6 +1957,12 @@ export default function PlayPage() {
   );
   const prizeProgress = Math.min(prizeCharge, maxPrizeCharge);
   const pipProgress = Math.floor((pipCharge / maxPipCharge) * 100);
+  const dropStockTotal = getDropStockForLevel(level);
+  const dropStockProgress = Math.max(
+    0,
+    Math.min(100, (dropStock / dropStockTotal) * 100)
+  );
+  const pileDangerProgress = Math.min(pileDanger, maxPileDanger);
   const activeGoals = colors.filter((color) => colorGoals[color] > 0);
 
   if (!board) {
@@ -1846,7 +2018,7 @@ export default function PlayPage() {
           <div className="order-1 space-y-3">
           <section className="text-center lg:text-left">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200">
-              Arcade Blast Puzzle
+              Falling Ball Rush
             </p>
 
             <h1 className="mt-2 text-4xl font-black lg:text-3xl">
@@ -1854,8 +2026,8 @@ export default function PlayPage() {
             </h1>
 
             <p className="mt-2 text-sm leading-6 text-slate-200">
-              Collect pips, fire Pip Blasts, and keep your run alive by
-              avoiding fouls.
+              Clear waves from the table before hundreds of falling balls push
+              the pile to the bottom.
             </p>
           </section>
 
@@ -1882,6 +2054,48 @@ export default function PlayPage() {
               <p className="mt-1 text-xs leading-5 text-slate-200">
                 {puzzlePlan.hint}
               </p>
+            </div>
+
+            <div className="mb-3 rounded-2xl border border-amber-300/25 bg-amber-300/10 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-100">
+                  {rushMode.badge}
+                </p>
+                <p className="rounded-full bg-black/20 px-2 py-1 text-[0.65rem] font-black uppercase tracking-wide text-cyan-100">
+                  Wave {wavesSurvived + 1}
+                </p>
+              </div>
+
+              <p className="mt-1 text-lg font-black text-white">
+                {rushMode.title}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-200">
+                {rushMode.hint}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-sky-100">
+              <span>Balls above</span>
+              <span>{dropStock}</span>
+            </div>
+
+            <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-sky-200 via-cyan-300 to-emerald-300 transition-all"
+                style={{ width: `${dropStockProgress}%` }}
+              />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-rose-100">
+              <span>Pile danger</span>
+              <span>{pileDangerProgress}%</span>
+            </div>
+
+            <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-yellow-300 to-rose-500 transition-all"
+                style={{ width: `${pileDangerProgress}%` }}
+              />
             </div>
 
             <div className="h-3 overflow-hidden rounded-full bg-black/35">
@@ -1980,6 +2194,18 @@ export default function PlayPage() {
               <p className="text-xs text-slate-400">Streak</p>
               <p className="text-xl font-black text-green-300">{streak}</p>
             </div>
+
+            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+              <p className="text-xs text-slate-400">Balls</p>
+              <p className="text-xl font-black text-sky-300">{dropStock}</p>
+            </div>
+
+            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+              <p className="text-xs text-slate-400">Danger</p>
+              <p className="text-xl font-black text-rose-300">
+                {pileDangerProgress}%
+              </p>
+            </div>
           </section>
 
           <section className="grid grid-cols-3 gap-2">
@@ -1989,7 +2215,7 @@ export default function PlayPage() {
               disabled={isMoving || gameOver || levelComplete}
               className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
             >
-              {gravity === "down" ? "⬇ Down" : "⬆ Up"}
+              {gravity === "down" ? "Down" : "Up"}
             </button>
 
             <button
@@ -1998,7 +2224,7 @@ export default function PlayPage() {
               disabled={isMoving || gameOver || levelComplete}
               className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
             >
-              🔀 {shufflesLeft}
+              Mix {shufflesLeft}
             </button>
 
             <button
@@ -2044,8 +2270,8 @@ export default function PlayPage() {
           </div>
 
           <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
-            Pop pip balls to charge Pip Blast. Crack locks from the side.
-            Prize balls are free rewards.
+            Big clears push back the pile. Pip Blast, prizes, rockets, and
+            shuffles help when the falling balls get too fast.
           </p>
           </div>
 
@@ -2053,7 +2279,7 @@ export default function PlayPage() {
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">
-                {levelComplete ? "Puzzle Solved!" : "Game Over"}
+                {levelComplete ? "Puzzle Solved!" : "Rush Over"}
               </h2>
 
               <p className="mt-2 text-sm text-slate-300">
@@ -2083,6 +2309,38 @@ export default function PlayPage() {
           )}
 
           <section className="relative rounded-[2rem] border border-white/10 bg-slate-900/90 p-2 shadow-2xl lg:p-3">
+            {lastDropWave > 0 && (
+              <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[2rem]">
+                <div className="absolute left-3 top-3 rounded-full border border-cyan-200/40 bg-slate-950/75 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100 shadow-lg">
+                  +{lastDropWave} falling
+                </div>
+                {Array.from({ length: 18 }, (_, dropIndex) => (
+                  <span
+                    key={dropIndex}
+                    className={`drop-rain-ball absolute h-3 w-3 rounded-full ${
+                      dropIndex % 5 === 0
+                        ? "bg-rose-400"
+                        : dropIndex % 5 === 1
+                        ? "bg-cyan-300"
+                        : dropIndex % 5 === 2
+                        ? "bg-emerald-300"
+                        : dropIndex % 5 === 3
+                        ? "bg-violet-400"
+                        : "bg-yellow-300"
+                    } shadow-lg shadow-white/20`}
+                    style={
+                      {
+                        left: `${8 + ((dropIndex * 17) % 86)}%`,
+                        "--drop-delay": `${dropIndex * 0.045}s`,
+                        "--drop-drift":
+                          dropIndex % 2 === 0 ? "28px" : "-28px",
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
             {showtimeSigns.length > 0 && (
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center overflow-hidden rounded-[2rem]">
                 <div className="showtime-flare absolute h-28 w-28 rounded-full bg-cyan-300/25 blur" />

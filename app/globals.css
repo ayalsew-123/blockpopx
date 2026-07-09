@@ -211,6 +211,24 @@ body {
   }
 }
 
+@keyframes dropRain {
+  0% {
+    transform: translate3d(0, -48px, 0) scale(0.72);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.95;
+  }
+  72% {
+    transform: translate3d(var(--drop-drift, 24px), 62vh, 0) scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(0, 94vh, 0) scale(0.86);
+    opacity: 0;
+  }
+}
+
 .ball-move-down .game-ball {
   animation: ballMoveDown 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -264,4 +282,9 @@ body {
 
 .showtime-flare {
   animation: showtimeFlare 1.45s ease-out both;
+}
+
+.drop-rain-ball {
+  animation: dropRain 1.05s cubic-bezier(0.2, 0.82, 0.18, 1) both;
+  animation-delay: var(--drop-delay, 0s);
 }

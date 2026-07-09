@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "Play BlockPopX Free - Online Matching Puzzle Game",
+  title: "Play BlockPopX Free - Falling Ball Puzzle Game",
   description:
-    "Play BlockPopX free online. Match balls, clear 12 puzzle missions, charge Pip Blast, unlock prizes, avoid fouls, and chase a high score.",
+    "Play BlockPopX free online. Clear hundreds of falling balls, solve puzzle modes, charge Pip Blast, unlock prizes, and stop the pile from reaching the bottom.",
   alternates: {
     canonical: "/play",
   },
   openGraph: {
-    title: "Play BlockPopX Free - Online Matching Puzzle Game",
+    title: "Play BlockPopX Free - Falling Ball Puzzle Game",
     description:
-      "Start BlockPopX in your browser and play a free matching puzzle game with missions, prizes, pips, locks, and Pip Blast.",
+      "Start BlockPopX in your browser and clear falling ball waves with missions, prizes, pips, locks, rockets, and Pip Blast.",
     url: "https://www.blockpopx.com/play",
     images: [
       {
