@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const rows = 7;
-const cols = 7;
+const rows = 8;
+const cols = 8;
 const maxMoves = 20;
 const maxFouls = 5;
 const maxPrizeCharge = 100;
@@ -26,7 +26,19 @@ type MoveAnimation =
 type SoundCue = "pop" | "goal" | "prize" | "blast" | "win" | "big" | "foul";
 type BlockColor = (typeof colors)[number];
 type ColorGoals = Record<BlockColor, number>;
-type PuzzleKind = "color" | "pip" | "lock" | "prize" | "rocket" | "twist";
+type PuzzleKind =
+  | "color"
+  | "pip"
+  | "lock"
+  | "prize"
+  | "rocket"
+  | "twist"
+  | "cascade"
+  | "vault"
+  | "storm"
+  | "mirror"
+  | "combo"
+  | "boss";
 
 type Position = {
   row: number;
@@ -56,12 +68,16 @@ type PuzzleTemplate = {
   hint: string;
   scoreBase: number;
   scoreStep: number;
-  colorOffsets: [number, number, number?];
-  goalCounts: [number, number, number?];
+  colorOffsets: number[];
+  goalCounts: number[];
   startingGravity: GravityDirection;
   startingShuffles: number;
   startingPrizeCharge: number;
   startingPipCharge: number;
+  lockBonus?: number;
+  prizeChance?: number;
+  pipChance?: number;
+  specialChance?: number;
 };
 
 const colorLabels: Record<BlockColor, string> = {
@@ -143,6 +159,7 @@ const puzzleTemplates: PuzzleTemplate[] = [
     startingShuffles: 3,
     startingPrizeCharge: 20,
     startingPipCharge: 3,
+    specialChance: 0.025,
   },
   {
     title: "Gravity Twist",
@@ -158,6 +175,104 @@ const puzzleTemplates: PuzzleTemplate[] = [
     startingPrizeCharge: 15,
     startingPipCharge: 1,
   },
+  {
+    title: "Cascade Path",
+    badge: "Chain Puzzle",
+    kind: "cascade",
+    hint: "More colors matter. Plan two pops ahead for long cascades.",
+    scoreBase: 3400,
+    scoreStep: 980,
+    colorOffsets: [0, 2, 4],
+    goalCounts: [10, 9, 7],
+    startingGravity: "down",
+    startingShuffles: 2,
+    startingPrizeCharge: 20,
+    startingPipCharge: 5,
+    pipChance: 0.29,
+    specialChance: 0.018,
+  },
+  {
+    title: "Prize Vault",
+    badge: "Risk Reward",
+    kind: "vault",
+    hint: "Prizes and locks mix together. Crack a path to reach rewards.",
+    scoreBase: 3600,
+    scoreStep: 1020,
+    colorOffsets: [1, 3, 5],
+    goalCounts: [10, 8, 8],
+    startingGravity: "down",
+    startingShuffles: 3,
+    startingPrizeCharge: 60,
+    startingPipCharge: 2,
+    lockBonus: 0.035,
+    prizeChance: 0.065,
+  },
+  {
+    title: "Color Storm",
+    badge: "Triple Target",
+    kind: "storm",
+    hint: "Three goals are active. Smaller mistakes cost more time.",
+    scoreBase: 3900,
+    scoreStep: 1060,
+    colorOffsets: [2, 4, 0],
+    goalCounts: [12, 10, 8],
+    startingGravity: "down",
+    startingShuffles: 1,
+    startingPrizeCharge: 10,
+    startingPipCharge: 4,
+    lockBonus: 0.02,
+    pipChance: 0.28,
+  },
+  {
+    title: "Mirror Drop",
+    badge: "Reverse Read",
+    kind: "mirror",
+    hint: "The board starts upward with more pip pressure.",
+    scoreBase: 3700,
+    scoreStep: 1040,
+    colorOffsets: [3, 5],
+    goalCounts: [14, 10],
+    startingGravity: "up",
+    startingShuffles: 2,
+    startingPrizeCharge: 25,
+    startingPipCharge: 6,
+    pipChance: 0.32,
+  },
+  {
+    title: "Combo Forge",
+    badge: "Power Craft",
+    kind: "combo",
+    hint: "Make big groups to forge specials and clear thick goals.",
+    scoreBase: 4100,
+    scoreStep: 1100,
+    colorOffsets: [4, 0, 2],
+    goalCounts: [13, 10, 9],
+    startingGravity: "down",
+    startingShuffles: 3,
+    startingPrizeCharge: 35,
+    startingPipCharge: 5,
+    prizeChance: 0.04,
+    pipChance: 0.27,
+    specialChance: 0.035,
+  },
+  {
+    title: "Boss Board",
+    badge: "Hard Puzzle",
+    kind: "boss",
+    hint: "Locks, pips, and prizes all collide. Use every tool.",
+    scoreBase: 4600,
+    scoreStep: 1180,
+    colorOffsets: [5, 1, 3],
+    goalCounts: [14, 11, 10],
+    startingGravity: "up",
+    startingShuffles: 3,
+    startingPrizeCharge: 50,
+    startingPipCharge: 7,
+    lockBonus: 0.045,
+    prizeChance: 0.05,
+    pipChance: 0.31,
+    specialChance: 0.04,
+  },
 ];
 
 function getPuzzlePlan(currentLevel: number) {
@@ -170,7 +285,7 @@ function getPuzzlePlan(currentLevel: number) {
     if (offset === undefined) return;
 
     const color = colors[(currentLevel - 1 + offset) % colors.length];
-    const baseCount = template.goalCounts[index] ?? template.goalCounts[0];
+    const baseCount = template.goalCounts[index] ?? template.goalCounts[0] ?? 8;
     goals[color] += baseCount + currentLevel + cycle * 2;
   });
 
@@ -189,16 +304,23 @@ function randomBlock(row: number, col: number, currentLevel = 1): Block {
   };
 
   const lockChance = Math.min(
-    0.025 + currentLevel * 0.008 + (puzzle.kind === "lock" ? 0.045 : 0),
-    0.14
+    0.025 +
+      currentLevel * 0.008 +
+      (puzzle.kind === "lock" ? 0.045 : 0) +
+      (puzzle.lockBonus ?? 0),
+    0.16
   );
-  const prizeChance = puzzle.kind === "prize" ? 0.055 : 0.025;
-  const pipChance = puzzle.kind === "pip" ? 0.34 : 0.22;
+  const prizeChance =
+    puzzle.prizeChance ?? (puzzle.kind === "prize" ? 0.055 : 0.025);
+  const pipChance = puzzle.pipChance ?? (puzzle.kind === "pip" ? 0.34 : 0.22);
+  const specialChance = puzzle.specialChance ?? 0;
 
   if (Math.random() < lockChance) {
     block.locked = true;
   } else if (Math.random() < prizeChance) {
     block.prize = randomPrizeType();
+  } else if (Math.random() < specialChance) {
+    block.special = randomSpecialType();
   } else if (Math.random() < pipChance) {
     block.pips = Math.floor(Math.random() * 3) + 1;
   }
@@ -221,6 +343,11 @@ function createBoard(currentLevel = 1): Block[][] {
 function randomPrizeType(): PrizeType {
   const prizes: PrizeType[] = ["moves", "points", "shuffle"];
   return prizes[Math.floor(Math.random() * prizes.length)];
+}
+
+function randomSpecialType(): SpecialBlock {
+  const specials: SpecialBlock[] = ["bomb", "rocket", "lightning"];
+  return specials[Math.floor(Math.random() * specials.length)];
 }
 
 function getPrizeReward(prize: PrizeType) {
@@ -1715,7 +1842,7 @@ export default function PlayPage() {
       </header>
 
       <section className="px-3 py-4 lg:px-5">
-        <div className="mx-auto grid max-w-[1240px] gap-3 lg:grid-cols-[minmax(240px,330px)_minmax(360px,520px)_minmax(240px,300px)] lg:items-start">
+        <div className="mx-auto grid max-w-[1300px] gap-3 lg:grid-cols-[minmax(240px,330px)_minmax(360px,560px)_minmax(240px,300px)] lg:items-start">
           <div className="order-1 space-y-3">
           <section className="text-center lg:text-left">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200">
@@ -1922,7 +2049,7 @@ export default function PlayPage() {
           </p>
           </div>
 
-          <div className="order-3 lg:order-2 lg:w-[min(520px,calc(100vh-150px))] lg:justify-self-center">
+          <div className="order-3 lg:order-2 lg:w-[min(560px,calc(100vh-130px))] lg:justify-self-center">
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">
