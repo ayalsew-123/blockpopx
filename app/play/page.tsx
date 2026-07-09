@@ -12,6 +12,7 @@ const maxPrizeCharge = 100;
 const maxPipCharge = 12;
 const maxPileDanger = 100;
 const startingDropStock = 420;
+const minVisibleBeforeWaveDrop = 10;
 const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
@@ -360,11 +361,38 @@ function getDropStockForLevel(currentLevel: number) {
   return startingDropStock + (currentLevel - 1) * 52;
 }
 
+function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockColor {
+  const pattern = (currentLevel - 1) % 6;
+  const shift = currentLevel - 1;
+
+  if (pattern === 0) {
+    return colors[(Math.floor(col / 2) + shift + (row % 2)) % colors.length];
+  }
+
+  if (pattern === 1) {
+    return colors[(Math.floor(row / 2) + shift + (col % 2)) % colors.length];
+  }
+
+  if (pattern === 2) {
+    return colors[(Math.floor(row / 2) + Math.floor(col / 2) + shift) % colors.length];
+  }
+
+  if (pattern === 3) {
+    return colors[(row + col + shift) % colors.length];
+  }
+
+  if (pattern === 4) {
+    return colors[(Math.floor((row + col) / 2) + shift) % colors.length];
+  }
+
+  return colors[(Math.abs(row - col) + Math.floor(col / 3) + shift) % colors.length];
+}
+
 function randomBlock(row: number, col: number, currentLevel = 1): Block {
   const puzzle = getPuzzlePlan(currentLevel);
   const block: Block = {
     id: createBlockId(row, col),
-    color: colors[Math.floor(Math.random() * colors.length)],
+    color: choosePuzzleColor(row, col, currentLevel),
   };
 
   const lockChance = Math.min(
@@ -603,6 +631,47 @@ function findPipBlastTargets(
   }
 
   return targets.slice(0, 9);
+}
+
+function hasUsefulVisibleMove(currentBoard: Block[][], emptyKeys: string[] = []) {
+  const hidden = new Set(emptyKeys);
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (hidden.has(`${row}-${col}`)) continue;
+
+      const block = currentBoard[row][col];
+
+      if (!block.locked && (block.prize || block.special)) {
+        return true;
+      }
+
+      if (block.locked || block.prize || block.special) continue;
+
+      const neighbors = [
+        [row + 1, col],
+        [row, col + 1],
+      ];
+
+      for (const [nextRow, nextCol] of neighbors) {
+        if (nextRow >= rows || nextCol >= cols) continue;
+        if (hidden.has(`${nextRow}-${nextCol}`)) continue;
+
+        const nextBlock = currentBoard[nextRow][nextCol];
+
+        if (
+          !nextBlock.locked &&
+          !nextBlock.prize &&
+          !nextBlock.special &&
+          nextBlock.color === block.color
+        ) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 function getGoalTextColor(color: BlockColor) {
@@ -899,7 +968,7 @@ export default function PlayPage() {
   }
 
   function countVisibleCells(keys = emptyBlockKeys) {
-    return rows * cols - keys.length;
+    return rows * cols - new Set(keys).size;
   }
 
   function createWaveBoard() {
@@ -954,7 +1023,12 @@ export default function PlayPage() {
 
   function settleBoardAfterClear(clearedPositions: [number, number][]) {
     const nextEmptyKeys = getNextEmptyKeys(clearedPositions);
-    const shouldDropNewWave = countVisibleCells(nextEmptyKeys) <= 0;
+    const visibleCells = countVisibleCells(nextEmptyKeys);
+    const boardHasMove = board
+      ? hasUsefulVisibleMove(board, nextEmptyKeys)
+      : true;
+    const shouldDropNewWave =
+      visibleCells <= minVisibleBeforeWaveDrop || !boardHasMove;
 
     setEmptyBlockKeys(nextEmptyKeys);
     setClearingBlockKeys([]);
@@ -970,13 +1044,16 @@ export default function PlayPage() {
       setBoard(createWaveBoard());
       setEmptyBlockKeys([]);
       setMoveAnimation("settleDown");
-      setMessage("New wave dropped from the top. Keep clearing the screen.");
+      setPileDanger((current) => Math.max(8, Math.floor(current * 0.5)));
+      setLastDropWave(rows * cols);
+      setMessage("New puzzle wave dropped from the top. Keep clearing.");
       playGameSound("blast");
     }, 260);
 
     window.setTimeout(() => {
       setIsMoving(false);
       setMoveAnimation("none");
+      setLastDropWave(0);
     }, 1760);
   }
 
@@ -1048,16 +1125,9 @@ export default function PlayPage() {
     }, 1200);
 
     if (nextDanger >= maxPileDanger) {
-      setGameOver(true);
-      showGoalSigns(["Pile overflow", "Table full"], "foul");
-      setMessage(
-        "The falling balls reached the bottom. Use bigger clears and blasts."
-      );
-
-      return {
-        overflow: true,
-        nextDropStock,
-      };
+      setPileDanger(86);
+      showGoalSigns(["Pressure max", "Keep clearing"], "foul");
+      setMessage("Pressure is high, but the run continues while balls remain.");
     }
 
     if (dangerChange <= -8) {
@@ -2149,8 +2219,8 @@ export default function PlayPage() {
           </div>
 
           <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
-            Big clears push back the pile. Pip Blast, prizes, rockets, and
-            shuffles help when the falling balls get too fast.
+            Clear the puzzle screen. Empty spaces stay open, and a new wave
+            drops from the top when the board runs out of useful moves.
           </p>
           </div>
 
