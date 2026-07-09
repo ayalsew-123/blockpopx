@@ -841,6 +841,7 @@ export default function PlayPage() {
   const [showtimeSigns, setShowtimeSigns] = useState<string[]>([]);
   const [clearingBlockKeys, setClearingBlockKeys] = useState<string[]>([]);
   const [clearingBursts, setClearingBursts] = useState<ClearingBurst[]>([]);
+  const [emptyBlockKeys, setEmptyBlockKeys] = useState<string[]>([]);
   const [moveAnimation, setMoveAnimation] =
     useState<MoveAnimation>("none");
 
@@ -966,18 +967,28 @@ export default function PlayPage() {
     );
   }
 
-  function settleBoardAfterClear(nextBoard: Block[][]) {
+  function settleBoardAfterClear(
+    nextBoard: Block[][],
+    clearedPositions: [number, number][]
+  ) {
+    const emptyKeys = clearedPositions.map(([row, col]) => `${row}-${col}`);
+
     window.setTimeout(() => {
-      setBoard(nextBoard);
       setClearingBlockKeys([]);
       setClearingBursts([]);
+      setEmptyBlockKeys(emptyKeys);
+    }, 560);
+
+    window.setTimeout(() => {
+      setBoard(nextBoard);
+      setEmptyBlockKeys([]);
       setMoveAnimation(gravity === "down" ? "settleDown" : "settleUp");
-    }, 620);
+    }, 980);
 
     window.setTimeout(() => {
       setIsMoving(false);
       setMoveAnimation("none");
-    }, 2220);
+    }, 2600);
   }
 
   function repairFouls(amount: number) {
@@ -1319,7 +1330,7 @@ export default function PlayPage() {
     });
 
     markClearingBlocks(currentBoard, clearedBlocks);
-    settleBoardAfterClear(newBoard);
+    settleBoardAfterClear(newBoard, clearedBlocks);
 
     const lockText =
       crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : "";
@@ -1457,7 +1468,7 @@ export default function PlayPage() {
     const nextBoard = removeAndRearrangeBlocks(board, affected);
 
     markClearingBlocks(board, affected);
-    settleBoardAfterClear(nextBoard);
+    settleBoardAfterClear(nextBoard, affected);
 
     setMessage(
       `${text} +${pointsEarned}${
@@ -1579,7 +1590,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, [[rowIndex, colIndex]]);
-    settleBoardAfterClear(nextBoard);
+    settleBoardAfterClear(nextBoard, [[rowIndex, colIndex]]);
     setMessage(`Prize ball opened: ${reward.text}!`);
     finishMove(newScore, newMovesLeft, colorGoals, 1);
   }
@@ -1634,7 +1645,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, clearedBlocks);
-    settleBoardAfterClear(nextBoard);
+    settleBoardAfterClear(nextBoard, clearedBlocks);
 
     setMessage(
       `Pip Blast cleared ${colorLabels[blastColor]} blocks! +${pointsEarned}${
@@ -1845,6 +1856,7 @@ export default function PlayPage() {
     setMoveAnimation("none");
     setClearingBlockKeys([]);
     setClearingBursts([]);
+    setEmptyBlockKeys([]);
     setGravity(puzzle.startingGravity);
     setShufflesLeft(puzzle.startingShuffles);
     setPrizeCharge(puzzle.startingPrizeCharge);
@@ -1876,6 +1888,7 @@ export default function PlayPage() {
     setMoveAnimation("none");
     setClearingBlockKeys([]);
     setClearingBursts([]);
+    setEmptyBlockKeys([]);
     setGravity(nextPuzzle.startingGravity);
     setShufflesLeft(nextPuzzle.startingShuffles);
     setPrizeCharge(nextPuzzle.startingPrizeCharge);
@@ -2385,6 +2398,19 @@ export default function PlayPage() {
                     const isClearing = clearingBlockKeys.includes(
                       `${rowIndex}-${colIndex}`
                     );
+                    const isEmpty = emptyBlockKeys.includes(
+                      `${rowIndex}-${colIndex}`
+                    );
+
+                    if (isEmpty) {
+                      return (
+                        <div
+                          key={`empty-${rowIndex}-${colIndex}`}
+                          className="empty-cell relative aspect-square rounded-full border border-cyan-200/15 bg-slate-950/45 shadow-inner shadow-black"
+                          aria-hidden="true"
+                        />
+                      );
+                    }
 
                     return (
                       <button
