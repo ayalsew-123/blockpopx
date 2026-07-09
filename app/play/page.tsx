@@ -21,6 +21,8 @@ type MoveAnimation =
   | "none"
   | "up"
   | "down"
+  | "settleUp"
+  | "settleDown"
   | "shuffle"
   | "relocate"
   | "rise"
@@ -964,6 +966,20 @@ export default function PlayPage() {
     );
   }
 
+  function settleBoardAfterClear(nextBoard: Block[][]) {
+    window.setTimeout(() => {
+      setBoard(nextBoard);
+      setClearingBlockKeys([]);
+      setClearingBursts([]);
+      setMoveAnimation(gravity === "down" ? "settleDown" : "settleUp");
+    }, 620);
+
+    window.setTimeout(() => {
+      setIsMoving(false);
+      setMoveAnimation("none");
+    }, 2220);
+  }
+
   function repairFouls(amount: number) {
     if (amount <= 0) return;
     setFouls((current) => Math.max(0, current - amount));
@@ -1197,7 +1213,7 @@ export default function PlayPage() {
     usedSwap = false
   ) {
     setIsMoving(true);
-    setMoveAnimation(gravity === "down" ? "down" : "up");
+    setMoveAnimation("none");
 
     const newStreak = streak + 1;
     const streakMultiplier = 1 + newStreak * 0.15;
@@ -1303,17 +1319,7 @@ export default function PlayPage() {
     });
 
     markClearingBlocks(currentBoard, clearedBlocks);
-
-    setTimeout(() => {
-      setBoard(newBoard);
-      setClearingBlockKeys([]);
-      setClearingBursts([]);
-    }, 560);
-
-    setTimeout(() => {
-      setIsMoving(false);
-      setMoveAnimation("none");
-    }, 1040);
+    settleBoardAfterClear(newBoard);
 
     const lockText =
       crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : "";
@@ -1398,7 +1404,7 @@ export default function PlayPage() {
     if (!board || isMoving) return;
 
     setIsMoving(true);
-    setMoveAnimation(gravity === "down" ? "down" : "up");
+    setMoveAnimation("none");
 
     const prizeResult = resolvePrizeCharge(affected.length * 6);
     const meterReward = prizeResult.prize
@@ -1451,17 +1457,7 @@ export default function PlayPage() {
     const nextBoard = removeAndRearrangeBlocks(board, affected);
 
     markClearingBlocks(board, affected);
-
-    setTimeout(() => {
-      setBoard(nextBoard);
-      setClearingBlockKeys([]);
-      setClearingBursts([]);
-    }, 560);
-
-    setTimeout(() => {
-      setIsMoving(false);
-      setMoveAnimation("none");
-    }, 1040);
+    settleBoardAfterClear(nextBoard);
 
     setMessage(
       `${text} +${pointsEarned}${
@@ -1571,7 +1567,7 @@ export default function PlayPage() {
     setShufflesLeft(newShufflesLeft);
     setSelectedBlock(null);
     setIsMoving(true);
-    setMoveAnimation(gravity === "down" ? "down" : "up");
+    setMoveAnimation("none");
     setPrizeCharge(Math.min(prizeCharge + 18, maxPrizeCharge));
     playGameSound("prize");
     showGoalSigns(milestoneSigns, "goal");
@@ -1583,17 +1579,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, [[rowIndex, colIndex]]);
-
-    setTimeout(() => {
-      setBoard(nextBoard);
-      setClearingBlockKeys([]);
-      setClearingBursts([]);
-    }, 560);
-
-    setTimeout(() => {
-      setIsMoving(false);
-      setMoveAnimation("none");
-    }, 1040);
+    settleBoardAfterClear(nextBoard);
     setMessage(`Prize ball opened: ${reward.text}!`);
     finishMove(newScore, newMovesLeft, colorGoals, 1);
   }
@@ -1634,7 +1620,7 @@ export default function PlayPage() {
     setPipBlastsLeft(pipBlastsLeft - 1);
     setSelectedBlock(null);
     setIsMoving(true);
-    setMoveAnimation("shuffle");
+    setMoveAnimation("none");
     playGameSound(pointsEarned >= 900 ? "big" : "blast");
     showGoalSigns(milestoneSigns, "goal");
     triggerBoardShowtime(
@@ -1648,17 +1634,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, clearedBlocks);
-
-    setTimeout(() => {
-      setBoard(nextBoard);
-      setClearingBlockKeys([]);
-      setClearingBursts([]);
-    }, 560);
-
-    setTimeout(() => {
-      setIsMoving(false);
-      setMoveAnimation("none");
-    }, 1040);
+    settleBoardAfterClear(nextBoard);
 
     setMessage(
       `Pip Blast cleared ${colorLabels[blastColor]} blocks! +${pointsEarned}${
@@ -2383,6 +2359,10 @@ export default function PlayPage() {
                     ? "ball-move-down"
                     : moveAnimation === "up"
                     ? "ball-move-up"
+                    : moveAnimation === "settleDown"
+                    ? "ball-settle-down"
+                    : moveAnimation === "settleUp"
+                    ? "ball-settle-up"
                     : moveAnimation === "shuffle"
                     ? "ball-shuffle"
                     : moveAnimation === "relocate"
@@ -2428,6 +2408,7 @@ export default function PlayPage() {
                           {
                             "--ball-row": rowIndex,
                             "--ball-col": colIndex,
+                            "--settle-up-row": rows - 1 - rowIndex,
                             "--zigzag-start-x":
                               colIndex % 2 === 0 ? "-72px" : "72px",
                             "--zigzag-mid-x":

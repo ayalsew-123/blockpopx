@@ -55,6 +55,48 @@ body {
   }
 }
 
+@keyframes ballSettleDown {
+  0% {
+    transform: translate3d(0, -96px, 0) scale(0.82);
+    opacity: 0;
+  }
+  28% {
+    opacity: 1;
+  }
+  68% {
+    transform: translate3d(0, 10px, 0) scale(1.04);
+    opacity: 1;
+  }
+  84% {
+    transform: translate3d(0, -5px, 0) scale(0.98);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes ballSettleUp {
+  0% {
+    transform: translate3d(0, 96px, 0) scale(0.82);
+    opacity: 0;
+  }
+  28% {
+    opacity: 1;
+  }
+  68% {
+    transform: translate3d(0, -10px, 0) scale(1.04);
+    opacity: 1;
+  }
+  84% {
+    transform: translate3d(0, 5px, 0) scale(0.98);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes ballShuffle {
   0% {
     transform: translateX(-28px) rotate(-18deg) scale(0.78);
@@ -235,6 +277,22 @@ body {
 
 .ball-move-up .game-ball {
   animation: ballMoveUp 0.72s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ball-settle-down .game-ball {
+  animation: ballSettleDown 1.08s cubic-bezier(0.16, 0.9, 0.2, 1) both;
+  animation-delay: calc(
+    (var(--ball-row, 0) * 0.045s) + (var(--ball-col, 0) * 0.012s)
+  );
+  will-change: transform, opacity;
+}
+
+.ball-settle-up .game-ball {
+  animation: ballSettleUp 1.08s cubic-bezier(0.16, 0.9, 0.2, 1) both;
+  animation-delay: calc(
+    (var(--settle-up-row, 0) * 0.045s) + (var(--ball-col, 0) * 0.012s)
+  );
+  will-change: transform, opacity;
 }
 
 .ball-shuffle .game-ball {
