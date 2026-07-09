@@ -967,11 +967,10 @@ export default function PlayPage() {
     );
   }
 
-  function settleBoardAfterClear(
-    nextBoard: Block[][],
-    clearedPositions: [number, number][]
-  ) {
-    const emptyKeys = clearedPositions.map(([row, col]) => `${row}-${col}`);
+  function settleBoardAfterClear(nextBoard: Block[][]) {
+    const emptyKeys = Array.from({ length: rows }, (_, row) =>
+      Array.from({ length: cols }, (_, col) => `${row}-${col}`)
+    ).flat();
 
     window.setTimeout(() => {
       setClearingBlockKeys([]);
@@ -981,11 +980,11 @@ export default function PlayPage() {
 
     window.setTimeout(() => {
       setBoard(nextBoard);
-      setMoveAnimation(gravity === "down" ? "settleDown" : "settleUp");
+      setEmptyBlockKeys([]);
+      setMoveAnimation("settleDown");
     }, 980);
 
     window.setTimeout(() => {
-      setEmptyBlockKeys([]);
       setIsMoving(false);
       setMoveAnimation("none");
     }, 2600);
@@ -1330,7 +1329,7 @@ export default function PlayPage() {
     });
 
     markClearingBlocks(currentBoard, clearedBlocks);
-    settleBoardAfterClear(newBoard, clearedBlocks);
+    settleBoardAfterClear(newBoard);
 
     const lockText =
       crackedLocks.length > 0 ? ` ${crackedLocks.length} lock cracked!` : "";
@@ -1468,7 +1467,7 @@ export default function PlayPage() {
     const nextBoard = removeAndRearrangeBlocks(board, affected);
 
     markClearingBlocks(board, affected);
-    settleBoardAfterClear(nextBoard, affected);
+    settleBoardAfterClear(nextBoard);
 
     setMessage(
       `${text} +${pointsEarned}${
@@ -1590,7 +1589,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, [[rowIndex, colIndex]]);
-    settleBoardAfterClear(nextBoard, [[rowIndex, colIndex]]);
+    settleBoardAfterClear(nextBoard);
     setMessage(`Prize ball opened: ${reward.text}!`);
     finishMove(newScore, newMovesLeft, colorGoals, 1);
   }
@@ -1645,7 +1644,7 @@ export default function PlayPage() {
     );
 
     markClearingBlocks(board, clearedBlocks);
-    settleBoardAfterClear(nextBoard, clearedBlocks);
+    settleBoardAfterClear(nextBoard);
 
     setMessage(
       `Pip Blast cleared ${colorLabels[blastColor]} blocks! +${pointsEarned}${
