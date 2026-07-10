@@ -18,6 +18,7 @@ const colorPatternCount = 36;
 const colorModifierCount = 8;
 const architectureCount = 24;
 const puzzleVariantCount = colorPatternCount * architectureCount;
+const puzzleVariantStride = 41;
 const tutorialLevelRange = [1, 2, 3, 4, 5] as const;
 const colors = [
   "red",
@@ -414,6 +415,10 @@ function getDropStockForLevel(currentLevel: number) {
   return startingDropStock + (currentLevel - 1) * 260;
 }
 
+function getPuzzleVariant(currentLevel: number) {
+  return ((currentLevel - 1) * puzzleVariantStride) % puzzleVariantCount;
+}
+
 function puzzleHash(row: number, col: number, currentLevel: number, salt = 0) {
   const value =
     Math.sin((row + 1) * 17.13 + (col + 1) * 31.71 + currentLevel * 9.37 + salt) *
@@ -446,7 +451,7 @@ function setPuzzleColor(
 }
 
 function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockColor {
-  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const variant = getPuzzleVariant(currentLevel);
   const pattern = variant % colorPatternCount;
   const modifier = Math.floor(variant / colorPatternCount) % colorModifierCount;
   const shift = currentLevel - 1;
@@ -659,7 +664,7 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
 function addPuzzleFixture(block: Block, row: number, col: number, currentLevel = 1) {
   if (block.locked || block.prize || block.special) return block;
 
-  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const variant = getPuzzleVariant(currentLevel);
   const pattern = variant % colorPatternCount;
   const modifier = Math.floor(variant / colorPatternCount) % colorModifierCount;
   const centerRow = Math.floor(rows / 2);
@@ -957,7 +962,7 @@ function randomBlock(row: number, col: number, currentLevel = 1): Block {
 }
 
 function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
-  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const variant = getPuzzleVariant(currentLevel);
   const architecture = Math.floor(variant / colorPatternCount) % architectureCount;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
@@ -1130,7 +1135,7 @@ function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
 }
 
 function applyComplexPuzzleWeave(board: Block[][], currentLevel = 1) {
-  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const variant = getPuzzleVariant(currentLevel);
   const weave = Math.floor(variant / 3) % 18;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
@@ -1238,7 +1243,7 @@ function applyComplexPuzzleWeave(board: Block[][], currentLevel = 1) {
 
 function seedStrategicPairs(board: Block[][], currentLevel = 1) {
   const nextBoard = board.map((row) => row.map((block) => ({ ...block })));
-  const pairCount = 12 + (currentLevel % 5);
+  const pairCount = Math.max(5, 11 - Math.min(currentLevel, 6));
 
   for (let index = 0; index < pairCount; index++) {
     const horizontal = index % 3 !== 1;
@@ -1343,7 +1348,7 @@ function getConnectedColorGroup(
 function rebalanceEasyColorGroups(board: Block[][], currentLevel = 1) {
   const nextBoard = board.map((row) => row.map((block) => ({ ...block })));
   const visited = new Set<string>();
-  const maxEasyGroupSize = currentLevel >= 4 ? 3 : 4;
+  const maxEasyGroupSize = currentLevel === 1 ? 3 : 2;
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -1382,20 +1387,44 @@ function createBlockId(row: number, col: number) {
   return `${row}-${col}-${Date.now()}-${Math.random()}`;
 }
 
-function createBoard(currentLevel = 1): Block[][] {
-  if (currentLevel <= 3) {
-    return createStarterBoard(currentLevel);
-  }
+function removeLockedAndToolsBeforeUnlock(board: Block[][], currentLevel = 1) {
+  return board.map((row) =>
+    row.map((block) => {
+      const nextBlock = { ...block };
 
-  const board = Array.from({ length: rows }, (_, row) =>
-    Array.from({ length: cols }, (_, col) =>
-      randomBlock(row, col, currentLevel)
-    )
+      if (currentLevel < 4) {
+        delete nextBlock.locked;
+      }
+
+      if (currentLevel < 5) {
+        delete nextBlock.pips;
+      }
+
+      if (currentLevel < 6) {
+        delete nextBlock.prize;
+        delete nextBlock.special;
+      }
+
+      return nextBlock;
+    })
   );
+}
 
-  const architectureBoard = applyPuzzleArchitecture(board, currentLevel);
+function createBoard(currentLevel = 1): Block[][] {
+  const board =
+    currentLevel === 1
+      ? createStarterBoard(currentLevel)
+      : Array.from({ length: rows }, (_, row) =>
+          Array.from({ length: cols }, (_, col) =>
+            randomBlock(row, col, currentLevel)
+          )
+        );
+
+  const architectureBoard =
+    currentLevel === 1 ? board : applyPuzzleArchitecture(board, currentLevel);
   const complexBoard = applyComplexPuzzleWeave(architectureBoard, currentLevel);
-  const balancedBoard = rebalanceEasyColorGroups(complexBoard, currentLevel);
+  const unlockedBoard = removeLockedAndToolsBeforeUnlock(complexBoard, currentLevel);
+  const balancedBoard = rebalanceEasyColorGroups(unlockedBoard, currentLevel);
 
   return seedStrategicPairs(balancedBoard, currentLevel);
 }
@@ -1852,9 +1881,11 @@ function mergePositions(...groups: [number, number][][]) {
 function LevelRangeMeter({
   level,
   compact = false,
+  onSelectLevel,
 }: {
   level: number;
   compact?: boolean;
+  onSelectLevel?: (level: number) => void;
 }) {
   const isAdvancedLevel = level > 5;
 
@@ -1876,20 +1907,34 @@ function LevelRangeMeter({
           const isActive = isAdvancedLevel ? step === 5 : step === level;
           const isComplete = isAdvancedLevel ? step < 5 : step < level;
 
-          return (
-            <span
+          const rangeClassName = `flex items-center justify-center rounded-full border font-black transition ${
+            compact ? "h-6 text-[0.65rem]" : "h-7 text-[0.72rem]"
+          } ${
+            isActive
+              ? "border-cyan-100 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.42)]"
+              : isComplete
+                ? "border-emerald-200/50 bg-emerald-300/20 text-emerald-100"
+                : "border-white/10 bg-white/5 text-slate-500"
+          } ${
+            onSelectLevel
+              ? "cursor-pointer hover:border-fuchsia-200 hover:bg-fuchsia-300/20 hover:text-white"
+              : ""
+          }`;
+          const label = step === 5 ? "5+" : String(step);
+
+          return onSelectLevel ? (
+            <button
               key={step}
-              className={`flex items-center justify-center rounded-full border font-black transition ${
-                compact ? "h-6 text-[0.65rem]" : "h-7 text-[0.72rem]"
-              } ${
-                isActive
-                  ? "border-cyan-100 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.42)]"
-                  : isComplete
-                    ? "border-emerald-200/50 bg-emerald-300/20 text-emerald-100"
-                    : "border-white/10 bg-white/5 text-slate-500"
-              }`}
+              type="button"
+              className={rangeClassName}
+              onClick={() => onSelectLevel(step)}
+              aria-label={`Start level ${step}`}
             >
-              {step === 5 ? "5+" : step}
+              {label}
+            </button>
+          ) : (
+            <span key={step} className={rangeClassName}>
+              {label}
             </span>
           );
         })}
@@ -3122,47 +3167,23 @@ export default function PlayPage() {
       const nextPuzzle = getPuzzlePlan(next);
       const nextRushMode = getRushMode(next);
 
-      setLevel(next);
-      setTargetScore(nextPuzzle.scoreTarget);
-      setColorGoals(nextPuzzle.goals);
-      setDropStock(getDropStockForLevel(next));
-      setPileDanger(Math.max(8, Math.floor(pileDanger * 0.35)));
-      setWavesSurvived(0);
-      setLastDropWave(0);
+      setLevelComplete(true);
+      setGameOver(false);
       showGoalSigns(["Milestone clear", "New goals open"], "win");
       triggerBoardShowtime(
         [
-          "Milestone clear",
+          `Level ${level} solved`,
           nextRushMode.badge,
-          "More balls above",
-          "Fire boost",
+          `Level ${next} ready`,
+          nextPuzzle.badge,
         ],
         newScore,
         "win",
         420
       );
       setMessage(
-        `${nextRushMode.title} unlocked! ${nextPuzzle.title} is open with more falling balls.`
+        `Level ${level} solved! Next is Level ${next}: ${nextPuzzle.title}.`
       );
-
-      window.setTimeout(() => {
-        setBoard(createBoard(next));
-        setEmptyBlockKeys([]);
-        setClearingBlockKeys([]);
-        setClearingBursts([]);
-        setSelectedBlock(null);
-        setIsMoving(false);
-        setMoveAnimation("settleDown");
-        setGravity(nextPuzzle.startingGravity);
-        setShufflesLeft(nextPuzzle.startingShuffles);
-        setPrizeCharge(nextPuzzle.startingPrizeCharge);
-        setPipCharge(nextPuzzle.startingPipCharge);
-        setPipBlastsLeft(0);
-      }, popAnimationMs + 360);
-
-      window.setTimeout(() => {
-        setMoveAnimation("none");
-      }, popAnimationMs + 1420);
       return;
     }
   }
@@ -3218,7 +3239,7 @@ export default function PlayPage() {
     setStreak(0);
     setSelectedBlock(null);
     setIsMoving(false);
-    setMoveAnimation("none");
+    setMoveAnimation("settleDown");
     setClearingBlockKeys([]);
     setClearingBursts([]);
     setEmptyBlockKeys([]);
@@ -3231,6 +3252,45 @@ export default function PlayPage() {
     setPileDanger(18);
     setWavesSurvived(0);
     setLastDropWave(0);
+
+    window.setTimeout(() => {
+      setMoveAnimation("none");
+    }, 700);
+  }
+
+  function startLevel(selectedLevel: number) {
+    const puzzle = getPuzzlePlan(selectedLevel);
+
+    setLevel(selectedLevel);
+    setTargetScore(puzzle.scoreTarget);
+    setColorGoals(puzzle.goals);
+    setBoard(createBoard(selectedLevel));
+    setScore(0);
+    setMovesLeft(maxMoves);
+    setFouls(0);
+    setGameOver(false);
+    setLevelComplete(false);
+    setMessage(`Level ${selectedLevel}: ${puzzle.title}. ${puzzle.hint}`);
+    setStreak(0);
+    setSelectedBlock(null);
+    setIsMoving(false);
+    setMoveAnimation("settleDown");
+    setClearingBlockKeys([]);
+    setClearingBursts([]);
+    setEmptyBlockKeys([]);
+    setGravity(puzzle.startingGravity);
+    setShufflesLeft(puzzle.startingShuffles);
+    setPrizeCharge(puzzle.startingPrizeCharge);
+    setPipCharge(puzzle.startingPipCharge);
+    setPipBlastsLeft(0);
+    setDropStock(getDropStockForLevel(selectedLevel));
+    setPileDanger(18);
+    setWavesSurvived(0);
+    setLastDropWave(0);
+
+    window.setTimeout(() => {
+      setMoveAnimation("none");
+    }, 700);
   }
 
   function nextLevel() {
@@ -3241,7 +3301,6 @@ export default function PlayPage() {
     setTargetScore(nextPuzzle.scoreTarget);
     setColorGoals(nextPuzzle.goals);
     setBoard(createBoard(next));
-    setScore(0);
     setMovesLeft(maxMoves);
     setFouls(0);
     setGameOver(false);
@@ -3432,7 +3491,7 @@ export default function PlayPage() {
               <p className="text-sm font-bold text-amber-200">Level {level}</p>
               <p className="text-sm text-slate-200">Score goal: {targetScore}</p>
             </div>
-            <LevelRangeMeter level={level} />
+            <LevelRangeMeter level={level} onSelectLevel={startLevel} />
 
             <div className="mb-3 rounded-2xl border border-cyan-300/25 bg-cyan-300/10 px-3 py-2">
               <div className="flex items-center justify-between gap-3">
@@ -3440,7 +3499,7 @@ export default function PlayPage() {
                   {puzzlePlan.badge}
                 </p>
                 <p className="rounded-full bg-white/10 px-2 py-1 text-[0.65rem] font-black uppercase tracking-wide text-amber-100">
-                  Puzzle {((level - 1) % puzzleVariantCount) + 1}/
+                  Puzzle {getPuzzleVariant(level) + 1}/
                   {puzzleVariantCount}
                 </p>
               </div>
@@ -3584,7 +3643,7 @@ export default function PlayPage() {
             <p className="text-sm font-black text-white">
               {puzzlePlan.title}
             </p>
-            <LevelRangeMeter level={level} compact />
+            <LevelRangeMeter level={level} compact onSelectLevel={startLevel} />
           </section>
 
           <section className="grid grid-cols-4 gap-1.5 lg:grid-cols-2 lg:gap-2">
