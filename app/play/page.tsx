@@ -129,10 +129,10 @@ const puzzleTemplates: PuzzleTemplate[] = [
     badge: "Tap Colors",
     kind: "color",
     hint: "Tap 2 or more same-color balls. Learn the pop.",
-    scoreBase: 900,
-    scoreStep: 260,
+    scoreBase: 180,
+    scoreStep: 80,
     colorOffsets: [0],
-    goalCounts: [8],
+    goalCounts: [4],
     startingGravity: "down",
     startingShuffles: 0,
     startingPrizeCharge: 0,
@@ -146,10 +146,10 @@ const puzzleTemplates: PuzzleTemplate[] = [
     badge: "Shuffle Opens",
     kind: "color",
     hint: "Use Mix when the board feels stuck.",
-    scoreBase: 1300,
-    scoreStep: 360,
+    scoreBase: 250,
+    scoreStep: 100,
     colorOffsets: [1, 4],
-    goalCounts: [7, 5],
+    goalCounts: [4, 3],
     startingGravity: "down",
     startingShuffles: 2,
     startingPrizeCharge: 0,
@@ -163,10 +163,10 @@ const puzzleTemplates: PuzzleTemplate[] = [
     badge: "Flip Opens",
     kind: "twist",
     hint: "Flip direction when a better path is waiting.",
-    scoreBase: 1700,
-    scoreStep: 460,
+    scoreBase: 340,
+    scoreStep: 130,
     colorOffsets: [2, 5],
-    goalCounts: [8, 6],
+    goalCounts: [4, 3],
     startingGravity: "down",
     startingShuffles: 2,
     startingPrizeCharge: 0,
@@ -180,10 +180,10 @@ const puzzleTemplates: PuzzleTemplate[] = [
     badge: "Crack Cells",
     kind: "lock",
     hint: "Locked balls crack when you pop beside them.",
-    scoreBase: 2200,
-    scoreStep: 620,
+    scoreBase: 480,
+    scoreStep: 150,
     colorOffsets: [3, 0],
-    goalCounts: [8, 7],
+    goalCounts: [4, 4],
     startingGravity: "down",
     startingShuffles: 2,
     startingPrizeCharge: 0,
@@ -198,10 +198,10 @@ const puzzleTemplates: PuzzleTemplate[] = [
     badge: "Blast Build",
     kind: "pip",
     hint: "Pip balls charge Pip Blast for a stronger clear.",
-    scoreBase: 2600,
-    scoreStep: 760,
+    scoreBase: 620,
+    scoreStep: 170,
     colorOffsets: [4, 1, 3],
-    goalCounts: [9, 7, 5],
+    goalCounts: [5, 4, 3],
     startingGravity: "down",
     startingShuffles: 3,
     startingPrizeCharge: 10,
@@ -386,6 +386,7 @@ function getPuzzlePlan(currentLevel: number) {
     puzzleTemplates[(currentLevel - 1) % puzzleTemplates.length];
   const cycle = Math.floor((currentLevel - 1) / puzzleTemplates.length);
   const goals = createEmptyGoals();
+  const tutorialScoreTargets = [0, 220, 420, 650, 850, 1050];
 
   template.colorOffsets.forEach((offset, index) => {
     if (offset === undefined) return;
@@ -398,10 +399,9 @@ function getPuzzlePlan(currentLevel: number) {
   return {
     ...template,
     goals,
-    scoreTarget: Math.floor(
-      (template.scoreBase + currentLevel * template.scoreStep) *
-        (currentLevel <= 2 ? 0.82 : 1.08)
-    ),
+    scoreTarget:
+      tutorialScoreTargets[currentLevel] ??
+      Math.floor((template.scoreBase + currentLevel * template.scoreStep) * 1.08),
   };
 }
 
@@ -1382,7 +1382,7 @@ function createBlockId(row: number, col: number) {
 }
 
 function createBoard(currentLevel = 1): Block[][] {
-  if (currentLevel <= 2) {
+  if (currentLevel <= 3) {
     return createStarterBoard(currentLevel);
   }
 
@@ -3078,6 +3078,7 @@ export default function PlayPage() {
       setDropStock(getDropStockForLevel(next));
       setPileDanger(Math.max(8, Math.floor(pileDanger * 0.35)));
       setWavesSurvived(0);
+      setLastDropWave(0);
       showGoalSigns(["Milestone clear", "New goals open"], "win");
       triggerBoardShowtime(
         [
@@ -3093,6 +3094,25 @@ export default function PlayPage() {
       setMessage(
         `${nextRushMode.title} unlocked! ${nextPuzzle.title} is open with more falling balls.`
       );
+
+      window.setTimeout(() => {
+        setBoard(createBoard(next));
+        setEmptyBlockKeys([]);
+        setClearingBlockKeys([]);
+        setClearingBursts([]);
+        setSelectedBlock(null);
+        setIsMoving(false);
+        setMoveAnimation("settleDown");
+        setGravity(nextPuzzle.startingGravity);
+        setShufflesLeft(nextPuzzle.startingShuffles);
+        setPrizeCharge(nextPuzzle.startingPrizeCharge);
+        setPipCharge(nextPuzzle.startingPipCharge);
+        setPipBlastsLeft(0);
+      }, popAnimationMs + 360);
+
+      window.setTimeout(() => {
+        setMoveAnimation("none");
+      }, popAnimationMs + 1420);
       return;
     }
   }
@@ -3506,6 +3526,15 @@ export default function PlayPage() {
           </div>
 
           <div className="order-1 space-y-2 lg:order-3 lg:space-y-3">
+          <section className="rounded-xl border border-cyan-200/20 bg-slate-950/75 px-3 py-2 text-center shadow-lg lg:hidden">
+            <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-cyan-200">
+              Level {level}
+            </p>
+            <p className="text-sm font-black text-white">
+              {puzzlePlan.title}
+            </p>
+          </section>
+
           <section className="grid grid-cols-4 gap-1.5 lg:grid-cols-2 lg:gap-2">
             <div className="rounded-xl bg-slate-900/90 p-2 text-center shadow-lg lg:rounded-2xl lg:p-3">
               <p className="text-xs text-slate-400">Score</p>
