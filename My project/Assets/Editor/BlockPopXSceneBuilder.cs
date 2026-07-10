@@ -1,3 +1,4 @@
+using System;
 using BlockPopX;
 using TMPro;
 using UnityEditor;
@@ -6,9 +7,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-#if ENABLE_INPUT_SYSTEM
-using UnityEngine.InputSystem.UI;
-#endif
 
 [InitializeOnLoad]
 public static class BlockPopXSceneBuilder
@@ -34,6 +32,7 @@ public static class BlockPopXSceneBuilder
         try
         {
             CleanMissingScriptsInScene();
+            ApplyMobileSettings();
 
             var gameObject = GameObject.Find("BlockPopXGame");
             if (gameObject == null)
@@ -87,7 +86,7 @@ public static class BlockPopXSceneBuilder
             EditorUtility.SetDirty(gameObject);
             EditorUtility.SetDirty(boardRoot);
             EditorUtility.SetDirty(camera);
-            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+            MarkSceneDirtyWhenEditable(EditorSceneManager.GetActiveScene());
 
             Debug.Log("BlockPopX play scene is ready. Press Play to test the board.");
         }
@@ -95,6 +94,27 @@ public static class BlockPopXSceneBuilder
         {
             isSettingUpScene = false;
         }
+    }
+
+    [MenuItem("Tools/BlockPopX/Apply Mobile Settings")]
+    public static void ApplyMobileSettings()
+    {
+        PlayerSettings.companyName = "BlockPopX";
+        PlayerSettings.productName = "BlockPopX";
+        PlayerSettings.bundleVersion = "0.1.0";
+        PlayerSettings.defaultScreenWidth = 1080;
+        PlayerSettings.defaultScreenHeight = 1920;
+        PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+        PlayerSettings.allowedAutorotateToPortrait = true;
+        PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
+        PlayerSettings.allowedAutorotateToLandscapeLeft = false;
+        PlayerSettings.allowedAutorotateToLandscapeRight = false;
+        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Standalone, "com.blockpopx.game");
+        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.blockpopx.game");
+        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, "com.blockpopx.game");
+        PlayerSettings.Android.bundleVersionCode = 1;
+        PlayerSettings.iOS.buildNumber = "1";
+        AssetDatabase.SaveAssets();
     }
 
     [MenuItem("Tools/BlockPopX/Clean Missing Scripts")]
@@ -110,7 +130,7 @@ public static class BlockPopXSceneBuilder
 
         if (removedCount > 0)
         {
-            EditorSceneManager.MarkSceneDirty(scene);
+            MarkSceneDirtyWhenEditable(scene);
             Debug.Log($"BlockPopX removed {removedCount} missing script component(s).");
         }
         else
@@ -155,7 +175,7 @@ public static class BlockPopXSceneBuilder
 
         canvasObject.AddComponent<GraphicRaycaster>();
 
-        var eventSystem = Object.FindObjectOfType<EventSystem>();
+        var eventSystem = Object.FindAnyObjectByType<EventSystem>();
         if (eventSystem == null)
         {
             var eventSystemObject = new GameObject("EventSystem");
@@ -216,6 +236,27 @@ public static class BlockPopXSceneBuilder
         var nextLevelButton = CreateButton("NextLevelButton", bottomPanel.transform, "Next", new Color(1f, 0.28f, 0.86f));
         SetRect(nextLevelButton.GetComponent<RectTransform>(), new Vector2(0.75f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -52f), new Vector2(-24f, 52f));
 
+        var overlayPanel = CreatePanel("ResultOverlay", hudObject.transform, new Color(0f, 0f, 0f, 0.68f));
+        Stretch(overlayPanel.GetComponent<RectTransform>());
+
+        var overlayCard = CreatePanel("ResultCard", overlayPanel.transform, new Color(0.03f, 0.05f, 0.12f, 0.96f));
+        SetRect(overlayCard.GetComponent<RectTransform>(), new Vector2(0.08f, 0.36f), new Vector2(0.92f, 0.66f), new Vector2(0f, 0f), new Vector2(0f, 0f));
+
+        var overlayTitleText = CreateText("OverlayTitle", overlayCard.transform, "Level Clear!", 64f, TextAlignmentOptions.Center);
+        SetRect(overlayTitleText.rectTransform, new Vector2(0f, 0.58f), new Vector2(1f, 1f), new Vector2(32f, 0f), new Vector2(-32f, -28f));
+        overlayTitleText.color = new Color(0.18f, 0.93f, 1f);
+
+        var overlayBodyText = CreateText("OverlayBody", overlayCard.transform, "Score 0", 38f, TextAlignmentOptions.Center);
+        SetRect(overlayBodyText.rectTransform, new Vector2(0f, 0.34f), new Vector2(1f, 0.62f), new Vector2(32f, 0f), new Vector2(-32f, 0f));
+        overlayBodyText.color = new Color(0.86f, 0.93f, 1f);
+        overlayBodyText.textWrappingMode = TextWrappingModes.Normal;
+
+        var overlayPrimaryButton = CreateButton("OverlayPrimaryButton", overlayCard.transform, "Next", new Color(0.1f, 0.85f, 1f));
+        SetRect(overlayPrimaryButton.GetComponent<RectTransform>(), new Vector2(0.18f, 0.08f), new Vector2(0.5f, 0.28f), new Vector2(0f, 0f), new Vector2(-12f, 0f));
+
+        var overlaySecondaryButton = CreateButton("OverlaySecondaryButton", overlayCard.transform, "Retry", new Color(1f, 0.28f, 0.86f));
+        SetRect(overlaySecondaryButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.08f), new Vector2(0.82f, 0.28f), new Vector2(12f, 0f), new Vector2(0f, 0f));
+
         var serializedHud = new SerializedObject(hud);
         serializedHud.FindProperty("game").objectReferenceValue = game;
         serializedHud.FindProperty("levelText").objectReferenceValue = levelText;
@@ -228,8 +269,14 @@ public static class BlockPopXSceneBuilder
         serializedHud.FindProperty("soundButton").objectReferenceValue = soundButton;
         serializedHud.FindProperty("restartButton").objectReferenceValue = restartButton;
         serializedHud.FindProperty("nextLevelButton").objectReferenceValue = nextLevelButton;
+        serializedHud.FindProperty("overlayPanel").objectReferenceValue = overlayPanel;
+        serializedHud.FindProperty("overlayTitleText").objectReferenceValue = overlayTitleText;
+        serializedHud.FindProperty("overlayBodyText").objectReferenceValue = overlayBodyText;
+        serializedHud.FindProperty("overlayPrimaryButton").objectReferenceValue = overlayPrimaryButton;
+        serializedHud.FindProperty("overlaySecondaryButton").objectReferenceValue = overlaySecondaryButton;
         serializedHud.ApplyModifiedPropertiesWithoutUndo();
 
+        overlayPanel.SetActive(false);
         EditorUtility.SetDirty(canvasObject);
         EditorUtility.SetDirty(hudObject);
     }
@@ -278,23 +325,27 @@ public static class BlockPopXSceneBuilder
 
     private static void ConfigureInputModule(GameObject eventSystemObject)
     {
-#if ENABLE_INPUT_SYSTEM
         var standaloneInput = eventSystemObject.GetComponent<StandaloneInputModule>();
         if (standaloneInput != null)
         {
             Object.DestroyImmediate(standaloneInput);
         }
 
-        if (eventSystemObject.GetComponent<InputSystemUIInputModule>() == null)
+        var inputSystemModuleType = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+        if (inputSystemModuleType != null)
         {
-            eventSystemObject.AddComponent<InputSystemUIInputModule>();
+            if (eventSystemObject.GetComponent(inputSystemModuleType) == null)
+            {
+                eventSystemObject.AddComponent(inputSystemModuleType);
+            }
+
+            return;
         }
-#else
+
         if (eventSystemObject.GetComponent<StandaloneInputModule>() == null)
         {
             eventSystemObject.AddComponent<StandaloneInputModule>();
         }
-#endif
     }
 
     private static void Stretch(RectTransform rect)
@@ -311,6 +362,16 @@ public static class BlockPopXSceneBuilder
         rect.anchorMax = anchorMax;
         rect.offsetMin = offsetMin;
         rect.offsetMax = offsetMax;
+    }
+
+    private static void MarkSceneDirtyWhenEditable(Scene scene)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+
+        EditorSceneManager.MarkSceneDirty(scene);
     }
 
     private static void OnPlayModeStateChanged(PlayModeStateChange state)
