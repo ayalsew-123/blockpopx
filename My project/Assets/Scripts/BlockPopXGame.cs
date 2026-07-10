@@ -220,7 +220,6 @@ namespace BlockPopX
             score += points;
             SaveBestScoreIfNeeded();
             ScoreChanged.Invoke(score);
-            SetMessage($"+{points} points. {GetGoalProgressText()}");
 
             if (AllTouchableBallsGone() || IsGoalComplete())
             {
@@ -228,7 +227,16 @@ namespace BlockPopX
                 PlayLevelCompleteFeedback();
                 LevelComplete.Invoke();
                 SetMessage($"Level {level} solved. Next level is ready.");
+                return;
             }
+
+            var boardShifted = EnsurePlayableMove();
+            if (isLevelComplete)
+            {
+                return;
+            }
+
+            SetMessage(boardShifted ? $"+{points} points. New match opened." : $"+{points} points. {GetGoalProgressText()}");
         }
 
         private List<Vector2Int> BuildClearSet(List<Vector2Int> group)
@@ -416,6 +424,10 @@ namespace BlockPopX
                 TryAdd(current.x + 1, current.y, color, visited, queue);
                 TryAdd(current.x, current.y - 1, color, visited, queue);
                 TryAdd(current.x, current.y + 1, color, visited, queue);
+                TryAdd(current.x - 1, current.y - 1, color, visited, queue);
+                TryAdd(current.x - 1, current.y + 1, color, visited, queue);
+                TryAdd(current.x + 1, current.y - 1, color, visited, queue);
+                TryAdd(current.x + 1, current.y + 1, color, visited, queue);
             }
 
             return group;
@@ -455,6 +467,170 @@ namespace BlockPopX
             board[row, col].Special = BallSpecial.None;
             crackedLocks++;
             views[row, col]?.Bind(this, row, col, board[row, col]);
+        }
+
+        private bool EnsurePlayableMove()
+        {
+            if (HasPlayableMove())
+            {
+                return false;
+            }
+
+            if (CountTouchableBalls() < plan.MinimumGroupSize)
+            {
+                isLevelComplete = true;
+                PlayLevelCompleteFeedback();
+                LevelComplete.Invoke();
+                SetMessage($"Level {level} solved. Next level is ready.");
+                return true;
+            }
+
+            return OpenNextPlayableMatch();
+        }
+
+        private bool HasPlayableMove()
+        {
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (board[row, col].IsEmpty || board[row, col].Special == BallSpecial.Locked)
+                    {
+                        continue;
+                    }
+
+                    if (FindConnectedGroup(row, col).Count >= plan.MinimumGroupSize)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private int CountTouchableBalls()
+        {
+            var count = 0;
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (!board[row, col].IsEmpty && board[row, col].Special != BallSpecial.Locked)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        private bool OpenNextPlayableMatch()
+        {
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (board[row, col].IsEmpty || board[row, col].Special == BallSpecial.Locked)
+                    {
+                        continue;
+                    }
+
+                    var cluster = CollectNearbyTouchableCells(row, col);
+                    var color = board[row, col].Color;
+
+                    if (cluster.Count < plan.MinimumGroupSize)
+                    {
+                        var emptyCells = CollectNearbyEmptyCells(row, col);
+                        while (cluster.Count < plan.MinimumGroupSize && emptyCells.Count > 0)
+                        {
+                            var newCell = emptyCells[0];
+                            emptyCells.RemoveAt(0);
+                            CreatePlayableCell(newCell.x, newCell.y, color);
+                            cluster.Add(newCell);
+                        }
+                    }
+
+                    if (cluster.Count < plan.MinimumGroupSize)
+                    {
+                        continue;
+                    }
+
+                    for (var index = 0; index < plan.MinimumGroupSize; index++)
+                    {
+                        var cell = cluster[index];
+                        board[cell.x, cell.y].Color = color;
+                        views[cell.x, cell.y]?.Bind(this, cell.x, cell.y, board[cell.x, cell.y]);
+                    }
+
+                    PulseBoard(1.045f, 0.16f);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private List<Vector2Int> CollectNearbyTouchableCells(int startRow, int startCol)
+        {
+            var cells = new List<Vector2Int> { new Vector2Int(startRow, startCol) };
+
+            for (var row = startRow - 1; row <= startRow + 1 && cells.Count < plan.MinimumGroupSize; row++)
+            {
+                for (var col = startCol - 1; col <= startCol + 1 && cells.Count < plan.MinimumGroupSize; col++)
+                {
+                    if (!IsInside(row, col) || (row == startRow && col == startCol))
+                    {
+                        continue;
+                    }
+
+                    if (!board[row, col].IsEmpty && board[row, col].Special != BallSpecial.Locked)
+                    {
+                        cells.Add(new Vector2Int(row, col));
+                    }
+                }
+            }
+
+            return cells;
+        }
+
+        private List<Vector2Int> CollectNearbyEmptyCells(int startRow, int startCol)
+        {
+            var cells = new List<Vector2Int>();
+
+            for (var row = startRow - 1; row <= startRow + 1; row++)
+            {
+                for (var col = startCol - 1; col <= startCol + 1; col++)
+                {
+                    if (!IsInside(row, col) || (row == startRow && col == startCol))
+                    {
+                        continue;
+                    }
+
+                    if (board[row, col].IsEmpty)
+                    {
+                        cells.Add(new Vector2Int(row, col));
+                    }
+                }
+            }
+
+            return cells;
+        }
+
+        private void CreatePlayableCell(int row, int col, BlockPopXColor color)
+        {
+            board[row, col].Color = color;
+            board[row, col].Special = BallSpecial.None;
+            board[row, col].Pips = 0;
+            board[row, col].IsEmpty = false;
+
+            if (views[row, col] == null)
+            {
+                views[row, col] = CreateBallView(row, col);
+            }
+
+            views[row, col].Bind(this, row, col, board[row, col]);
         }
 
         private bool AllTouchableBallsGone()
