@@ -1,15 +1,51 @@
 namespace BlockPopX
 {
+    public enum LevelGoalKind
+    {
+        Score,
+        ClearBalls,
+        CrackLocks,
+        CollectPips,
+        FireRockets,
+        FindPrizes
+    }
+
     public sealed class LevelPlan
     {
         public string Title;
         public string Hint;
+        public LevelGoalKind GoalKind;
+        public int GoalTarget;
         public int ScoreTarget;
         public int MinimumGroupSize;
         public bool ShuffleUnlocked;
         public bool GravityUnlocked;
         public bool LocksUnlocked;
         public bool PipsUnlocked;
+        public bool RocketsUnlocked;
+        public bool PrizesUnlocked;
+
+        public string GoalLabel
+        {
+            get
+            {
+                switch (GoalKind)
+                {
+                    case LevelGoalKind.ClearBalls:
+                        return $"Clear {GoalTarget} balls";
+                    case LevelGoalKind.CrackLocks:
+                        return $"Crack {GoalTarget} locks";
+                    case LevelGoalKind.CollectPips:
+                        return $"Collect {GoalTarget} pips";
+                    case LevelGoalKind.FireRockets:
+                        return $"Fire {GoalTarget} rockets";
+                    case LevelGoalKind.FindPrizes:
+                        return $"Find {GoalTarget} prizes";
+                    default:
+                        return $"Score {ScoreTarget}";
+                }
+            }
+        }
 
         public static LevelPlan ForLevel(int level)
         {
@@ -19,6 +55,8 @@ namespace BlockPopX
                 {
                     Title = "Starter Pop",
                     Hint = "Tap 2 or more same-color balls.",
+                    GoalKind = LevelGoalKind.Score,
+                    GoalTarget = 220,
                     ScoreTarget = 220,
                     MinimumGroupSize = 2
                 };
@@ -29,8 +67,10 @@ namespace BlockPopX
                 return new LevelPlan
                 {
                     Title = "Mix Practice",
-                    Hint = "More colors and tighter paths.",
-                    ScoreTarget = 420,
+                    Hint = "Clear enough balls before fouls run out.",
+                    GoalKind = LevelGoalKind.ClearBalls,
+                    GoalTarget = 24,
+                    ScoreTarget = 0,
                     MinimumGroupSize = 2,
                     ShuffleUnlocked = true
                 };
@@ -41,7 +81,9 @@ namespace BlockPopX
                 return new LevelPlan
                 {
                     Title = "Gravity Lesson",
-                    Hint = "Plan the board from both directions.",
+                    Hint = "Bigger groups make the target much faster.",
+                    GoalKind = LevelGoalKind.Score,
+                    GoalTarget = 650,
                     ScoreTarget = 650,
                     MinimumGroupSize = 2,
                     ShuffleUnlocked = true,
@@ -55,7 +97,9 @@ namespace BlockPopX
                 {
                     Title = "Lock Breaker",
                     Hint = "Locked balls must be cracked with nearby clears.",
-                    ScoreTarget = 850,
+                    GoalKind = LevelGoalKind.CrackLocks,
+                    GoalTarget = 6,
+                    ScoreTarget = 0,
                     MinimumGroupSize = 2,
                     ShuffleUnlocked = true,
                     GravityUnlocked = true,
@@ -65,16 +109,19 @@ namespace BlockPopX
 
             return new LevelPlan
             {
-                Title = level == 5 ? "Pip Rush" : "Advanced Rush",
-                Hint = "Pips, locks, and complex color paths.",
-                ScoreTarget = level == 5 ? 1050 : 1050 + (level - 5) * 420,
-                MinimumGroupSize = 2,
+                Title = level == 5 ? "Pip Rush" : level == 6 ? "Rocket Lines" : "Prize Maze",
+                Hint = level == 5 ? "Pop pip balls to collect dots." : level == 6 ? "Rockets clear full lines when popped." : "Prize balls give big rewards, but the board is tighter.",
+                GoalKind = level == 5 ? LevelGoalKind.CollectPips : level == 6 ? LevelGoalKind.FireRockets : LevelGoalKind.FindPrizes,
+                GoalTarget = level == 5 ? 12 : level == 6 ? 3 : 2 + (level - 7) / 2,
+                ScoreTarget = 0,
+                MinimumGroupSize = level >= 8 ? 3 : 2,
                 ShuffleUnlocked = true,
                 GravityUnlocked = true,
                 LocksUnlocked = true,
-                PipsUnlocked = true
+                PipsUnlocked = true,
+                RocketsUnlocked = level >= 6,
+                PrizesUnlocked = level >= 7
             };
         }
     }
 }
-

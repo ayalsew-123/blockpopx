@@ -18,6 +18,7 @@ namespace BlockPopX
         private CircleCollider2D circleCollider;
         private Coroutine feedbackRoutine;
         private Vector3 baseScale;
+        private TextMesh specialLabel;
 
         private void Awake()
         {
@@ -58,6 +59,8 @@ namespace BlockPopX
             {
                 pipBadge.SetActive(cell.Special == BallSpecial.Pip);
             }
+
+            SetSpecialLabel(cell);
         }
 
         public void PlayInvalidPulse()
@@ -119,6 +122,56 @@ namespace BlockPopX
             }
 
             Destroy(gameObject);
+        }
+
+        private void SetSpecialLabel(BallCell cell)
+        {
+            var label = GetSpecialLabel(cell);
+            if (string.IsNullOrEmpty(label))
+            {
+                if (specialLabel != null)
+                {
+                    specialLabel.gameObject.SetActive(false);
+                }
+
+                return;
+            }
+
+            if (specialLabel == null)
+            {
+                var labelObject = new GameObject("SpecialLabel");
+                labelObject.transform.SetParent(transform, false);
+                labelObject.transform.localPosition = new Vector3(0f, 0f, -0.01f);
+                specialLabel = labelObject.AddComponent<TextMesh>();
+                specialLabel.anchor = TextAnchor.MiddleCenter;
+                specialLabel.alignment = TextAlignment.Center;
+                specialLabel.characterSize = 0.18f;
+                specialLabel.fontSize = 48;
+
+                var labelRenderer = specialLabel.GetComponent<MeshRenderer>();
+                labelRenderer.sortingOrder = 30;
+            }
+
+            specialLabel.gameObject.SetActive(true);
+            specialLabel.text = label;
+            specialLabel.color = cell.Special == BallSpecial.Locked ? Color.white : new Color(0.02f, 0.03f, 0.08f);
+        }
+
+        private static string GetSpecialLabel(BallCell cell)
+        {
+            switch (cell.Special)
+            {
+                case BallSpecial.Locked:
+                    return "LOCK";
+                case BallSpecial.Pip:
+                    return cell.Pips > 1 ? cell.Pips.ToString() : ".";
+                case BallSpecial.Rocket:
+                    return "R";
+                case BallSpecial.Prize:
+                    return "$";
+                default:
+                    return "";
+            }
         }
     }
 }

@@ -21,9 +21,9 @@ namespace BlockPopX
                 }
             }
 
-            AddLevelFeatures(board, level);
             BreakLargeEasyGroups(board, level);
             EnsureAllColors(board, level);
+            AddLevelFeatures(board, level);
             SeedStrategicPairs(board, level);
 
             return board;
@@ -89,7 +89,9 @@ namespace BlockPopX
                 {
                     if (level >= 4 && row > 0 && col > 0 && row < Rows - 1 && col < Columns - 1)
                     {
-                        if ((row + col + level) % 9 == 0)
+                        var isGate = (row + col + level) % 9 == 0;
+                        var isZigZag = level >= 7 && row % 2 == 0 && col == PositiveModulo(row + level, Columns - 2) + 1;
+                        if (isGate || isZigZag)
                         {
                             board[row, col].Special = BallSpecial.Locked;
                         }
@@ -103,7 +105,86 @@ namespace BlockPopX
                             board[row, col].Pips = 1 + PositiveModulo(row + col + level, 3);
                         }
                     }
+
+                    if (level >= 6 && board[row, col].Special == BallSpecial.None)
+                    {
+                        if (row > 0 && col > 0 && row < Rows - 1 && col < Columns - 1 && (row * 7 + col * 5 + level) % 23 == 0)
+                        {
+                            board[row, col].Special = BallSpecial.Rocket;
+                        }
+                    }
+
+                    if (level >= 7 && board[row, col].Special == BallSpecial.None)
+                    {
+                        if ((row * 11 + col * 3 + level) % 31 == 0)
+                        {
+                            board[row, col].Special = BallSpecial.Prize;
+                        }
+                    }
                 }
+            }
+
+            EnsurePipTotal(board, level >= 5 ? 12 : 0, level);
+            EnsureSpecialCount(board, BallSpecial.Rocket, level >= 6 ? 3 : 0, level);
+            EnsureSpecialCount(board, BallSpecial.Prize, level >= 7 ? 2 + (level - 7) / 2 : 0, level);
+        }
+
+        private static void EnsurePipTotal(BallCell[,] board, int targetPips, int level)
+        {
+            var currentPips = 0;
+            for (var row = 0; row < Rows; row++)
+            {
+                for (var col = 0; col < Columns; col++)
+                {
+                    if (board[row, col].Special == BallSpecial.Pip)
+                    {
+                        currentPips += Mathf.Max(1, board[row, col].Pips);
+                    }
+                }
+            }
+
+            var seed = 0;
+            while (currentPips < targetPips && seed < Rows * Columns * 2)
+            {
+                var row = 1 + PositiveModulo(level * 5 + seed * 3, Rows - 2);
+                var col = 1 + PositiveModulo(level * 7 + seed * 4, Columns - 2);
+                if (board[row, col].Special == BallSpecial.None)
+                {
+                    board[row, col].Special = BallSpecial.Pip;
+                    board[row, col].Pips = 2;
+                    currentPips += 2;
+                }
+
+                seed++;
+            }
+        }
+
+        private static void EnsureSpecialCount(BallCell[,] board, BallSpecial special, int targetCount, int level)
+        {
+            var currentCount = 0;
+            for (var row = 0; row < Rows; row++)
+            {
+                for (var col = 0; col < Columns; col++)
+                {
+                    if (board[row, col].Special == special)
+                    {
+                        currentCount++;
+                    }
+                }
+            }
+
+            var seed = 0;
+            while (currentCount < targetCount && seed < Rows * Columns * 2)
+            {
+                var row = 1 + PositiveModulo(level * 3 + seed * 5, Rows - 2);
+                var col = 1 + PositiveModulo(level * 11 + seed * 2, Columns - 2);
+                if (board[row, col].Special == BallSpecial.None)
+                {
+                    board[row, col].Special = special;
+                    currentCount++;
+                }
+
+                seed++;
             }
         }
 
@@ -219,7 +300,7 @@ namespace BlockPopX
                 var secondCol = horizontal ? Mathf.Min(Columns - 2, col + 1) : col;
                 var color = BlockPopXColorPalette.All[PositiveModulo(level + index * 3, BlockPopXColorPalette.All.Length)];
 
-                if (board[row, col].Special == BallSpecial.Locked || board[secondRow, secondCol].Special == BallSpecial.Locked)
+                if (board[row, col].Special != BallSpecial.None || board[secondRow, secondCol].Special != BallSpecial.None)
                 {
                     continue;
                 }
@@ -235,4 +316,3 @@ namespace BlockPopX
         }
     }
 }
-

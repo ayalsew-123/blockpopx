@@ -35,6 +35,11 @@ namespace BlockPopX
         private LevelPlan plan;
         private int score;
         private int fouls;
+        private int clearedBalls;
+        private int crackedLocks;
+        private int collectedPips;
+        private int firedRockets;
+        private int foundPrizes;
         private bool isGameOver;
         private bool isLevelComplete;
         private string currentMessage = "";
@@ -51,6 +56,7 @@ namespace BlockPopX
         public int MaxFouls => maxFouls;
         public string CurrentMessage => currentMessage;
         public string CurrentLevelTitle => plan != null ? plan.Title : "";
+        public string CurrentGoalText => GetGoalProgressText();
         public bool IsGameOver => isGameOver;
         public bool IsLevelComplete => isLevelComplete;
 
@@ -76,6 +82,11 @@ namespace BlockPopX
             views = new BallView[BoardGenerator.Rows, BoardGenerator.Columns];
             score = 0;
             fouls = 0;
+            clearedBalls = 0;
+            crackedLocks = 0;
+            collectedPips = 0;
+            firedRockets = 0;
+            foundPrizes = 0;
             isGameOver = false;
             isLevelComplete = false;
 
@@ -85,7 +96,7 @@ namespace BlockPopX
             LevelChanged.Invoke(level);
             ScoreChanged.Invoke(score);
             FoulsChanged.Invoke(fouls);
-            SetMessage($"Level {level}: {plan.Title}. {plan.Hint}");
+            SetMessage($"Goal: {plan.GoalLabel}. {plan.Hint}");
         }
 
         public void TapCell(int row, int col)
@@ -111,36 +122,133 @@ namespace BlockPopX
             if (group.Count < plan.MinimumGroupSize)
             {
                 views[row, col]?.PlayInvalidPulse();
-                AddFoul("Need 2 or more matching balls.");
+                AddFoul($"Need {plan.MinimumGroupSize} or more matching balls.");
                 return;
             }
 
+            var cellsToClear = BuildClearSet(group);
+            var pipsThisMove = CountPips(cellsToClear);
+            var rocketsThisMove = CountSpecial(cellsToClear, BallSpecial.Rocket);
+            var prizesThisMove = CountSpecial(cellsToClear, BallSpecial.Prize);
             var points = group.Count * group.Count * 10;
-            foreach (var cell in group)
+            points += Mathf.Max(0, cellsToClear.Count - group.Count) * 15;
+            points += pipsThisMove * 30;
+            points += rocketsThisMove * 120;
+            points += prizesThisMove * 250;
+
+            foreach (var cell in cellsToClear)
             {
-                board[cell.x, cell.y].IsEmpty = true;
-
-                if (views[cell.x, cell.y] != null)
-                {
-                    views[cell.x, cell.y].PlayPopAndDestroy();
-                    views[cell.x, cell.y] = null;
-                }
-
+                ClearCell(cell);
                 CrackAdjacentLocks(cell.x, cell.y);
             }
 
-            PlayPopFeedback(group.Count);
+            clearedBalls += cellsToClear.Count;
+            collectedPips += pipsThisMove;
+            firedRockets += rocketsThisMove;
+            foundPrizes += prizesThisMove;
+
+            PlayPopFeedback(cellsToClear.Count);
             score += points;
             ScoreChanged.Invoke(score);
-            SetMessage($"+{points} points");
+            SetMessage($"+{points} points. {GetGoalProgressText()}");
 
-            if (AllTouchableBallsGone() || score >= plan.ScoreTarget)
+            if (AllTouchableBallsGone() || IsGoalComplete())
             {
                 isLevelComplete = true;
                 PlayLevelCompleteFeedback();
                 LevelComplete.Invoke();
                 SetMessage($"Level {level} solved. Next level is ready.");
             }
+        }
+
+        private List<Vector2Int> BuildClearSet(List<Vector2Int> group)
+        {
+            var cellsToClear = new List<Vector2Int>();
+            var included = new bool[BoardGenerator.Rows, BoardGenerator.Columns];
+
+            foreach (var cell in group)
+            {
+                AddClearCell(cellsToClear, included, cell.x, cell.y);
+            }
+
+            foreach (var cell in group)
+            {
+                if (board[cell.x, cell.y].Special == BallSpecial.Rocket)
+                {
+                    for (var col = 0; col < BoardGenerator.Columns; col++)
+                    {
+                        AddClearCell(cellsToClear, included, cell.x, col);
+                    }
+
+                    for (var row = 0; row < BoardGenerator.Rows; row++)
+                    {
+                        AddClearCell(cellsToClear, included, row, cell.y);
+                    }
+                }
+
+                if (board[cell.x, cell.y].Special == BallSpecial.Prize)
+                {
+                    for (var row = cell.x - 1; row <= cell.x + 1; row++)
+                    {
+                        for (var col = cell.y - 1; col <= cell.y + 1; col++)
+                        {
+                            AddClearCell(cellsToClear, included, row, col);
+                        }
+                    }
+                }
+            }
+
+            return cellsToClear;
+        }
+
+        private void AddClearCell(List<Vector2Int> cellsToClear, bool[,] included, int row, int col)
+        {
+            if (!IsInside(row, col) || included[row, col] || board[row, col].IsEmpty || board[row, col].Special == BallSpecial.Locked)
+            {
+                return;
+            }
+
+            included[row, col] = true;
+            cellsToClear.Add(new Vector2Int(row, col));
+        }
+
+        private void ClearCell(Vector2Int cell)
+        {
+            board[cell.x, cell.y].IsEmpty = true;
+
+            if (views[cell.x, cell.y] != null)
+            {
+                views[cell.x, cell.y].PlayPopAndDestroy();
+                views[cell.x, cell.y] = null;
+            }
+        }
+
+        private int CountPips(List<Vector2Int> cells)
+        {
+            var total = 0;
+            foreach (var cell in cells)
+            {
+                if (board[cell.x, cell.y].Special == BallSpecial.Pip)
+                {
+                    total += Mathf.Max(1, board[cell.x, cell.y].Pips);
+                }
+            }
+
+            return total;
+        }
+
+        private int CountSpecial(List<Vector2Int> cells, BallSpecial special)
+        {
+            var total = 0;
+            foreach (var cell in cells)
+            {
+                if (board[cell.x, cell.y].Special == special)
+                {
+                    total++;
+                }
+            }
+
+            return total;
         }
 
         public void NextLevel()
@@ -209,6 +317,7 @@ namespace BlockPopX
             }
 
             board[row, col].Special = BallSpecial.None;
+            crackedLocks++;
             views[row, col]?.Bind(this, row, col, board[row, col]);
         }
 
@@ -252,6 +361,54 @@ namespace BlockPopX
         {
             currentMessage = message;
             MessageChanged.Invoke(message);
+        }
+
+        private bool IsGoalComplete()
+        {
+            if (plan == null)
+            {
+                return false;
+            }
+
+            switch (plan.GoalKind)
+            {
+                case LevelGoalKind.ClearBalls:
+                    return clearedBalls >= plan.GoalTarget;
+                case LevelGoalKind.CrackLocks:
+                    return crackedLocks >= plan.GoalTarget;
+                case LevelGoalKind.CollectPips:
+                    return collectedPips >= plan.GoalTarget;
+                case LevelGoalKind.FireRockets:
+                    return firedRockets >= plan.GoalTarget;
+                case LevelGoalKind.FindPrizes:
+                    return foundPrizes >= plan.GoalTarget;
+                default:
+                    return score >= plan.ScoreTarget;
+            }
+        }
+
+        private string GetGoalProgressText()
+        {
+            if (plan == null)
+            {
+                return "";
+            }
+
+            switch (plan.GoalKind)
+            {
+                case LevelGoalKind.ClearBalls:
+                    return $"Goal {Mathf.Min(clearedBalls, plan.GoalTarget)}/{plan.GoalTarget} balls";
+                case LevelGoalKind.CrackLocks:
+                    return $"Goal {Mathf.Min(crackedLocks, plan.GoalTarget)}/{plan.GoalTarget} locks";
+                case LevelGoalKind.CollectPips:
+                    return $"Goal {Mathf.Min(collectedPips, plan.GoalTarget)}/{plan.GoalTarget} pips";
+                case LevelGoalKind.FireRockets:
+                    return $"Goal {Mathf.Min(firedRockets, plan.GoalTarget)}/{plan.GoalTarget} rockets";
+                case LevelGoalKind.FindPrizes:
+                    return $"Goal {Mathf.Min(foundPrizes, plan.GoalTarget)}/{plan.GoalTarget} prizes";
+                default:
+                    return $"Goal {Mathf.Min(score, plan.ScoreTarget)}/{plan.ScoreTarget} score";
+            }
         }
 
         private void RenderBoard()
