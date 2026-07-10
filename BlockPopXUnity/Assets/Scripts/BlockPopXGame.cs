@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -17,6 +18,10 @@ namespace BlockPopX
         [SerializeField] private int level = 1;
         [SerializeField] private int maxFouls = 3;
 
+        [Header("Feedback")]
+        [SerializeField] private bool soundEnabled = true;
+        [SerializeField] private float boardPulseScale = 1.035f;
+
         [Header("Events")]
         public UnityEvent<int> ScoreChanged = new UnityEvent<int>();
         public UnityEvent<int> LevelChanged = new UnityEvent<int>();
@@ -34,6 +39,11 @@ namespace BlockPopX
         private bool isLevelComplete;
         private string currentMessage = "";
         private Sprite runtimeBallSprite;
+        private AudioSource audioSource;
+        private AudioClip popClip;
+        private AudioClip foulClip;
+        private AudioClip levelClip;
+        private Coroutine boardFeedbackRoutine;
 
         public int CurrentLevel => level;
         public int CurrentScore => score;
@@ -46,6 +56,7 @@ namespace BlockPopX
 
         private void Start()
         {
+            EnsureAudioSource();
             FitCameraToBoard();
             StartLevel(level);
         }
@@ -69,6 +80,7 @@ namespace BlockPopX
             isLevelComplete = false;
 
             ClearBoardViews();
+            ResetBoardScale();
             RenderBoard();
             LevelChanged.Invoke(level);
             ScoreChanged.Invoke(score);
@@ -90,6 +102,7 @@ namespace BlockPopX
 
             if (board[row, col].Special == BallSpecial.Locked)
             {
+                views[row, col]?.PlayInvalidPulse();
                 AddFoul("Locked ball. Clear beside it first.");
                 return;
             }
@@ -97,6 +110,7 @@ namespace BlockPopX
             var group = FindConnectedGroup(row, col);
             if (group.Count < plan.MinimumGroupSize)
             {
+                views[row, col]?.PlayInvalidPulse();
                 AddFoul("Need 2 or more matching balls.");
                 return;
             }
@@ -108,13 +122,14 @@ namespace BlockPopX
 
                 if (views[cell.x, cell.y] != null)
                 {
-                    Destroy(views[cell.x, cell.y].gameObject);
+                    views[cell.x, cell.y].PlayPopAndDestroy();
                     views[cell.x, cell.y] = null;
                 }
 
                 CrackAdjacentLocks(cell.x, cell.y);
             }
 
+            PlayPopFeedback(group.Count);
             score += points;
             ScoreChanged.Invoke(score);
             SetMessage($"+{points} points");
@@ -122,6 +137,7 @@ namespace BlockPopX
             if (AllTouchableBallsGone() || score >= plan.ScoreTarget)
             {
                 isLevelComplete = true;
+                PlayLevelCompleteFeedback();
                 LevelComplete.Invoke();
                 SetMessage($"Level {level} solved. Next level is ready.");
             }
@@ -220,6 +236,7 @@ namespace BlockPopX
             }
 
             fouls++;
+            PlayFoulFeedback();
             FoulsChanged.Invoke(fouls);
             SetMessage($"{message} Foul {fouls}/{maxFouls}");
 
@@ -348,6 +365,124 @@ namespace BlockPopX
             {
                 Destroy(boardRoot.GetChild(i).gameObject);
             }
+        }
+
+        private void PlayPopFeedback(int clearedCount)
+        {
+            PlayTone(ref popClip, "BlockPopX Pop", 620f + Mathf.Min(clearedCount, 10) * 18f, 0.08f, 0.28f);
+            PulseBoard(boardPulseScale, 0.12f);
+        }
+
+        private void PlayFoulFeedback()
+        {
+            PlayTone(ref foulClip, "BlockPopX Foul", 170f, 0.13f, 0.22f);
+            PulseBoard(0.965f, 0.13f);
+        }
+
+        private void PlayLevelCompleteFeedback()
+        {
+            PlayTone(ref levelClip, "BlockPopX Level Clear", 860f, 0.2f, 0.3f);
+            PulseBoard(1.08f, 0.22f);
+        }
+
+        private void PulseBoard(float targetScale, float duration)
+        {
+            if (boardRoot == null)
+            {
+                return;
+            }
+
+            if (boardFeedbackRoutine != null)
+            {
+                StopCoroutine(boardFeedbackRoutine);
+            }
+
+            boardFeedbackRoutine = StartCoroutine(BoardPulseRoutine(targetScale, duration));
+        }
+
+        private IEnumerator BoardPulseRoutine(float targetScale, float duration)
+        {
+            var originalScale = Vector3.one;
+            var punchedScale = Vector3.one * targetScale;
+            duration = Mathf.Max(0.05f, duration);
+
+            for (var elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                var t = elapsed / duration;
+                var wave = Mathf.Sin(t * Mathf.PI);
+                boardRoot.localScale = Vector3.Lerp(originalScale, punchedScale, wave);
+                yield return null;
+            }
+
+            boardRoot.localScale = originalScale;
+            boardFeedbackRoutine = null;
+        }
+
+        private void ResetBoardScale()
+        {
+            if (boardRoot == null)
+            {
+                return;
+            }
+
+            if (boardFeedbackRoutine != null)
+            {
+                StopCoroutine(boardFeedbackRoutine);
+                boardFeedbackRoutine = null;
+            }
+
+            boardRoot.localScale = Vector3.one;
+        }
+
+        private void PlayTone(ref AudioClip clip, string clipName, float frequency, float seconds, float volume)
+        {
+            if (!soundEnabled)
+            {
+                return;
+            }
+
+            EnsureAudioSource();
+            if (audioSource == null)
+            {
+                return;
+            }
+
+            clip = CreateTone(clipName, frequency, seconds, volume);
+            audioSource.PlayOneShot(clip);
+        }
+
+        private void EnsureAudioSource()
+        {
+            if (!soundEnabled || audioSource != null)
+            {
+                return;
+            }
+
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = gameObject.AddComponent<AudioSource>();
+            }
+
+            audioSource.playOnAwake = false;
+        }
+
+        private static AudioClip CreateTone(string clipName, float frequency, float seconds, float volume)
+        {
+            const int sampleRate = 44100;
+            var sampleCount = Mathf.Max(1, Mathf.CeilToInt(sampleRate * seconds));
+            var samples = new float[sampleCount];
+
+            for (var i = 0; i < sampleCount; i++)
+            {
+                var time = i / (float)sampleRate;
+                var fade = 1f - (i / (float)sampleCount);
+                samples[i] = Mathf.Sin(2f * Mathf.PI * frequency * time) * volume * fade;
+            }
+
+            var clip = AudioClip.Create(clipName, sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
         }
 
         private static bool IsInside(int row, int col)
