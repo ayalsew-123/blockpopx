@@ -13,11 +13,10 @@ The BlockPopX C# scripts are in:
 Quick first test:
 
 1. Open `Assets/Scenes/SampleScene.unity`.
-2. Create an empty GameObject named `BlockPopXGame`.
-3. Add the `BlockPopXGame` script to that object.
+2. Clear any Project search filter, such as `t:Prefab`, if you cannot see scripts.
+3. Click `Tools > BlockPopX > Setup Play Scene`.
 4. Press Play.
 
 The game script can create simple runtime balls by itself, so the first test does
 not require a prefab. Later we can replace those runtime balls with polished art,
 animations, sounds, UI, Android build settings, and ads.
-
