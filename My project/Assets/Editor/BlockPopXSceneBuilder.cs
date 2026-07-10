@@ -31,7 +31,9 @@ public static class BlockPopXSceneBuilder
 
         var serializedGame = new SerializedObject(game);
         serializedGame.FindProperty("boardRoot").objectReferenceValue = boardRoot.transform;
-        serializedGame.FindProperty("cellSpacing").floatValue = 0.72f;
+        serializedGame.FindProperty("cellSpacing").floatValue = 0.48f;
+        serializedGame.FindProperty("ballScale").floatValue = 0.38f;
+        serializedGame.FindProperty("boardPadding").floatValue = 0.9f;
         serializedGame.ApplyModifiedPropertiesWithoutUndo();
 
         var camera = Camera.main;
@@ -44,7 +46,7 @@ public static class BlockPopXSceneBuilder
 
         camera.transform.position = new Vector3(0f, 0f, -10f);
         camera.orthographic = true;
-        camera.orthographicSize = 4.4f;
+        camera.orthographicSize = 5.2f;
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = new Color(0.04f, 0.06f, 0.12f);
 

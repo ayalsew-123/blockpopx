@@ -9,7 +9,9 @@ namespace BlockPopX
         [Header("Board")]
         [SerializeField] private BallView ballPrefab;
         [SerializeField] private Transform boardRoot;
-        [SerializeField] private float cellSpacing = 0.72f;
+        [SerializeField] private float cellSpacing = 0.48f;
+        [SerializeField] private float ballScale = 0.38f;
+        [SerializeField] private float boardPadding = 0.9f;
 
         [Header("State")]
         [SerializeField] private int level = 1;
@@ -31,7 +33,15 @@ namespace BlockPopX
 
         private void Start()
         {
+            FitCameraToBoard();
             StartLevel(level);
+        }
+
+        private void OnValidate()
+        {
+            cellSpacing = Mathf.Max(0.32f, cellSpacing);
+            ballScale = Mathf.Max(0.24f, ballScale);
+            boardPadding = Mathf.Max(0.25f, boardPadding);
         }
 
         public void StartLevel(int nextLevel)
@@ -220,7 +230,7 @@ namespace BlockPopX
             var ballObject = new GameObject($"Ball {row},{col}");
             ballObject.transform.SetParent(boardRoot, false);
             ballObject.transform.position = GetWorldPosition(row, col);
-            ballObject.transform.localScale = Vector3.one * 0.55f;
+            ballObject.transform.localScale = Vector3.one * ballScale;
 
             var spriteRenderer = ballObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = GetRuntimeBallSprite();
@@ -228,6 +238,25 @@ namespace BlockPopX
             ballObject.AddComponent<CircleCollider2D>();
 
             return ballObject.AddComponent<BallView>();
+        }
+
+        private void FitCameraToBoard()
+        {
+            var camera = Camera.main;
+            if (camera == null)
+            {
+                return;
+            }
+
+            var boardWidth = (BoardGenerator.Columns - 1) * cellSpacing + ballScale + boardPadding;
+            var boardHeight = (BoardGenerator.Rows - 1) * cellSpacing + ballScale + boardPadding;
+            var aspect = Mathf.Max(0.1f, camera.aspect);
+            var sizeForHeight = boardHeight * 0.5f;
+            var sizeForWidth = boardWidth * 0.5f / aspect;
+
+            camera.orthographic = true;
+            camera.orthographicSize = Mathf.Max(sizeForHeight, sizeForWidth);
+            camera.transform.position = new Vector3(0f, 0f, -10f);
         }
 
         private Sprite GetRuntimeBallSprite()
