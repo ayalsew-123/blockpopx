@@ -55,3 +55,18 @@ BlockPopXUnity/*.user
 BlockPopXUnity/*.pidb
 BlockPopXUnity/*.booproj
 BlockPopXUnity/*.svd
+
+My project/Library/
+My project/Temp/
+My project/Obj/
+My project/Build/
+My project/Builds/
+My project/Logs/
+My project/UserSettings/
+My project/*.csproj
+My project/*.sln
+My project/*.slnx
+My project/*.user
+My project/*.pidb
+My project/*.booproj
+My project/*.svd
