@@ -7,64 +7,87 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+[InitializeOnLoad]
 public static class BlockPopXSceneBuilder
 {
+    private static bool isSettingUpScene;
+
+    static BlockPopXSceneBuilder()
+    {
+        EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.delayCall += AutoRepairOpenScene;
+    }
+
     [MenuItem("Tools/BlockPopX/Setup Play Scene")]
     public static void SetupPlayScene()
     {
-        CleanMissingScriptsInScene();
-
-        var gameObject = GameObject.Find("BlockPopXGame");
-        if (gameObject == null)
+        if (isSettingUpScene)
         {
-            gameObject = new GameObject("BlockPopXGame");
+            return;
         }
 
-        var game = gameObject.GetComponent<BlockPopXGame>();
-        if (game == null)
+        isSettingUpScene = true;
+        try
         {
-            game = gameObject.AddComponent<BlockPopXGame>();
-        }
+            CleanMissingScriptsInScene();
 
-        var boardRoot = GameObject.Find("BoardRoot");
-        if (boardRoot == null)
+            var gameObject = GameObject.Find("BlockPopXGame");
+            if (gameObject == null)
+            {
+                gameObject = new GameObject("BlockPopXGame");
+            }
+
+            var game = gameObject.GetComponent<BlockPopXGame>();
+            if (game == null)
+            {
+                game = gameObject.AddComponent<BlockPopXGame>();
+            }
+
+            var boardRoot = GameObject.Find("BoardRoot");
+            if (boardRoot == null)
+            {
+                boardRoot = new GameObject("BoardRoot");
+            }
+
+            boardRoot.transform.SetParent(gameObject.transform, false);
+            boardRoot.transform.localPosition = Vector3.zero;
+
+            var serializedGame = new SerializedObject(game);
+            serializedGame.FindProperty("boardRoot").objectReferenceValue = boardRoot.transform;
+            serializedGame.FindProperty("cellSpacing").floatValue = 0.48f;
+            serializedGame.FindProperty("ballScale").floatValue = 0.38f;
+            serializedGame.FindProperty("boardPadding").floatValue = 0.9f;
+            serializedGame.ApplyModifiedPropertiesWithoutUndo();
+
+            var camera = Camera.main;
+            if (camera == null)
+            {
+                var cameraObject = new GameObject("Main Camera");
+                cameraObject.tag = "MainCamera";
+                camera = cameraObject.AddComponent<Camera>();
+            }
+
+            camera.transform.position = new Vector3(0f, 0f, -10f);
+            camera.orthographic = true;
+            camera.orthographicSize = 5.2f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.04f, 0.06f, 0.12f);
+
+            SetupHud(game);
+
+            Selection.activeGameObject = gameObject;
+            EditorUtility.SetDirty(gameObject);
+            EditorUtility.SetDirty(boardRoot);
+            EditorUtility.SetDirty(camera);
+            EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+
+            Debug.Log("BlockPopX play scene is ready. Press Play to test the board.");
+        }
+        finally
         {
-            boardRoot = new GameObject("BoardRoot");
+            isSettingUpScene = false;
         }
-
-        boardRoot.transform.SetParent(gameObject.transform, false);
-        boardRoot.transform.localPosition = Vector3.zero;
-
-        var serializedGame = new SerializedObject(game);
-        serializedGame.FindProperty("boardRoot").objectReferenceValue = boardRoot.transform;
-        serializedGame.FindProperty("cellSpacing").floatValue = 0.48f;
-        serializedGame.FindProperty("ballScale").floatValue = 0.38f;
-        serializedGame.FindProperty("boardPadding").floatValue = 0.9f;
-        serializedGame.ApplyModifiedPropertiesWithoutUndo();
-
-        var camera = Camera.main;
-        if (camera == null)
-        {
-            var cameraObject = new GameObject("Main Camera");
-            cameraObject.tag = "MainCamera";
-            camera = cameraObject.AddComponent<Camera>();
-        }
-
-        camera.transform.position = new Vector3(0f, 0f, -10f);
-        camera.orthographic = true;
-        camera.orthographicSize = 5.2f;
-        camera.clearFlags = CameraClearFlags.SolidColor;
-        camera.backgroundColor = new Color(0.04f, 0.06f, 0.12f);
-
-        SetupHud(game);
-
-        Selection.activeGameObject = gameObject;
-        EditorUtility.SetDirty(gameObject);
-        EditorUtility.SetDirty(boardRoot);
-        EditorUtility.SetDirty(camera);
-        EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-
-        Debug.Log("BlockPopX play scene is ready. Press Play to test the board.");
     }
 
     [MenuItem("Tools/BlockPopX/Clean Missing Scripts")]
@@ -258,5 +281,34 @@ public static class BlockPopXSceneBuilder
         rect.anchorMax = anchorMax;
         rect.offsetMin = offsetMin;
         rect.offsetMax = offsetMax;
+    }
+
+    private static void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state == PlayModeStateChange.ExitingEditMode)
+        {
+            SetupPlayScene();
+        }
+    }
+
+    private static void AutoRepairOpenScene()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            return;
+        }
+
+        var scene = EditorSceneManager.GetActiveScene();
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return;
+        }
+
+        CleanMissingScriptsInScene();
+
+        if (GameObject.Find("BlockPopXGame") == null || GameObject.Find("BlockPopXHudCanvas") == null)
+        {
+            SetupPlayScene();
+        }
     }
 }
