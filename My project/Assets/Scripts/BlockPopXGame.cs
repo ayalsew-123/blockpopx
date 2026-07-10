@@ -7,6 +7,10 @@ namespace BlockPopX
 {
     public sealed class BlockPopXGame : MonoBehaviour
     {
+        private const string BestScoreKey = "BlockPopX.BestScore";
+        private const string HighestLevelKey = "BlockPopX.HighestLevel";
+        private const string SoundEnabledKey = "BlockPopX.SoundEnabled";
+
         [Header("Board")]
         [SerializeField] private BallView ballPrefab;
         [SerializeField] private Transform boardRoot;
@@ -24,9 +28,13 @@ namespace BlockPopX
 
         [Header("Events")]
         public UnityEvent<int> ScoreChanged = new UnityEvent<int>();
+        public UnityEvent<int> BestScoreChanged = new UnityEvent<int>();
         public UnityEvent<int> LevelChanged = new UnityEvent<int>();
+        public UnityEvent<int> HighestLevelChanged = new UnityEvent<int>();
         public UnityEvent<int> FoulsChanged = new UnityEvent<int>();
         public UnityEvent<string> MessageChanged = new UnityEvent<string>();
+        public UnityEvent<bool> PauseChanged = new UnityEvent<bool>();
+        public UnityEvent<bool> SoundChanged = new UnityEvent<bool>();
         public UnityEvent GameOver = new UnityEvent();
         public UnityEvent LevelComplete = new UnityEvent();
 
@@ -34,6 +42,8 @@ namespace BlockPopX
         private BallView[,] views;
         private LevelPlan plan;
         private int score;
+        private int bestScore;
+        private int highestLevel = 1;
         private int fouls;
         private int clearedBalls;
         private int crackedLocks;
@@ -42,6 +52,7 @@ namespace BlockPopX
         private int foundPrizes;
         private bool isGameOver;
         private bool isLevelComplete;
+        private bool isPaused;
         private string currentMessage = "";
         private Sprite runtimeBallSprite;
         private AudioSource audioSource;
@@ -52,6 +63,8 @@ namespace BlockPopX
 
         public int CurrentLevel => level;
         public int CurrentScore => score;
+        public int BestScore => bestScore;
+        public int HighestLevel => highestLevel;
         public int CurrentFouls => fouls;
         public int MaxFouls => maxFouls;
         public string CurrentMessage => currentMessage;
@@ -59,12 +72,19 @@ namespace BlockPopX
         public string CurrentGoalText => GetGoalProgressText();
         public bool IsGameOver => isGameOver;
         public bool IsLevelComplete => isLevelComplete;
+        public bool IsPaused => isPaused;
+        public bool SoundEnabled => soundEnabled;
 
         private void Start()
         {
+            LoadProgress();
             EnsureAudioSource();
             FitCameraToBoard();
             StartLevel(level);
+            BestScoreChanged.Invoke(bestScore);
+            HighestLevelChanged.Invoke(highestLevel);
+            SoundChanged.Invoke(soundEnabled);
+            PauseChanged.Invoke(isPaused);
         }
 
         private void OnValidate()
@@ -89,19 +109,30 @@ namespace BlockPopX
             foundPrizes = 0;
             isGameOver = false;
             isLevelComplete = false;
+            isPaused = false;
+
+            if (level > highestLevel)
+            {
+                highestLevel = level;
+                PlayerPrefs.SetInt(HighestLevelKey, highestLevel);
+                PlayerPrefs.Save();
+                HighestLevelChanged.Invoke(highestLevel);
+            }
 
             ClearBoardViews();
             ResetBoardScale();
             RenderBoard();
             LevelChanged.Invoke(level);
             ScoreChanged.Invoke(score);
+            BestScoreChanged.Invoke(bestScore);
             FoulsChanged.Invoke(fouls);
+            PauseChanged.Invoke(isPaused);
             SetMessage($"Goal: {plan.GoalLabel}. {plan.Hint}");
         }
 
         public void TapCell(int row, int col)
         {
-            if (board == null || isGameOver || isLevelComplete)
+            if (board == null || isGameOver || isLevelComplete || isPaused)
             {
                 return;
             }
@@ -149,6 +180,7 @@ namespace BlockPopX
 
             PlayPopFeedback(cellsToClear.Count);
             score += points;
+            SaveBestScoreIfNeeded();
             ScoreChanged.Invoke(score);
             SetMessage($"+{points} points. {GetGoalProgressText()}");
 
@@ -261,6 +293,54 @@ namespace BlockPopX
             StartLevel(level);
         }
 
+        public void TogglePause()
+        {
+            if (isGameOver || isLevelComplete)
+            {
+                return;
+            }
+
+            SetPaused(!isPaused);
+        }
+
+        public void Resume()
+        {
+            SetPaused(false);
+        }
+
+        public void ToggleSound()
+        {
+            SetSoundEnabled(!soundEnabled);
+        }
+
+        public void SetSoundEnabled(bool isEnabled)
+        {
+            if (soundEnabled == isEnabled)
+            {
+                return;
+            }
+
+            soundEnabled = isEnabled;
+            PlayerPrefs.SetInt(SoundEnabledKey, soundEnabled ? 1 : 0);
+            PlayerPrefs.Save();
+            SoundChanged.Invoke(soundEnabled);
+
+            if (audioSource != null)
+            {
+                audioSource.mute = !soundEnabled;
+            }
+
+            if (soundEnabled)
+            {
+                EnsureAudioSource();
+                SetMessage("Sound on.");
+            }
+            else
+            {
+                SetMessage("Sound off.");
+            }
+        }
+
         private List<Vector2Int> FindConnectedGroup(int startRow, int startCol)
         {
             var group = new List<Vector2Int>();
@@ -361,6 +441,38 @@ namespace BlockPopX
         {
             currentMessage = message;
             MessageChanged.Invoke(message);
+        }
+
+        private void SetPaused(bool paused)
+        {
+            if (isPaused == paused)
+            {
+                return;
+            }
+
+            isPaused = paused;
+            PauseChanged.Invoke(isPaused);
+            SetMessage(isPaused ? "Paused. Tap Resume to continue." : GetGoalProgressText());
+        }
+
+        private void LoadProgress()
+        {
+            bestScore = Mathf.Max(0, PlayerPrefs.GetInt(BestScoreKey, 0));
+            highestLevel = Mathf.Max(1, PlayerPrefs.GetInt(HighestLevelKey, 1));
+            soundEnabled = PlayerPrefs.GetInt(SoundEnabledKey, soundEnabled ? 1 : 0) == 1;
+        }
+
+        private void SaveBestScoreIfNeeded()
+        {
+            if (score <= bestScore)
+            {
+                return;
+            }
+
+            bestScore = score;
+            PlayerPrefs.SetInt(BestScoreKey, bestScore);
+            PlayerPrefs.Save();
+            BestScoreChanged.Invoke(bestScore);
         }
 
         private bool IsGoalComplete()
@@ -622,6 +734,7 @@ namespace BlockPopX
             }
 
             audioSource.playOnAwake = false;
+            audioSource.mute = !soundEnabled;
         }
 
         private static AudioClip CreateTone(string clipName, float frequency, float seconds, float volume)

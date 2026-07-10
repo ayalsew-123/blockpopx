@@ -141,20 +141,27 @@ public static class BlockPopXSceneBuilder
         topRect.anchorMin = new Vector2(0f, 1f);
         topRect.anchorMax = new Vector2(1f, 1f);
         topRect.pivot = new Vector2(0.5f, 1f);
-        topRect.sizeDelta = new Vector2(0f, 220f);
+        topRect.sizeDelta = new Vector2(0f, 300f);
         topRect.anchoredPosition = Vector2.zero;
 
         var levelText = CreateText("LevelText", topPanel.transform, "Level 1", 42f, TextAlignmentOptions.Left);
-        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(0.36f, 1f), new Vector2(24f, -24f), new Vector2(-8f, -86f));
+        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(0.58f, 1f), new Vector2(24f, -20f), new Vector2(-8f, -78f));
+
+        var bestText = CreateText("BestText", topPanel.transform, "Best 0", 38f, TextAlignmentOptions.Right);
+        SetRect(bestText.rectTransform, new Vector2(0.58f, 1f), new Vector2(1f, 1f), new Vector2(8f, -20f), new Vector2(-24f, -78f));
 
         var scoreText = CreateText("ScoreText", topPanel.transform, "Score 0", 46f, TextAlignmentOptions.Center);
-        SetRect(scoreText.rectTransform, new Vector2(0.32f, 1f), new Vector2(0.68f, 1f), new Vector2(8f, -24f), new Vector2(-8f, -86f));
+        SetRect(scoreText.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 1f), new Vector2(24f, -84f), new Vector2(-8f, -142f));
 
         var foulsText = CreateText("FoulsText", topPanel.transform, "Fouls 0/3", 42f, TextAlignmentOptions.Right);
-        SetRect(foulsText.rectTransform, new Vector2(0.64f, 1f), new Vector2(1f, 1f), new Vector2(8f, -24f), new Vector2(-24f, -86f));
+        SetRect(foulsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(1f, 1f), new Vector2(8f, -84f), new Vector2(-24f, -142f));
+
+        var goalText = CreateText("GoalText", topPanel.transform, "Goal 0/0", 32f, TextAlignmentOptions.Center);
+        SetRect(goalText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 90f), new Vector2(-24f, 150f));
+        goalText.color = new Color(1f, 0.9f, 0.38f);
 
         var messageText = CreateText("MessageText", topPanel.transform, "Tap matching balls.", 30f, TextAlignmentOptions.Center);
-        SetRect(messageText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 22f), new Vector2(-24f, 92f));
+        SetRect(messageText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 20f), new Vector2(-24f, 82f));
         messageText.color = new Color(0.75f, 0.92f, 1f);
 
         var bottomPanel = CreatePanel("BottomPanel", hudObject.transform, new Color(0.02f, 0.03f, 0.08f, 0.58f));
@@ -162,21 +169,31 @@ public static class BlockPopXSceneBuilder
         bottomRect.anchorMin = new Vector2(0f, 0f);
         bottomRect.anchorMax = new Vector2(1f, 0f);
         bottomRect.pivot = new Vector2(0.5f, 0f);
-        bottomRect.sizeDelta = new Vector2(0f, 180f);
+        bottomRect.sizeDelta = new Vector2(0f, 200f);
         bottomRect.anchoredPosition = Vector2.zero;
 
-        var restartButton = CreateButton("RestartButton", bottomPanel.transform, "Restart", new Color(0.1f, 0.85f, 1f));
-        SetRect(restartButton.GetComponent<RectTransform>(), new Vector2(0f, 0.5f), new Vector2(0.48f, 0.5f), new Vector2(24f, -50f), new Vector2(-8f, 50f));
+        var pauseButton = CreateButton("PauseButton", bottomPanel.transform, "Pause", new Color(0.1f, 0.85f, 1f));
+        SetRect(pauseButton.GetComponent<RectTransform>(), new Vector2(0f, 0.5f), new Vector2(0.25f, 0.5f), new Vector2(24f, -52f), new Vector2(-8f, 52f));
 
-        var nextLevelButton = CreateButton("NextLevelButton", bottomPanel.transform, "Next Level", new Color(1f, 0.28f, 0.86f));
-        SetRect(nextLevelButton.GetComponent<RectTransform>(), new Vector2(0.52f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -50f), new Vector2(-24f, 50f));
+        var restartButton = CreateButton("RestartButton", bottomPanel.transform, "Restart", new Color(0.1f, 0.85f, 1f));
+        SetRect(restartButton.GetComponent<RectTransform>(), new Vector2(0.25f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
+
+        var soundButton = CreateButton("SoundButton", bottomPanel.transform, "Sound", new Color(1f, 0.82f, 0.12f));
+        SetRect(soundButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.75f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
+
+        var nextLevelButton = CreateButton("NextLevelButton", bottomPanel.transform, "Next", new Color(1f, 0.28f, 0.86f));
+        SetRect(nextLevelButton.GetComponent<RectTransform>(), new Vector2(0.75f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -52f), new Vector2(-24f, 52f));
 
         var serializedHud = new SerializedObject(hud);
         serializedHud.FindProperty("game").objectReferenceValue = game;
         serializedHud.FindProperty("levelText").objectReferenceValue = levelText;
         serializedHud.FindProperty("scoreText").objectReferenceValue = scoreText;
+        serializedHud.FindProperty("bestText").objectReferenceValue = bestText;
         serializedHud.FindProperty("foulsText").objectReferenceValue = foulsText;
+        serializedHud.FindProperty("goalText").objectReferenceValue = goalText;
         serializedHud.FindProperty("messageText").objectReferenceValue = messageText;
+        serializedHud.FindProperty("pauseButton").objectReferenceValue = pauseButton;
+        serializedHud.FindProperty("soundButton").objectReferenceValue = soundButton;
         serializedHud.FindProperty("restartButton").objectReferenceValue = restartButton;
         serializedHud.FindProperty("nextLevelButton").objectReferenceValue = nextLevelButton;
         serializedHud.ApplyModifiedPropertiesWithoutUndo();
@@ -220,7 +237,7 @@ public static class BlockPopXSceneBuilder
         var button = buttonObject.AddComponent<Button>();
         button.targetGraphic = buttonObject.GetComponent<Image>();
 
-        var text = CreateText("Label", buttonObject.transform, label, 36f, TextAlignmentOptions.Center);
+        var text = CreateText("Label", buttonObject.transform, label, 30f, TextAlignmentOptions.Center);
         Stretch(text.rectTransform);
         text.color = new Color(0.02f, 0.03f, 0.08f);
 
