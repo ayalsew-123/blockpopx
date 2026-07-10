@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public static class BlockPopXSceneBuilder
@@ -11,6 +12,8 @@ public static class BlockPopXSceneBuilder
     [MenuItem("Tools/BlockPopX/Setup Play Scene")]
     public static void SetupPlayScene()
     {
+        CleanMissingScriptsInScene();
+
         var gameObject = GameObject.Find("BlockPopXGame");
         if (gameObject == null)
         {
@@ -62,6 +65,44 @@ public static class BlockPopXSceneBuilder
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
         Debug.Log("BlockPopX play scene is ready. Press Play to test the board.");
+    }
+
+    [MenuItem("Tools/BlockPopX/Clean Missing Scripts")]
+    public static void CleanMissingScriptsInScene()
+    {
+        var scene = SceneManager.GetActiveScene();
+        var removedCount = 0;
+
+        foreach (var rootObject in scene.GetRootGameObjects())
+        {
+            removedCount += CleanMissingScriptsRecursive(rootObject);
+        }
+
+        if (removedCount > 0)
+        {
+            EditorSceneManager.MarkSceneDirty(scene);
+            Debug.Log($"BlockPopX removed {removedCount} missing script component(s).");
+        }
+        else
+        {
+            Debug.Log("BlockPopX found no missing script components in the open scene.");
+        }
+    }
+
+    private static int CleanMissingScriptsRecursive(GameObject gameObject)
+    {
+        var missingCount = GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(gameObject);
+        if (missingCount > 0)
+        {
+            GameObjectUtility.RemoveMonoBehavioursWithMissingScript(gameObject);
+        }
+
+        for (var i = 0; i < gameObject.transform.childCount; i++)
+        {
+            missingCount += CleanMissingScriptsRecursive(gameObject.transform.GetChild(i).gameObject);
+        }
+
+        return missingCount;
     }
 
     private static void SetupHud(BlockPopXGame game)
