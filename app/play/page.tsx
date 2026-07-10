@@ -13,8 +13,22 @@ const maxPipCharge = 12;
 const maxPileDanger = 100;
 const startingDropStock = 5200;
 const minVisibleBeforeWaveDrop = 16;
-const puzzleVariantCount = 360;
-const colors = ["red", "blue", "green", "yellow", "purple", "pink"] as const;
+const colorPatternCount = 36;
+const colorModifierCount = 8;
+const architectureCount = 24;
+const puzzleVariantCount = colorPatternCount * architectureCount;
+const colors = [
+  "red",
+  "blue",
+  "green",
+  "yellow",
+  "purple",
+  "pink",
+  "orange",
+  "teal",
+  "white",
+  "indigo",
+] as const;
 
 type SpecialBlock = "bomb" | "rocket" | "lightning";
 type PrizeType = "moves" | "points" | "shuffle";
@@ -102,6 +116,10 @@ const colorLabels: Record<BlockColor, string> = {
   yellow: "Solar",
   purple: "Violet",
   pink: "Rose",
+  orange: "Flare",
+  teal: "Teal",
+  white: "Pearl",
+  indigo: "Nova",
 };
 
 const puzzleTemplates: PuzzleTemplate[] = [
@@ -372,10 +390,33 @@ function puzzleHash(row: number, col: number, currentLevel: number, salt = 0) {
   return value - Math.floor(value);
 }
 
+function colorAt(index: number): BlockColor {
+  return colors[((index % colors.length) + colors.length) % colors.length];
+}
+
+function canRecolorPuzzleBlock(block: Block) {
+  return !block.locked && !block.prize && !block.special;
+}
+
+function setPuzzleColor(
+  board: Block[][],
+  row: number,
+  col: number,
+  color: BlockColor
+) {
+  if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+  if (!canRecolorPuzzleBlock(board[row][col])) return;
+
+  board[row][col] = {
+    ...board[row][col],
+    color,
+  };
+}
+
 function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockColor {
   const variant = (currentLevel - 1) % puzzleVariantCount;
-  const pattern = variant % 24;
-  const modifier = Math.floor(variant / 24);
+  const pattern = variant % colorPatternCount;
+  const modifier = Math.floor(variant / colorPatternCount) % colorModifierCount;
   const shift = currentLevel - 1;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
@@ -391,9 +432,11 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
     Math.floor(col / 2) + (row % 2),
     (row * 2 + col * 3) % colors.length,
     (ring + diamond + Math.floor((row + col) / 3)) % colors.length,
+    (mirrorRow * 3 + mirrorCol * 2 + ring) % colors.length,
+    (Math.floor((row * col) / 4) + diamond) % colors.length,
+    (row % 3) * 2 + (col % 4),
   ][modifier];
-  const finish = (colorIndex: number) =>
-    colors[(colorIndex + modifierShift) % colors.length];
+  const finish = (colorIndex: number) => colorAt(colorIndex + modifierShift);
 
   if (pattern === 0) {
     return finish(Math.floor(col / 2) + shift + (row % 2));
@@ -504,16 +547,89 @@ function choosePuzzleColor(row: number, col: number, currentLevel = 1): BlockCol
     return finish(diamond + Math.floor((row + col) / 4) + shift);
   }
 
-  const snake = row % 2 === 0 ? col : cols - 1 - col;
-  return finish(Math.floor(snake / 2) + Math.floor(row / 2) + shift);
+  if (pattern === 23) {
+    const snake = row % 2 === 0 ? col : cols - 1 - col;
+    return finish(Math.floor(snake / 2) + Math.floor(row / 2) + shift);
+  }
+
+  if (pattern === 24) {
+    const knot = row * 3 + col * 5 + Math.floor(diamond / 2);
+    return finish(knot + shift);
+  }
+
+  if (pattern === 25) {
+    const pinwheel =
+      row < centerRow && col < centerCol
+        ? row + col
+        : row < centerRow
+        ? row + (cols - 1 - col)
+        : col < centerCol
+        ? rows - 1 - row + col
+        : rows - 1 - row + cols - 1 - col;
+    return finish(pinwheel + ring + shift);
+  }
+
+  if (pattern === 26) {
+    const brokenL = row % 3 === 0 ? Math.floor(col / 2) : Math.floor(row / 2) + col;
+    return finish(brokenL + shift);
+  }
+
+  if (pattern === 27) {
+    const zigGate = Math.abs(row - centerRow) <= 1 ? col * 2 : row + mirrorCol;
+    return finish(Math.floor(zigGate / 2) + shift);
+  }
+
+  if (pattern === 28) {
+    const teeth = (row % 2 === 0 ? col : col + 2) + (col % 3 === 1 ? row : 0);
+    return finish(teeth + shift);
+  }
+
+  if (pattern === 29) {
+    const island = Math.floor(row / 2) * Math.floor(col / 2) + ring + diamond;
+    return finish(island + shift);
+  }
+
+  if (pattern === 30) {
+    const diagonalRoom =
+      Math.floor(Math.abs(row - col) / 2) + Math.floor(Math.abs(row + col - cols + 1) / 3);
+    return finish(diagonalRoom + shift);
+  }
+
+  if (pattern === 31) {
+    const stagger = Math.floor((row * 2 + col + (row % 3) * 2) / 3);
+    return finish(stagger + ring + shift);
+  }
+
+  if (pattern === 32) {
+    const gateLoop =
+      (row === 1 || row === rows - 2 || col === 1 || col === cols - 2 ? 2 : 0) +
+      Math.floor((row + col) / 2);
+    return finish(gateLoop + shift);
+  }
+
+  if (pattern === 33) {
+    const splitMaze =
+      (row < centerRow ? row * 2 + col : (rows - row) * 3 + cols - col) +
+      Math.floor(col / 3);
+    return finish(splitMaze + shift);
+  }
+
+  if (pattern === 34) {
+    const crossStitch =
+      (row % 4 === col % 4 ? 0 : 3) + Math.floor((row + col + diamond) / 3);
+    return finish(crossStitch + shift);
+  }
+
+  const cipher = row * row + col * 7 + row * col + ring * 3;
+  return finish(cipher + shift);
 }
 
 function addPuzzleFixture(block: Block, row: number, col: number, currentLevel = 1) {
   if (block.locked || block.prize || block.special) return block;
 
   const variant = (currentLevel - 1) % puzzleVariantCount;
-  const pattern = variant % 24;
-  const modifier = Math.floor(variant / 24);
+  const pattern = variant % colorPatternCount;
+  const modifier = Math.floor(variant / colorPatternCount) % colorModifierCount;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
   const rowDistance = Math.abs(row - centerRow);
@@ -730,6 +846,35 @@ function addPuzzleFixture(block: Block, row: number, col: number, currentLevel =
     delete nextBlock.pips;
   }
 
+  if (
+    modifier === 5 &&
+    (Math.abs(row - col) <= 1 || Math.abs(row + col - (cols - 1)) <= 1) &&
+    (row + col + currentLevel) % 8 === 0
+  ) {
+    nextBlock.pips = Math.max(nextBlock.pips ?? 0, 3);
+  }
+
+  if (
+    modifier === 6 &&
+    row > 0 &&
+    col > 0 &&
+    row < rows - 1 &&
+    col < cols - 1 &&
+    (row * col + currentLevel) % 19 === 0
+  ) {
+    nextBlock.special = randomSpecialType();
+    delete nextBlock.pips;
+  }
+
+  if (
+    modifier === 7 &&
+    (mirrorRow === 2 || mirrorCol === 2) &&
+    (row + col + currentLevel) % 6 === 0
+  ) {
+    nextBlock.locked = true;
+    delete nextBlock.pips;
+  }
+
   return nextBlock;
 }
 
@@ -767,7 +912,7 @@ function randomBlock(row: number, col: number, currentLevel = 1): Block {
 
 function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
   const variant = (currentLevel - 1) % puzzleVariantCount;
-  const architecture = Math.floor(variant / 24) % 15;
+  const architecture = Math.floor(variant / colorPatternCount) % architectureCount;
   const centerRow = Math.floor(rows / 2);
   const centerCol = Math.floor(cols / 2);
   const paletteShift = Math.floor((currentLevel - 1) / 3);
@@ -777,6 +922,8 @@ function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
       const nextBlock = { ...block };
       const rowDistance = Math.abs(row - centerRow);
       const colDistance = Math.abs(col - centerCol);
+      const mirrorRow = row <= centerRow ? row : rows - 1 - row;
+      const mirrorCol = col <= centerCol ? col : cols - 1 - col;
       const ring = Math.max(rowDistance, colDistance);
       const diamond = rowDistance + colDistance;
       const roomRow = row < centerRow ? 0 : 1;
@@ -839,9 +986,48 @@ function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
       } else if (architecture === 13) {
         const trap = randomish > 0.72 ? ring + 2 : Math.floor((row + col) / 2);
         nextBlock.color = colors[(trap + paletteShift) % colors.length];
-      } else {
+      } else if (architecture === 14) {
         const knot = (row * 3 + col * 5 + ring * 2 + diamond) % colors.length;
         nextBlock.color = colors[(knot + paletteShift) % colors.length];
+      } else if (architecture === 15) {
+        const doubleHelix =
+          Math.floor(Math.abs(row - col) / 2) +
+          Math.floor(Math.abs(row + col - (cols - 1)) / 2) +
+          (row % 2);
+        nextBlock.color = colors[(doubleHelix + paletteShift) % colors.length];
+      } else if (architecture === 16) {
+        const checkerGate =
+          (row + col) % 2 === 0 ? row + Math.floor(col / 3) : col + Math.floor(row / 3);
+        nextBlock.color = colors[(checkerGate + paletteShift) % colors.length];
+      } else if (architecture === 17) {
+        const foldedMap =
+          Math.floor((mirrorRow * 4 + mirrorCol * 3 + rowDistance) / 2);
+        nextBlock.color = colors[(foldedMap + paletteShift) % colors.length];
+      } else if (architecture === 18) {
+        const turnstile =
+          (leftGate || rightGate ? row * 2 : col * 3) + (topGate || bottomGate ? 4 : 0);
+        nextBlock.color = colors[(turnstile + paletteShift) % colors.length];
+      } else if (architecture === 19) {
+        const brokenBridge =
+          Math.floor((row + col) / 2) +
+          (row % 3 === architecture % 3 || col % 3 === currentLevel % 3 ? 3 : 0);
+        nextBlock.color = colors[(brokenBridge + paletteShift) % colors.length];
+      } else if (architecture === 20) {
+        const cornerCode =
+          Math.min(row + col, row + cols - 1 - col, rows - 1 - row + col, rows - 1 - row + cols - 1 - col);
+        nextBlock.color = colors[(cornerCode + row * 2 + paletteShift) % colors.length];
+      } else if (architecture === 21) {
+        const zipperMaze =
+          Math.floor((row * 5 + col * 2 + Math.abs(row - col) * 3) / 4);
+        nextBlock.color = colors[(zipperMaze + paletteShift) % colors.length];
+      } else if (architecture === 22) {
+        const targetRooms =
+          Math.floor(row / 2) + Math.floor(col / 2) * 2 + (ring <= 2 ? 5 : 0);
+        nextBlock.color = colors[(targetRooms + paletteShift) % colors.length];
+      } else {
+        const cipher =
+          row * row + col * col + row * col + (randomish > 0.5 ? ring : diamond);
+        nextBlock.color = colors[(cipher + paletteShift) % colors.length];
       }
 
       const isGateWall =
@@ -897,6 +1083,152 @@ function applyPuzzleArchitecture(board: Block[][], currentLevel = 1) {
   );
 }
 
+function applyComplexPuzzleWeave(board: Block[][], currentLevel = 1) {
+  const variant = (currentLevel - 1) % puzzleVariantCount;
+  const weave = Math.floor(variant / 3) % 18;
+  const centerRow = Math.floor(rows / 2);
+  const centerCol = Math.floor(cols / 2);
+  const paletteShift = currentLevel + weave * 2;
+  const nextBoard = board.map((row) => row.map((block) => ({ ...block })));
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const block = nextBoard[row][col];
+      const rowDistance = Math.abs(row - centerRow);
+      const colDistance = Math.abs(col - centerCol);
+      const ring = Math.max(rowDistance, colDistance);
+      const diamond = rowDistance + colDistance;
+      const diagonalA = row - col;
+      const diagonalB = row + col - (cols - 1);
+      const hash = puzzleHash(row, col, currentLevel, weave + 19);
+
+      if (canRecolorPuzzleBlock(block)) {
+        let colorIndex =
+          row * 3 + col * 5 + ring * 2 + Math.floor(hash * colors.length);
+
+        if (weave === 0) {
+          colorIndex = row % 2 === 0 ? col * 2 + row : (cols - col) * 3 + row;
+        } else if (weave === 1) {
+          colorIndex = Math.floor(diamond / 2) * 3 + (row % 3) + col;
+        } else if (weave === 2) {
+          colorIndex = Math.abs(diagonalA) * 2 + Math.floor(col / 2);
+        } else if (weave === 3) {
+          colorIndex = Math.abs(diagonalB) * 2 + Math.floor(row / 2);
+        } else if (weave === 4) {
+          colorIndex = (row % 3) * 4 + (col % 4) * 2 + ring;
+        } else if (weave === 5) {
+          colorIndex = rowDistance <= 1 || colDistance <= 1 ? row + col * 3 : ring * 4 + col;
+        } else if (weave === 6) {
+          colorIndex = Math.floor((row * row + col * 7 + row * col) / 3);
+        } else if (weave === 7) {
+          colorIndex = (row + col) % 2 === 0 ? row * 4 + col : col * 4 + row;
+        } else if (weave === 8) {
+          colorIndex = Math.floor((Math.abs(diagonalA) + Math.abs(diagonalB)) / 2) + row * 2;
+        } else if (weave === 9) {
+          colorIndex = Math.floor(row / 2) * 5 + Math.floor(col / 2) * 3 + diamond;
+        } else if (weave === 10) {
+          colorIndex = (row % 4 === 1 || col % 4 === 2 ? 6 : 0) + row + col * 2;
+        } else if (weave === 11) {
+          colorIndex = Math.floor((row * 5 + col * 5 + ring + diamond) / 2);
+        } else if (weave === 12) {
+          colorIndex = row < centerRow ? row * 3 + col : (rows - row) * 4 + cols - col;
+        } else if (weave === 13) {
+          colorIndex = Math.floor((row + 2 * col + Math.abs(row - col) * 3) / 2);
+        } else if (weave === 14) {
+          colorIndex = ring * 3 + (row % 2) * 4 + (col % 3);
+        } else if (weave === 15) {
+          colorIndex = Math.floor((row * 2 + col * 3 + Math.abs(diagonalB)) / 2);
+        } else if (weave === 16) {
+          colorIndex = (rowDistance <= colDistance ? col : row) * 3 + diamond;
+        } else {
+          colorIndex = row * row + col * 3 + rowDistance * colDistance;
+        }
+
+        nextBoard[row][col] = {
+          ...block,
+          color: colorAt(colorIndex + paletteShift),
+        };
+      }
+
+      const isGateLock =
+        row > 0 &&
+        row < rows - 1 &&
+        col > 0 &&
+        col < cols - 1 &&
+        (row === centerRow || col === centerCol) &&
+        (row + col + weave + currentLevel) % 4 === 0;
+      const isDiagonalLock =
+        (Math.abs(diagonalA) === 2 || Math.abs(diagonalB) === 2) &&
+        (row + col + currentLevel + weave) % 7 === 0;
+      const isPipDecoy =
+        !isGateLock &&
+        !isDiagonalLock &&
+        row > 0 &&
+        col > 0 &&
+        row < rows - 1 &&
+        col < cols - 1 &&
+        (hash > 0.82 || (row * 2 + col + weave) % 13 === 0);
+
+      if (!block.prize && !block.special && (isGateLock || isDiagonalLock)) {
+        nextBoard[row][col] = {
+          ...nextBoard[row][col],
+          locked: true,
+        };
+        delete nextBoard[row][col].pips;
+      } else if (canRecolorPuzzleBlock(nextBoard[row][col]) && isPipDecoy) {
+        nextBoard[row][col] = {
+          ...nextBoard[row][col],
+          pips: Math.max(nextBoard[row][col].pips ?? 0, hash > 0.92 ? 3 : 2),
+        };
+      }
+    }
+  }
+
+  return nextBoard;
+}
+
+function seedStrategicPairs(board: Block[][], currentLevel = 1) {
+  const nextBoard = board.map((row) => row.map((block) => ({ ...block })));
+  const pairCount = 12 + (currentLevel % 5);
+
+  for (let index = 0; index < pairCount; index++) {
+    const horizontal = index % 3 !== 1;
+    const row = 1 + ((index * 3 + currentLevel) % (rows - 2));
+    const col = 1 + ((index * 5 + currentLevel * 2) % (cols - 2));
+    const secondRow = horizontal ? row : Math.min(rows - 2, row + 1);
+    const secondCol = horizontal ? Math.min(cols - 2, col + 1) : col;
+    const color = colorAt(currentLevel + index * 3);
+    const decoyA = colorAt(currentLevel + index * 3 + 1);
+    const decoyB = colorAt(currentLevel + index * 3 + 2);
+
+    setPuzzleColor(nextBoard, row, col, color);
+    setPuzzleColor(nextBoard, secondRow, secondCol, color);
+
+    const decoys: [number, number, BlockColor][] = [
+      [row - 1, col, decoyA],
+      [row + 1, col, decoyB],
+      [row, col - 1, decoyB],
+      [row, col + 1, decoyA],
+      [secondRow - 1, secondCol, decoyB],
+      [secondRow + 1, secondCol, decoyA],
+      [secondRow, secondCol - 1, decoyA],
+      [secondRow, secondCol + 1, decoyB],
+    ];
+
+    decoys.forEach(([decoyRow, decoyCol, decoyColor]) => {
+      const isPairCell =
+        (decoyRow === row && decoyCol === col) ||
+        (decoyRow === secondRow && decoyCol === secondCol);
+
+      if (!isPairCell) {
+        setPuzzleColor(nextBoard, decoyRow, decoyCol, decoyColor);
+      }
+    });
+  }
+
+  return nextBoard;
+}
+
 function getConnectedColorGroup(
   board: Block[][],
   startRow: number,
@@ -943,7 +1275,7 @@ function getConnectedColorGroup(
 function rebalanceEasyColorGroups(board: Block[][], currentLevel = 1) {
   const nextBoard = board.map((row) => row.map((block) => ({ ...block })));
   const visited = new Set<string>();
-  const maxEasyGroupSize = 5;
+  const maxEasyGroupSize = currentLevel >= 4 ? 3 : 4;
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -989,10 +1321,11 @@ function createBoard(currentLevel = 1): Block[][] {
     )
   );
 
-  return rebalanceEasyColorGroups(
-    applyPuzzleArchitecture(board, currentLevel),
-    currentLevel
-  );
+  const architectureBoard = applyPuzzleArchitecture(board, currentLevel);
+  const complexBoard = applyComplexPuzzleWeave(architectureBoard, currentLevel);
+  const balancedBoard = rebalanceEasyColorGroups(complexBoard, currentLevel);
+
+  return seedStrategicPairs(balancedBoard, currentLevel);
 }
 
 function randomPrizeType(): PrizeType {
@@ -1251,6 +1584,14 @@ function getGoalTextColor(color: BlockColor) {
       return "text-violet-200";
     case "pink":
       return "text-pink-200";
+    case "orange":
+      return "text-orange-200";
+    case "teal":
+      return "text-teal-200";
+    case "white":
+      return "text-slate-100";
+    case "indigo":
+      return "text-indigo-200";
   }
 }
 
@@ -1288,6 +1629,14 @@ function getColorClass(block: Block) {
       return "bg-gradient-to-br from-violet-300 via-purple-500 to-fuchsia-800";
     case "pink":
       return "bg-gradient-to-br from-pink-300 via-rose-500 to-pink-700";
+    case "orange":
+      return "bg-gradient-to-br from-orange-200 via-orange-500 to-red-600";
+    case "teal":
+      return "bg-gradient-to-br from-teal-200 via-cyan-500 to-teal-800";
+    case "white":
+      return "bg-gradient-to-br from-white via-slate-200 to-slate-500";
+    case "indigo":
+      return "bg-gradient-to-br from-indigo-200 via-indigo-500 to-blue-950";
     default:
       return "bg-slate-500";
   }
