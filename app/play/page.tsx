@@ -3324,7 +3324,8 @@ export default function PlayPage() {
               <p>Tap 2 or more same-color balls to pop them.</p>
               <p>Bigger groups score more points and build streaks.</p>
               <p>Clear the color goals before fouls run out.</p>
-              <p>Mix, gravity, locks, and Pip Blast unlock slowly as levels rise.</p>
+              <p>Level 2 adds Mix. Level 3 adds Up/Down gravity.</p>
+              <p>Level 4 adds locked balls. Level 5 adds pips and Pip Blast.</p>
             </div>
 
             <button
@@ -3541,26 +3542,36 @@ export default function PlayPage() {
             </div>
           </section>
 
-          <section className="grid grid-cols-4 gap-1.5 lg:grid-cols-3 lg:gap-2">
-            {canFlipGravity && (
-              <button
-                type="button"
-                onClick={flipGravity}
-                disabled={isMoving || gameOver || levelComplete}
-                className="hidden min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50 lg:block"
-              >
-                {gravity === "down" ? "Down" : "Up"}
-              </button>
-            )}
-
+          <section
+            className={`grid gap-1.5 lg:grid-cols-3 lg:gap-2 ${
+              canUsePipBlast
+                ? "grid-cols-5"
+                : canFlipGravity
+                ? "grid-cols-4"
+                : canUseShuffle
+                ? "grid-cols-3"
+                : "grid-cols-2"
+            }`}
+          >
             {canUseShuffle && (
               <button
                 type="button"
                 onClick={smartShuffle}
                 disabled={isMoving || gameOver || levelComplete}
-                className="hidden min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50 lg:block"
+                className="min-h-10 rounded-xl bg-white/10 p-1.5 text-center text-[0.68rem] font-bold hover:bg-white/20 disabled:opacity-50 lg:min-h-11 lg:rounded-2xl lg:p-2 lg:text-xs"
               >
                 Mix {shufflesLeft}
+              </button>
+            )}
+
+            {canFlipGravity && (
+              <button
+                type="button"
+                onClick={flipGravity}
+                disabled={isMoving || gameOver || levelComplete}
+                className="min-h-10 rounded-xl bg-white/10 p-1.5 text-center text-[0.68rem] font-bold hover:bg-white/20 disabled:opacity-50 lg:min-h-11 lg:rounded-2xl lg:p-2 lg:text-xs"
+              >
+                {gravity === "down" ? "Down" : "Up"}
               </button>
             )}
 
@@ -3569,7 +3580,7 @@ export default function PlayPage() {
                 type="button"
                 onClick={activatePipBlast}
                 disabled={isMoving || gameOver || levelComplete}
-                className="hidden min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50 lg:block"
+                className="min-h-10 rounded-xl bg-white/10 p-1.5 text-center text-[0.68rem] font-bold hover:bg-white/20 disabled:opacity-50 lg:min-h-11 lg:rounded-2xl lg:p-2 lg:text-xs"
               >
                 Pip {pipBlastsLeft > 0 ? pipBlastsLeft : `${pipCharge}/${maxPipCharge}`}
               </button>
@@ -3578,7 +3589,7 @@ export default function PlayPage() {
             <button
               type="button"
               onClick={() => setShowHelp(true)}
-              className="min-h-10 rounded-xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 lg:min-h-11 lg:rounded-2xl"
+              className="min-h-10 rounded-xl bg-white/10 p-1.5 text-center text-[0.68rem] font-bold hover:bg-white/20 lg:min-h-11 lg:rounded-2xl lg:p-2 lg:text-xs"
             >
               ? How
             </button>
@@ -3586,7 +3597,7 @@ export default function PlayPage() {
             <button
               type="button"
               onClick={toggleSound}
-              className="min-h-10 rounded-xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 lg:min-h-11 lg:rounded-2xl"
+              className="min-h-10 rounded-xl bg-white/10 p-1.5 text-center text-[0.68rem] font-bold hover:bg-white/20 lg:min-h-11 lg:rounded-2xl lg:p-2 lg:text-xs"
             >
               {soundEnabled ? "Sound On" : "Muted"}
             </button>
