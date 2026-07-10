@@ -190,7 +190,7 @@ namespace BlockPopX
 
         private static void BreakLargeEasyGroups(BallCell[,] board, int level)
         {
-            var maxGroup = level == 1 ? 3 : 2;
+            var maxGroup = level == 1 ? 3 : level >= 8 ? 3 : 2;
             var visited = new bool[Rows, Columns];
 
             for (var row = 0; row < Rows; row++)
@@ -289,15 +289,20 @@ namespace BlockPopX
 
         private static void SeedStrategicPairs(BallCell[,] board, int level)
         {
-            var pairCount = Mathf.Max(5, 11 - Mathf.Min(level, 6));
+            var pairCount = level >= 8 ? 8 : Mathf.Max(5, 11 - Mathf.Min(level, 6));
 
             for (var index = 0; index < pairCount; index++)
             {
                 var row = 1 + PositiveModulo(index * 3 + level, Rows - 2);
                 var col = 1 + PositiveModulo(index * 5 + level * 2, Columns - 2);
                 var horizontal = index % 3 != 1;
-                var secondRow = horizontal ? row : Mathf.Min(Rows - 2, row + 1);
-                var secondCol = horizontal ? Mathf.Min(Columns - 2, col + 1) : col;
+                row = horizontal ? row : Mathf.Min(Rows - 3, row);
+                col = horizontal ? Mathf.Min(Columns - 3, col) : col;
+
+                var secondRow = horizontal ? row : row + 1;
+                var secondCol = horizontal ? col + 1 : col;
+                var thirdRow = horizontal ? row : row + 2;
+                var thirdCol = horizontal ? col + 2 : col;
                 var color = BlockPopXColorPalette.All[PositiveModulo(level + index * 3, BlockPopXColorPalette.All.Length)];
 
                 if (board[row, col].Special != BallSpecial.None || board[secondRow, secondCol].Special != BallSpecial.None)
@@ -307,6 +312,11 @@ namespace BlockPopX
 
                 board[row, col].Color = color;
                 board[secondRow, secondCol].Color = color;
+
+                if (level >= 8 && board[thirdRow, thirdCol].Special == BallSpecial.None)
+                {
+                    board[thirdRow, thirdCol].Color = color;
+                }
             }
         }
 

@@ -1,7 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Events;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace BlockPopX
 {
@@ -60,6 +64,7 @@ namespace BlockPopX
         private AudioClip foulClip;
         private AudioClip levelClip;
         private Coroutine boardFeedbackRoutine;
+        private int lastTapFrame = -1;
 
         public int CurrentLevel => level;
         public int CurrentScore => score;
@@ -92,6 +97,31 @@ namespace BlockPopX
             cellSpacing = Mathf.Max(0.32f, cellSpacing);
             ballScale = Mathf.Max(0.24f, ballScale);
             boardPadding = Mathf.Max(0.25f, boardPadding);
+        }
+
+        private void Update()
+        {
+            if (board == null || isGameOver || isLevelComplete || isPaused)
+            {
+                return;
+            }
+
+#if ENABLE_INPUT_SYSTEM
+            if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+            {
+                TryTapScreenPosition(Touchscreen.current.primaryTouch.position.ReadValue());
+            }
+
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                TryTapScreenPosition(Mouse.current.position.ReadValue());
+            }
+#else
+            if (Input.GetMouseButtonDown(0))
+            {
+                TryTapScreenPosition(Input.mousePosition);
+            }
+#endif
         }
 
         public void StartLevel(int nextLevel)
@@ -132,6 +162,13 @@ namespace BlockPopX
 
         public void TapCell(int row, int col)
         {
+            if (lastTapFrame == Time.frameCount)
+            {
+                return;
+            }
+
+            lastTapFrame = Time.frameCount;
+
             if (board == null || isGameOver || isLevelComplete || isPaused)
             {
                 return;
@@ -231,6 +268,29 @@ namespace BlockPopX
             }
 
             return cellsToClear;
+        }
+
+        private void TryTapScreenPosition(Vector2 screenPosition)
+        {
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
+            var camera = Camera.main;
+            if (camera == null)
+            {
+                return;
+            }
+
+            var worldPosition = camera.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, -camera.transform.position.z));
+            var hit = Physics2D.OverlapPoint(worldPosition);
+            if (hit == null || !hit.TryGetComponent<BallView>(out var ballView) || ballView.Game != this)
+            {
+                return;
+            }
+
+            TapCell(ballView.Row, ballView.Column);
         }
 
         private void AddClearCell(List<Vector2Int> cellsToClear, bool[,] included, int row, int col)
