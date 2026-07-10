@@ -16,6 +16,8 @@ Quick first test:
 2. Clear any Project search filter, such as `t:Prefab`, if you cannot see scripts.
 3. Click `Tools > BlockPopX > Setup Play Scene`.
 4. Press Play.
+5. The Game view should show the board plus Score, Level, Fouls, Restart, and
+   Next Level controls.
 
 The game script can create simple runtime balls by itself, so the first test does
 not require a prefab. Later we can replace those runtime balls with polished art,

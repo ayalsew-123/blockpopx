@@ -18,18 +18,31 @@ namespace BlockPopX
         [SerializeField] private int maxFouls = 3;
 
         [Header("Events")]
-        public UnityEvent<int> ScoreChanged;
-        public UnityEvent<int> LevelChanged;
-        public UnityEvent<string> MessageChanged;
-        public UnityEvent GameOver;
-        public UnityEvent LevelComplete;
+        public UnityEvent<int> ScoreChanged = new UnityEvent<int>();
+        public UnityEvent<int> LevelChanged = new UnityEvent<int>();
+        public UnityEvent<int> FoulsChanged = new UnityEvent<int>();
+        public UnityEvent<string> MessageChanged = new UnityEvent<string>();
+        public UnityEvent GameOver = new UnityEvent();
+        public UnityEvent LevelComplete = new UnityEvent();
 
         private BallCell[,] board;
         private BallView[,] views;
         private LevelPlan plan;
         private int score;
         private int fouls;
+        private bool isGameOver;
+        private bool isLevelComplete;
+        private string currentMessage = "";
         private Sprite runtimeBallSprite;
+
+        public int CurrentLevel => level;
+        public int CurrentScore => score;
+        public int CurrentFouls => fouls;
+        public int MaxFouls => maxFouls;
+        public string CurrentMessage => currentMessage;
+        public string CurrentLevelTitle => plan != null ? plan.Title : "";
+        public bool IsGameOver => isGameOver;
+        public bool IsLevelComplete => isLevelComplete;
 
         private void Start()
         {
@@ -52,16 +65,24 @@ namespace BlockPopX
             views = new BallView[BoardGenerator.Rows, BoardGenerator.Columns];
             score = 0;
             fouls = 0;
+            isGameOver = false;
+            isLevelComplete = false;
 
             ClearBoardViews();
             RenderBoard();
-            LevelChanged?.Invoke(level);
-            ScoreChanged?.Invoke(score);
-            MessageChanged?.Invoke($"Level {level}: {plan.Title}. {plan.Hint}");
+            LevelChanged.Invoke(level);
+            ScoreChanged.Invoke(score);
+            FoulsChanged.Invoke(fouls);
+            SetMessage($"Level {level}: {plan.Title}. {plan.Hint}");
         }
 
         public void TapCell(int row, int col)
         {
+            if (board == null || isGameOver || isLevelComplete)
+            {
+                return;
+            }
+
             if (!IsInside(row, col) || board[row, col].IsEmpty)
             {
                 return;
@@ -95,13 +116,14 @@ namespace BlockPopX
             }
 
             score += points;
-            ScoreChanged?.Invoke(score);
-            MessageChanged?.Invoke($"+{points} points");
+            ScoreChanged.Invoke(score);
+            SetMessage($"+{points} points");
 
             if (AllTouchableBallsGone() || score >= plan.ScoreTarget)
             {
-                LevelComplete?.Invoke();
-                MessageChanged?.Invoke($"Level {level} solved. Next level is ready.");
+                isLevelComplete = true;
+                LevelComplete.Invoke();
+                SetMessage($"Level {level} solved. Next level is ready.");
             }
         }
 
@@ -192,14 +214,27 @@ namespace BlockPopX
 
         private void AddFoul(string message)
         {
+            if (isGameOver || isLevelComplete)
+            {
+                return;
+            }
+
             fouls++;
-            MessageChanged?.Invoke($"{message} Foul {fouls}/{maxFouls}");
+            FoulsChanged.Invoke(fouls);
+            SetMessage($"{message} Foul {fouls}/{maxFouls}");
 
             if (fouls >= maxFouls)
             {
-                GameOver?.Invoke();
-                MessageChanged?.Invoke("Game over. Restart to try again.");
+                isGameOver = true;
+                GameOver.Invoke();
+                SetMessage("Game over. Restart to try again.");
             }
+        }
+
+        private void SetMessage(string message)
+        {
+            currentMessage = message;
+            MessageChanged.Invoke(message);
         }
 
         private void RenderBoard()
