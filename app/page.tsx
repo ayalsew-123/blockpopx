@@ -56,7 +56,7 @@ const structuredData = [
     url: "https://www.blockpopx.com/play",
     image: "https://www.blockpopx.com/blockpopx-logo.png",
     description:
-      "Play BlockPopX free online. Pop matching balls on an 8x8 board, solve tricky puzzle missions, charge Pip Blast, avoid fouls, and chase your best score.",
+      "Play BlockPopX free online. Pop matching balls on a 10x10 board, solve tricky puzzle missions, charge Pip Blast, avoid fouls, and chase your best score.",
     applicationCategory: "Game",
     gamePlatform: ["Web browser", "Mobile browser", "Desktop browser"],
     genre: ["Puzzle", "Arcade", "Matching"],
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
     absolute: "BlockPopX - Free Online Block Puzzle Game",
   },
   description:
-    "Play BlockPopX free online. Pop matching balls, solve 12 tricky puzzle missions, charge Pip Blast, avoid fouls, and chase your high score.",
+    "BlockPopX is a free smart ball puzzle game. Pop colors, flip gravity, solve tricks, and beat each level.",
   alternates: {
     canonical: "/",
   },
@@ -173,8 +173,8 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-slate-300 md:text-xl">
-            Pop matching balls, solve tricky puzzle missions, charge Pip Blast,
-            dodge fouls, and keep your run alive for a bigger high score.
+            BlockPopX is a free smart ball puzzle game. Pop colors, flip
+            gravity, solve tricks, and beat each level.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -198,8 +198,8 @@ export default function Home() {
       <section className="border-y border-slate-800 bg-slate-900/40 px-6 py-10">
         <div className="mx-auto grid max-w-5xl gap-4 text-center md:grid-cols-3">
           <div className="rounded-3xl bg-slate-950 p-6">
-            <p className="text-3xl font-black text-cyan-400">8x8</p>
-            <p className="mt-2 text-sm text-slate-400">Bigger puzzle board</p>
+            <p className="text-3xl font-black text-cyan-400">10x10</p>
+            <p className="mt-2 text-sm text-slate-400">Big puzzle board</p>
           </div>
 
           <div className="rounded-3xl bg-slate-950 p-6">
@@ -241,13 +241,35 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-7">
-            <h3 className="text-2xl font-black">Game Features</h3>
+          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
+            <h3 className="text-2xl font-black">Game Preview</h3>
+
+            <div className="mt-5 grid grid-cols-6 gap-2 rounded-3xl bg-slate-950 p-4">
+              {Array.from({ length: 36 }, (_, index) => {
+                const ballColors = [
+                  "bg-cyan-400",
+                  "bg-fuchsia-400",
+                  "bg-yellow-300",
+                  "bg-emerald-400",
+                  "bg-orange-400",
+                  "bg-indigo-400",
+                ];
+
+                return (
+                  <span
+                    key={index}
+                    className={`aspect-square rounded-full shadow-lg shadow-black/30 ${
+                      ballColors[(index * 5 + Math.floor(index / 6)) % ballColors.length]
+                    }`}
+                  />
+                );
+              })}
+            </div>
 
             <ul className="mt-6 space-y-3 leading-7 text-slate-300">
               <li>Free online puzzle game with no download required.</li>
-              <li>8x8 board with more balls, prizes, locks, and pips.</li>
-              <li>12 puzzle missions that rotate into harder challenges.</li>
+              <li>10x10 board with colors, locks, pips, and prizes.</li>
+              <li>Early levels teach one feature at a time.</li>
               <li>Pip Blast rewards, rocket moments, and high-score play.</li>
               <li>Works on mobile, tablet, and desktop browsers.</li>
             </ul>

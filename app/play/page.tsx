@@ -13,6 +13,7 @@ const maxPipCharge = 12;
 const maxPileDanger = 100;
 const startingDropStock = 5200;
 const minVisibleBeforeWaveDrop = 16;
+const popAnimationMs = 360;
 const colorPatternCount = 36;
 const colorModifierCount = 8;
 const architectureCount = 24;
@@ -124,89 +125,118 @@ const colorLabels: Record<BlockColor, string> = {
 
 const puzzleTemplates: PuzzleTemplate[] = [
   {
-    title: "Ruby Sprint",
-    badge: "Color Chase",
+    title: "Starter Pop",
+    badge: "Tap Colors",
     kind: "color",
-    hint: "Clear two hot color goals and keep the streak alive.",
-    scoreBase: 2200,
-    scoreStep: 840,
-    colorOffsets: [0, 3],
-    goalCounts: [10, 6],
+    hint: "Tap 2 or more same-color balls. Learn the pop.",
+    scoreBase: 900,
+    scoreStep: 260,
+    colorOffsets: [0],
+    goalCounts: [8],
+    startingGravity: "down",
+    startingShuffles: 0,
+    startingPrizeCharge: 0,
+    startingPipCharge: 0,
+    prizeChance: 0,
+    pipChance: 0,
+    specialChance: 0,
+  },
+  {
+    title: "Mix Practice",
+    badge: "Shuffle Opens",
+    kind: "color",
+    hint: "Use Mix when the board feels stuck.",
+    scoreBase: 1300,
+    scoreStep: 360,
+    colorOffsets: [1, 4],
+    goalCounts: [7, 5],
     startingGravity: "down",
     startingShuffles: 2,
     startingPrizeCharge: 0,
     startingPipCharge: 0,
+    prizeChance: 0,
+    pipChance: 0,
+    specialChance: 0,
   },
   {
-    title: "Pip Rush",
-    badge: "Blast Build",
-    kind: "pip",
-    hint: "More pip balls appear. Charge Pip Blast faster.",
-    scoreBase: 2500,
-    scoreStep: 880,
-    colorOffsets: [1, 4],
-    goalCounts: [9, 8],
+    title: "Gravity Lesson",
+    badge: "Flip Opens",
+    kind: "twist",
+    hint: "Flip direction when a better path is waiting.",
+    scoreBase: 1700,
+    scoreStep: 460,
+    colorOffsets: [2, 5],
+    goalCounts: [8, 6],
     startingGravity: "down",
     startingShuffles: 2,
-    startingPrizeCharge: 10,
-    startingPipCharge: 4,
+    startingPrizeCharge: 0,
+    startingPipCharge: 0,
+    prizeChance: 0,
+    pipChance: 0,
+    specialChance: 0,
   },
   {
     title: "Lock Breaker",
     badge: "Crack Cells",
     kind: "lock",
-    hint: "Extra locks are on the board. Pop beside them to crack through.",
-    scoreBase: 2800,
-    scoreStep: 920,
-    colorOffsets: [2, 5, 0],
-    goalCounts: [8, 7, 5],
+    hint: "Locked balls crack when you pop beside them.",
+    scoreBase: 2200,
+    scoreStep: 620,
+    colorOffsets: [3, 0],
+    goalCounts: [8, 7],
+    startingGravity: "down",
+    startingShuffles: 2,
+    startingPrizeCharge: 0,
+    startingPipCharge: 0,
+    lockBonus: 0.035,
+    prizeChance: 0,
+    pipChance: 0,
+    specialChance: 0,
+  },
+  {
+    title: "Pip Rush",
+    badge: "Blast Build",
+    kind: "pip",
+    hint: "Pip balls charge Pip Blast for a stronger clear.",
+    scoreBase: 2600,
+    scoreStep: 760,
+    colorOffsets: [4, 1, 3],
+    goalCounts: [9, 7, 5],
     startingGravity: "down",
     startingShuffles: 3,
-    startingPrizeCharge: 0,
-    startingPipCharge: 2,
+    startingPrizeCharge: 10,
+    startingPipCharge: 3,
+    pipChance: 0.28,
   },
   {
     title: "Prize Chase",
     badge: "Reward Hunt",
     kind: "prize",
     hint: "Prize balls show up more often. Open them for big swings.",
-    scoreBase: 2600,
+    scoreBase: 3000,
     scoreStep: 900,
-    colorOffsets: [3, 0],
-    goalCounts: [11, 7],
+    colorOffsets: [5, 2],
+    goalCounts: [11, 8],
     startingGravity: "down",
     startingShuffles: 2,
     startingPrizeCharge: 45,
-    startingPipCharge: 0,
+    startingPipCharge: 3,
+    prizeChance: 0.055,
   },
   {
     title: "Rocket Lab",
     badge: "Big Groups",
     kind: "rocket",
     hint: "Build larger groups to create bombs, rockets, and lightning.",
-    scoreBase: 3100,
+    scoreBase: 3300,
     scoreStep: 960,
-    colorOffsets: [4, 1, 3],
-    goalCounts: [9, 7, 6],
+    colorOffsets: [6, 2, 4],
+    goalCounts: [9, 8, 6],
     startingGravity: "down",
     startingShuffles: 3,
     startingPrizeCharge: 20,
-    startingPipCharge: 3,
+    startingPipCharge: 4,
     specialChance: 0.025,
-  },
-  {
-    title: "Gravity Twist",
-    badge: "Upside Puzzle",
-    kind: "twist",
-    hint: "The board starts upward. Flip gravity when the path gets tight.",
-    scoreBase: 3000,
-    scoreStep: 940,
-    colorOffsets: [5, 2],
-    goalCounts: [12, 8],
-    startingGravity: "up",
-    startingShuffles: 2,
-    startingPrizeCharge: 15,
-    startingPipCharge: 1,
   },
   {
     title: "Cascade Path",
@@ -369,7 +399,8 @@ function getPuzzlePlan(currentLevel: number) {
     ...template,
     goals,
     scoreTarget: Math.floor(
-      (template.scoreBase + currentLevel * template.scoreStep) * 1.18
+      (template.scoreBase + currentLevel * template.scoreStep) *
+        (currentLevel <= 2 ? 0.82 : 1.08)
     ),
   };
 }
@@ -638,6 +669,10 @@ function addPuzzleFixture(block: Block, row: number, col: number, currentLevel =
   const mirrorCol = col <= centerCol ? col : cols - 1 - col;
   const nextBlock = { ...block };
 
+  if (currentLevel <= 3) {
+    return nextBlock;
+  }
+
   if (
     pattern === 6 &&
     (row === centerRow || col === centerCol) &&
@@ -848,6 +883,7 @@ function addPuzzleFixture(block: Block, row: number, col: number, currentLevel =
 
   if (
     modifier === 5 &&
+    currentLevel >= 5 &&
     (Math.abs(row - col) <= 1 || Math.abs(row + col - (cols - 1)) <= 1) &&
     (row + col + currentLevel) % 8 === 0
   ) {
@@ -856,6 +892,7 @@ function addPuzzleFixture(block: Block, row: number, col: number, currentLevel =
 
   if (
     modifier === 6 &&
+    currentLevel >= 6 &&
     row > 0 &&
     col > 0 &&
     row < rows - 1 &&
@@ -868,6 +905,7 @@ function addPuzzleFixture(block: Block, row: number, col: number, currentLevel =
 
   if (
     modifier === 7 &&
+    currentLevel >= 4 &&
     (mirrorRow === 2 || mirrorCol === 2) &&
     (row + col + currentLevel) % 6 === 0
   ) {
@@ -886,16 +924,23 @@ function randomBlock(row: number, col: number, currentLevel = 1): Block {
   };
 
   const lockChance = Math.min(
-    0.025 +
-      currentLevel * 0.008 +
-      (puzzle.kind === "lock" ? 0.045 : 0) +
-      (puzzle.lockBonus ?? 0),
+    currentLevel >= 4
+      ? 0.025 +
+          currentLevel * 0.008 +
+          (puzzle.kind === "lock" ? 0.045 : 0) +
+          (puzzle.lockBonus ?? 0)
+      : 0,
     0.16
   );
   const prizeChance =
-    puzzle.prizeChance ?? (puzzle.kind === "prize" ? 0.055 : 0.025);
-  const pipChance = puzzle.pipChance ?? (puzzle.kind === "pip" ? 0.34 : 0.22);
-  const specialChance = puzzle.specialChance ?? 0;
+    currentLevel >= 6
+      ? puzzle.prizeChance ?? (puzzle.kind === "prize" ? 0.055 : 0.025)
+      : 0;
+  const pipChance =
+    currentLevel >= 5
+      ? puzzle.pipChance ?? (puzzle.kind === "pip" ? 0.34 : 0.22)
+      : 0;
+  const specialChance = currentLevel >= 7 ? puzzle.specialChance ?? 0 : 0;
 
   if (Math.random() < lockChance) {
     block.locked = true;
@@ -1151,6 +1196,7 @@ function applyComplexPuzzleWeave(board: Block[][], currentLevel = 1) {
       }
 
       const isGateLock =
+        currentLevel >= 4 &&
         row > 0 &&
         row < rows - 1 &&
         col > 0 &&
@@ -1158,9 +1204,11 @@ function applyComplexPuzzleWeave(board: Block[][], currentLevel = 1) {
         (row === centerRow || col === centerCol) &&
         (row + col + weave + currentLevel) % 4 === 0;
       const isDiagonalLock =
+        currentLevel >= 4 &&
         (Math.abs(diagonalA) === 2 || Math.abs(diagonalB) === 2) &&
         (row + col + currentLevel + weave) % 7 === 0;
       const isPipDecoy =
+        currentLevel >= 5 &&
         !isGateLock &&
         !isDiagonalLock &&
         row > 0 &&
@@ -1227,6 +1275,25 @@ function seedStrategicPairs(board: Block[][], currentLevel = 1) {
   }
 
   return nextBoard;
+}
+
+function createStarterBoard(currentLevel = 1): Block[][] {
+  const colorLimit = currentLevel === 1 ? 4 : 5;
+
+  return Array.from({ length: rows }, (_, row) =>
+    Array.from({ length: cols }, (_, col) => {
+      const lane =
+        Math.floor(row / 2) * 2 +
+        Math.floor(col / 2) +
+        (row % 4 === 3 ? 1 : 0) +
+        currentLevel;
+
+      return {
+        id: createBlockId(row, col),
+        color: colors[lane % colorLimit],
+      };
+    })
+  );
 }
 
 function getConnectedColorGroup(
@@ -1315,6 +1382,10 @@ function createBlockId(row: number, col: number) {
 }
 
 function createBoard(currentLevel = 1): Block[][] {
+  if (currentLevel <= 2) {
+    return createStarterBoard(currentLevel);
+  }
+
   const board = Array.from({ length: rows }, (_, row) =>
     Array.from({ length: cols }, (_, col) =>
       randomBlock(row, col, currentLevel)
@@ -1378,7 +1449,11 @@ function playGameSound(cue: SoundCue) {
 
     const audioWindow = window as typeof window & {
       blockpopxAudio?: AudioContext;
+      blockpopxMuted?: boolean;
     };
+
+    if (audioWindow.blockpopxMuted) return;
+
     const audioContext =
       audioWindow.blockpopxAudio ?? new AudioContextClass();
     audioWindow.blockpopxAudio = audioContext;
@@ -1409,6 +1484,13 @@ function playGameSound(cue: SoundCue) {
       oscillator.start(start);
       oscillator.stop(start + 0.18);
     });
+
+    if (
+      "vibrate" in navigator &&
+      (cue === "big" || cue === "blast" || cue === "win")
+    ) {
+      navigator.vibrate(cue === "win" ? [40, 30, 60] : 35);
+    }
   } catch {
     // Sound is optional and should never interrupt gameplay.
   }
@@ -1808,6 +1890,12 @@ export default function PlayPage() {
   const [emptyBlockKeys, setEmptyBlockKeys] = useState<string[]>([]);
   const [moveAnimation, setMoveAnimation] =
     useState<MoveAnimation>("none");
+  const [showHelp, setShowHelp] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() =>
+    typeof window === "undefined"
+      ? true
+      : localStorage.getItem("blockpopx-sound") !== "off"
+  );
 
   useEffect(() => {
     const savedHighScore = localStorage.getItem("blockpopx-high-score");
@@ -1823,6 +1911,14 @@ export default function PlayPage() {
 
     return () => window.clearTimeout(boardTimer);
   }, []);
+
+  useEffect(() => {
+    const audioWindow = window as typeof window & {
+      blockpopxMuted?: boolean;
+    };
+
+    audioWindow.blockpopxMuted = !soundEnabled;
+  }, [soundEnabled]);
 
   useEffect(() => {
     return () => {
@@ -1855,6 +1951,21 @@ export default function PlayPage() {
 
   function uniqueSigns(signs: string[]) {
     return Array.from(new Set(signs.filter(Boolean)));
+  }
+
+  function toggleSound() {
+    const nextSoundEnabled = !soundEnabled;
+    const audioWindow = window as typeof window & {
+      blockpopxMuted?: boolean;
+    };
+
+    setSoundEnabled(nextSoundEnabled);
+    audioWindow.blockpopxMuted = !nextSoundEnabled;
+    localStorage.setItem("blockpopx-sound", nextSoundEnabled ? "on" : "off");
+
+    if (nextSoundEnabled) {
+      playGameSound("pop");
+    }
   }
 
   function getCellKey(row: number, col: number) {
@@ -2148,11 +2259,17 @@ export default function PlayPage() {
     currentBoard: Block[][],
     positions: [number, number][]
   ) {
-    void currentBoard;
+    const keys = positions.map(([row, col]) => getCellKey(row, col));
+    const bursts = positions.map(([row, col]) => ({
+      key: `${getCellKey(row, col)}-${Date.now()}`,
+      row,
+      col,
+      colorClass: getColorClass(currentBoard[row][col]),
+    }));
+
     setSelectedBlock(null);
-    setClearingBlockKeys([]);
-    setClearingBursts([]);
-    setEmptyBlockKeys(getNextEmptyKeys(positions));
+    setClearingBlockKeys(keys);
+    setClearingBursts(bursts);
   }
 
   function settleBoardAfterClear(clearedPositions: [number, number][]) {
@@ -2164,31 +2281,33 @@ export default function PlayPage() {
     const shouldDropNewWave =
       visibleCells <= minVisibleBeforeWaveDrop || !boardHasMove;
 
-    setEmptyBlockKeys(nextEmptyKeys);
-    setClearingBlockKeys([]);
-    setClearingBursts([]);
-
-    if (!shouldDropNewWave) {
-      setIsMoving(false);
-      setMoveAnimation("none");
-      return;
-    }
-
     window.setTimeout(() => {
-      setBoard(createWaveBoard());
-      setEmptyBlockKeys([]);
-      setMoveAnimation("settleDown");
-      setPileDanger((current) => Math.max(8, Math.floor(current * 0.5)));
-      setLastDropWave(rows * cols);
-      setMessage("New puzzle wave dropped from the top. Keep clearing.");
-      playGameSound("blast");
-    }, 260);
+      setEmptyBlockKeys(nextEmptyKeys);
+      setClearingBlockKeys([]);
+      setClearingBursts([]);
 
-    window.setTimeout(() => {
-      setIsMoving(false);
-      setMoveAnimation("none");
-      setLastDropWave(0);
-    }, 1760);
+      if (!shouldDropNewWave) {
+        setIsMoving(false);
+        setMoveAnimation("none");
+        return;
+      }
+
+      window.setTimeout(() => {
+        setBoard(createWaveBoard());
+        setEmptyBlockKeys([]);
+        setMoveAnimation("settleDown");
+        setPileDanger((current) => Math.max(8, Math.floor(current * 0.5)));
+        setLastDropWave(rows * cols);
+        setMessage("New puzzle wave dropped from the top. Keep clearing.");
+        playGameSound("blast");
+      }, 220);
+
+      window.setTimeout(() => {
+        setIsMoving(false);
+        setMoveAnimation("none");
+        setLastDropWave(0);
+      }, 1720);
+    }, popAnimationMs);
   }
 
   function repairFouls(amount: number) {
@@ -2714,12 +2833,18 @@ export default function PlayPage() {
 
     setGravity(nextGravity);
     setSelectedBlock(null);
-    setMoveAnimation("none");
+    setIsMoving(true);
+    setMoveAnimation(nextGravity === "down" ? "down" : "up");
     setMessage(
       nextGravity === "down"
         ? "Next full wave will drop from the top."
         : "Puzzle direction saved. New balls still drop from the top."
     );
+
+    window.setTimeout(() => {
+      setIsMoving(false);
+      setMoveAnimation("none");
+    }, 760);
 
     finishMove(score, movesLeft, colorGoals);
   }
@@ -3123,6 +3248,11 @@ export default function PlayPage() {
   );
   const pileDangerProgress = Math.min(pileDanger, maxPileDanger);
   const activeGoals = colors.filter((color) => colorGoals[color] > 0);
+  const canUseShuffle = level >= 2;
+  const canFlipGravity = level >= 3;
+  const canUsePipBlast = level >= 5;
+  const canSeeAdvancedMeters = level >= 5;
+  const canSeeDanger = level >= 4;
 
   if (!board) {
     return (
@@ -3135,7 +3265,7 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#243c5a,transparent_36%),linear-gradient(135deg,#190f32_0%,#06333a_46%,#3a1021_100%)] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#243c5a,transparent_36%),linear-gradient(135deg,#190f32_0%,#06333a_46%,#3a1021_100%)] text-white">
       <header className="border-b border-white/10 bg-black/25 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-3 sm:flex-row">
           <Link
@@ -3172,9 +3302,45 @@ export default function PlayPage() {
         </div>
       </header>
 
-      <section className="px-3 py-4 lg:px-5">
+      {showHelp && (
+        <section className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur">
+          <div className="w-full max-w-sm rounded-3xl border border-cyan-200/30 bg-slate-900 p-5 shadow-2xl">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-2xl font-black text-cyan-300">
+                How to Play
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setShowHelp(false)}
+                className="h-10 w-10 rounded-full bg-white/10 text-lg font-black hover:bg-white/20"
+                aria-label="Close help"
+              >
+                x
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3 text-sm leading-6 text-slate-200">
+              <p>Tap 2 or more same-color balls to pop them.</p>
+              <p>Bigger groups score more points and build streaks.</p>
+              <p>Clear the color goals before fouls run out.</p>
+              <p>Mix, gravity, locks, and Pip Blast unlock slowly as levels rise.</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowHelp(false)}
+              className="mt-5 min-h-11 w-full rounded-full bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 hover:bg-cyan-200"
+            >
+              Play
+            </button>
+          </div>
+        </section>
+      )}
+
+      <section className="px-2 py-3 sm:px-3 lg:px-5">
         <div className="mx-auto grid max-w-[1300px] gap-3 lg:grid-cols-[minmax(240px,330px)_minmax(360px,560px)_minmax(240px,300px)] lg:items-start">
-          <div className="order-1 space-y-3">
+          <div className="order-3 space-y-3 lg:order-1">
           <section className="text-center lg:text-left">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200">
               Falling Ball Rush
@@ -3245,17 +3411,21 @@ export default function PlayPage() {
               />
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-rose-100">
-              <span>Pile danger</span>
-              <span>{pileDangerProgress}%</span>
-            </div>
+            {canSeeDanger && (
+              <>
+                <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-rose-100">
+                  <span>Pile danger</span>
+                  <span>{pileDangerProgress}%</span>
+                </div>
 
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-yellow-300 to-rose-500 transition-all"
-                style={{ width: `${pileDangerProgress}%` }}
-              />
-            </div>
+                <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-yellow-300 to-rose-500 transition-all"
+                    style={{ width: `${pileDangerProgress}%` }}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="h-3 overflow-hidden rounded-full bg-black/35">
               <div
@@ -3300,33 +3470,37 @@ export default function PlayPage() {
               )}
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-amber-100">
-              <span>Prize meter</span>
-              <span>{prizeProgress}%</span>
-            </div>
+            {canSeeAdvancedMeters && (
+              <>
+                <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-amber-100">
+                  <span>Prize meter</span>
+                  <span>{prizeProgress}%</span>
+                </div>
 
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-yellow-200 via-orange-300 to-pink-300 transition-all"
-                style={{ width: `${prizeProgress}%` }}
-              />
-            </div>
+                <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-yellow-200 via-orange-300 to-pink-300 transition-all"
+                    style={{ width: `${prizeProgress}%` }}
+                  />
+                </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
-              <span>Pip Blast</span>
-              <span>
-                {pipBlastsLeft > 0
-                  ? `${pipBlastsLeft} ready`
-                  : `${pipCharge}/${maxPipCharge}`}
-              </span>
-            </div>
+                <div className="mt-3 flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-cyan-100">
+                  <span>Pip Blast</span>
+                  <span>
+                    {pipBlastsLeft > 0
+                      ? `${pipBlastsLeft} ready`
+                      : `${pipCharge}/${maxPipCharge}`}
+                  </span>
+                </div>
 
-            <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-sky-300 to-violet-300 transition-all"
-                style={{ width: `${pipBlastsLeft > 0 ? 100 : pipProgress}%` }}
-              />
-            </div>
+                <div className="mt-2 h-3 overflow-hidden rounded-full bg-black/35">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-sky-300 to-violet-300 transition-all"
+                    style={{ width: `${pipBlastsLeft > 0 ? 100 : pipProgress}%` }}
+                  />
+                </div>
+              </>
+            )}
           </section>
           </div>
 
@@ -3354,12 +3528,12 @@ export default function PlayPage() {
               <p className="text-xl font-black text-green-300">{streak}</p>
             </div>
 
-            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+            <div className={`rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg ${canSeeDanger ? "" : "hidden sm:block"}`}>
               <p className="text-xs text-slate-400">Balls</p>
               <p className="text-xl font-black text-sky-300">{dropStock}</p>
             </div>
 
-            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+            <div className={`rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg ${canSeeDanger ? "" : "hidden sm:block"}`}>
               <p className="text-xs text-slate-400">Danger</p>
               <p className="text-xl font-black text-rose-300">
                 {pileDangerProgress}%
@@ -3367,32 +3541,54 @@ export default function PlayPage() {
             </div>
           </section>
 
-          <section className="grid grid-cols-3 gap-2">
+          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {canFlipGravity && (
+              <button
+                type="button"
+                onClick={flipGravity}
+                disabled={isMoving || gameOver || levelComplete}
+                className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+              >
+                {gravity === "down" ? "Down" : "Up"}
+              </button>
+            )}
+
+            {canUseShuffle && (
+              <button
+                type="button"
+                onClick={smartShuffle}
+                disabled={isMoving || gameOver || levelComplete}
+                className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+              >
+                Mix {shufflesLeft}
+              </button>
+            )}
+
+            {canUsePipBlast && (
+              <button
+                type="button"
+                onClick={activatePipBlast}
+                disabled={isMoving || gameOver || levelComplete}
+                className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+              >
+                Pip {pipBlastsLeft > 0 ? pipBlastsLeft : `${pipCharge}/${maxPipCharge}`}
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={flipGravity}
-              disabled={isMoving || gameOver || levelComplete}
-              className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+              onClick={() => setShowHelp(true)}
+              className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20"
             >
-              {gravity === "down" ? "Down" : "Up"}
+              ? How
             </button>
 
             <button
               type="button"
-              onClick={smartShuffle}
-              disabled={isMoving || gameOver || levelComplete}
-              className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+              onClick={toggleSound}
+              className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20"
             >
-              Mix {shufflesLeft}
-            </button>
-
-            <button
-              type="button"
-              onClick={activatePipBlast}
-              disabled={isMoving || gameOver || levelComplete}
-              className="rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
-            >
-              Pip {pipBlastsLeft > 0 ? pipBlastsLeft : `${pipCharge}/${maxPipCharge}`}
+              {soundEnabled ? "Sound On" : "Muted"}
             </button>
           </section>
 
@@ -3429,12 +3625,13 @@ export default function PlayPage() {
           </div>
 
           <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
-            Plan before you touch. Only real line, bridge, gate, deep, and
-            diagonal cuts drop unsupported sections.
+            {level <= 1
+              ? "Tap 2 or more matching balls. Bigger groups score more."
+              : "Plan before you touch. Bigger groups and smart cuts score more."}
           </p>
           </div>
 
-          <div className="order-3 lg:order-2 lg:w-[min(620px,calc(100vh-104px))] lg:justify-self-center">
+          <div className="order-1 lg:order-2 lg:w-[min(620px,calc(100vh-104px))] lg:justify-self-center">
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">

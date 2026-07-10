@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "./analytics";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
     template: "%s | BlockPopX",
   },
   description:
-    "Play BlockPopX free online. Pop matching balls on an 8x8 board, solve tricky puzzle missions, charge Pip Blast, avoid fouls, and chase a new high score.",
+    "Play BlockPopX free online. Pop matching balls on a 10x10 board, solve tricky puzzle missions, charge Pip Blast, avoid fouls, and chase a new high score.",
   keywords: [
     "BlockPopX",
     "Block Pop X",
@@ -34,6 +35,11 @@ export const metadata: Metadata = {
   icons: {
     icon: "/blockpopx-mark.svg",
     apple: "/blockpopx-icon-512.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "BlockPopX",
+    statusBarStyle: "black-translucent",
   },
   robots: {
     index: true,
@@ -79,7 +85,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

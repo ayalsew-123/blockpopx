@@ -65,7 +65,7 @@ export default function HowToPlayPage() {
           <h1 className="mt-4 text-5xl font-black">How to Play BlockPopX</h1>
 
           <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            BlockPopX is a free online puzzle game with an 8x8 board, matching
+            BlockPopX is a free online puzzle game with a 10x10 board, matching
             balls, prize blocks, locks, pips, and 12 tricky puzzle missions.
             Pop groups, score points, charge Pip Blast, and keep your run alive
             by avoiding fouls.
@@ -93,7 +93,7 @@ export default function HowToPlayPage() {
 
             <p className="mt-3 leading-7 text-slate-400">
               Look for 2 or more blocks with the same color touching each other.
-              Blocks must touch up, down, left, or right on the 8x8 board.
+              Blocks must touch up, down, left, or right on the 10x10 board.
             </p>
           </div>
 
@@ -118,7 +118,7 @@ export default function HowToPlayPage() {
             <h2 className="text-xl font-bold">Avoid Fouls</h2>
 
             <p className="mt-3 leading-7 text-slate-400">
-              Bad taps and wasted power moves add fouls. Five fouls means a
+              Bad taps and wasted power moves add fouls. Three fouls means a
               restart, so choose carefully and protect your best run.
             </p>
           </div>
@@ -142,7 +142,7 @@ export default function HowToPlayPage() {
               <li>Large groups = big score bonus</li>
               <li>Pip Blast = clear useful colors faster</li>
               <li>Prizes, locks, and gravity changes = trickier puzzles</li>
-              <li>5 fouls = restart</li>
+              <li>3 fouls = restart</li>
             </ul>
           </div>
 

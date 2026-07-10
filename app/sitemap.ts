@@ -21,6 +21,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: "https://www.blockpopx.com/free-ball-puzzle-game",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      url: "https://www.blockpopx.com/smart-puzzle-game",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
+      url: "https://www.blockpopx.com/block-puzzle-game",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
       url: "https://www.blockpopx.com/privacy",
       lastModified: new Date(),
       changeFrequency: "monthly",
