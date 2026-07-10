@@ -1284,7 +1284,7 @@ function seedStrategicPairs(board: Block[][], currentLevel = 1) {
 }
 
 function createStarterBoard(currentLevel = 1): Block[][] {
-  const colorLimit = currentLevel === 1 ? 4 : 5;
+  const colorLimit = colors.length;
 
   return Array.from({ length: rows }, (_, row) =>
     Array.from({ length: cols }, (_, col) => {
@@ -1300,6 +1300,60 @@ function createStarterBoard(currentLevel = 1): Block[][] {
       };
     })
   );
+}
+
+function ensureAllColorsOnBoard(board: Block[][], currentLevel = 1) {
+  const nextBoard = board.map((row) => row.map((block) => ({ ...block })));
+  const colorCounts = new Map<BlockColor, number>();
+  const candidates: [number, number][] = [];
+  const minimumCopies = currentLevel === 1 ? 2 : 3;
+
+  colors.forEach((color) => {
+    colorCounts.set(color, 0);
+  });
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const block = nextBoard[row][col];
+      colorCounts.set(block.color, (colorCounts.get(block.color) ?? 0) + 1);
+
+      if (canRecolorPuzzleBlock(block)) {
+        candidates.push([row, col]);
+      }
+    }
+  }
+
+  colors.forEach((color, colorIndex) => {
+    while ((colorCounts.get(color) ?? 0) < minimumCopies && candidates.length > 0) {
+      const preferredIndex = candidates.findIndex(([row, col]) => {
+        const previousColor = nextBoard[row][col].color;
+        return previousColor !== color && (colorCounts.get(previousColor) ?? 0) > minimumCopies;
+      });
+      const fallbackIndex = candidates.findIndex(
+        ([row, col]) => nextBoard[row][col].color !== color
+      );
+      const naturalIndex =
+        (currentLevel * 11 + colorIndex * 17 + (colorCounts.get(color) ?? 0) * 7) %
+        candidates.length;
+      const candidateIndex =
+        preferredIndex >= 0
+          ? preferredIndex
+          : fallbackIndex >= 0
+            ? fallbackIndex
+            : naturalIndex;
+      const [row, col] = candidates.splice(candidateIndex, 1)[0];
+      const previousColor = nextBoard[row][col].color;
+
+      nextBoard[row][col] = {
+        ...nextBoard[row][col],
+        color,
+      };
+      colorCounts.set(previousColor, Math.max(0, (colorCounts.get(previousColor) ?? 0) - 1));
+      colorCounts.set(color, (colorCounts.get(color) ?? 0) + 1);
+    }
+  });
+
+  return nextBoard;
 }
 
 function getConnectedColorGroup(
@@ -1426,7 +1480,7 @@ function createBoard(currentLevel = 1): Block[][] {
   const unlockedBoard = removeLockedAndToolsBeforeUnlock(complexBoard, currentLevel);
   const balancedBoard = rebalanceEasyColorGroups(unlockedBoard, currentLevel);
 
-  return seedStrategicPairs(balancedBoard, currentLevel);
+  return ensureAllColorsOnBoard(seedStrategicPairs(balancedBoard, currentLevel), currentLevel);
 }
 
 function randomPrizeType(): PrizeType {
