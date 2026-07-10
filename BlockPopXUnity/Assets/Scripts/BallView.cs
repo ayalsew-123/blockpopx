@@ -1,11 +1,12 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace BlockPopX
 {
     [RequireComponent(typeof(SpriteRenderer))]
     [RequireComponent(typeof(CircleCollider2D))]
-    public sealed class BallView : MonoBehaviour
+    public sealed class BallView : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private GameObject lockedBadge;
@@ -36,6 +37,16 @@ namespace BlockPopX
             Game?.TapCell(Row, Column);
         }
 
+        private void OnMouseUpAsButton()
+        {
+            Game?.TapCell(Row, Column);
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            Game?.TapCell(Row, Column);
+        }
+
         public void Bind(BlockPopXGame game, int row, int column, BallCell cell)
         {
             Game = game;
@@ -48,6 +59,7 @@ namespace BlockPopX
             if (circleCollider != null)
             {
                 circleCollider.enabled = !cell.IsEmpty;
+                circleCollider.radius = 0.62f;
             }
 
             if (lockedBadge != null)

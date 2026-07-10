@@ -6,6 +6,9 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem.UI;
+#endif
 
 [InitializeOnLoad]
 public static class BlockPopXSceneBuilder
@@ -73,6 +76,10 @@ public static class BlockPopXSceneBuilder
             camera.orthographicSize = 5.2f;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.04f, 0.06f, 0.12f);
+            if (camera.GetComponent<Physics2DRaycaster>() == null)
+            {
+                camera.gameObject.AddComponent<Physics2DRaycaster>();
+            }
 
             SetupHud(game);
 
@@ -148,12 +155,14 @@ public static class BlockPopXSceneBuilder
 
         canvasObject.AddComponent<GraphicRaycaster>();
 
-        if (Object.FindObjectOfType<EventSystem>() == null)
+        var eventSystem = Object.FindObjectOfType<EventSystem>();
+        if (eventSystem == null)
         {
             var eventSystemObject = new GameObject("EventSystem");
-            eventSystemObject.AddComponent<EventSystem>();
-            eventSystemObject.AddComponent<StandaloneInputModule>();
+            eventSystem = eventSystemObject.AddComponent<EventSystem>();
         }
+
+        ConfigureInputModule(eventSystem.gameObject);
 
         var hudObject = CreateUiObject("BlockPopXHud", canvasObject.transform);
         Stretch(hudObject.GetComponent<RectTransform>());
@@ -265,6 +274,27 @@ public static class BlockPopXSceneBuilder
         text.color = new Color(0.02f, 0.03f, 0.08f);
 
         return button;
+    }
+
+    private static void ConfigureInputModule(GameObject eventSystemObject)
+    {
+#if ENABLE_INPUT_SYSTEM
+        var standaloneInput = eventSystemObject.GetComponent<StandaloneInputModule>();
+        if (standaloneInput != null)
+        {
+            Object.DestroyImmediate(standaloneInput);
+        }
+
+        if (eventSystemObject.GetComponent<InputSystemUIInputModule>() == null)
+        {
+            eventSystemObject.AddComponent<InputSystemUIInputModule>();
+        }
+#else
+        if (eventSystemObject.GetComponent<StandaloneInputModule>() == null)
+        {
+            eventSystemObject.AddComponent<StandaloneInputModule>();
+        }
+#endif
     }
 
     private static void Stretch(RectTransform rect)
