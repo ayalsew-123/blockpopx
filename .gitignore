@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# unity
+BlockPopXUnity/Library/
+BlockPopXUnity/Temp/
+BlockPopXUnity/Obj/
+BlockPopXUnity/Build/
+BlockPopXUnity/Builds/
+BlockPopXUnity/Logs/
+BlockPopXUnity/UserSettings/
+BlockPopXUnity/MemoryCaptures/
+BlockPopXUnity/*.csproj
+BlockPopXUnity/*.sln
+BlockPopXUnity/*.user
+BlockPopXUnity/*.pidb
+BlockPopXUnity/*.booproj
+BlockPopXUnity/*.svd
