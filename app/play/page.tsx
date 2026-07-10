@@ -18,6 +18,7 @@ const colorPatternCount = 36;
 const colorModifierCount = 8;
 const architectureCount = 24;
 const puzzleVariantCount = colorPatternCount * architectureCount;
+const tutorialLevelRange = [1, 2, 3, 4, 5] as const;
 const colors = [
   "red",
   "blue",
@@ -1848,6 +1849,55 @@ function mergePositions(...groups: [number, number][][]) {
   return merged;
 }
 
+function LevelRangeMeter({
+  level,
+  compact = false,
+}: {
+  level: number;
+  compact?: boolean;
+}) {
+  const isAdvancedLevel = level > 5;
+
+  return (
+    <div className={compact ? "mt-2" : "mb-3 mt-3"}>
+      <div
+        className={`mb-1 flex items-center justify-between font-black uppercase text-slate-300 ${
+          compact
+            ? "text-[0.58rem] tracking-[0.12em]"
+            : "text-[0.62rem] tracking-[0.16em]"
+        }`}
+      >
+        <span>Level Range</span>
+        <span>1-5+</span>
+      </div>
+
+      <div className="grid grid-cols-5 gap-1">
+        {tutorialLevelRange.map((step) => {
+          const isActive = isAdvancedLevel ? step === 5 : step === level;
+          const isComplete = isAdvancedLevel ? step < 5 : step < level;
+
+          return (
+            <span
+              key={step}
+              className={`flex items-center justify-center rounded-full border font-black transition ${
+                compact ? "h-6 text-[0.65rem]" : "h-7 text-[0.72rem]"
+              } ${
+                isActive
+                  ? "border-cyan-100 bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.42)]"
+                  : isComplete
+                    ? "border-emerald-200/50 bg-emerald-300/20 text-emerald-100"
+                    : "border-white/10 bg-white/5 text-slate-500"
+              }`}
+            >
+              {step === 5 ? "5+" : step}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function PlayPage() {
   const showtimeTimers = useRef<number[]>([]);
   const lastShowtimeScore = useRef(0);
@@ -3382,6 +3432,7 @@ export default function PlayPage() {
               <p className="text-sm font-bold text-amber-200">Level {level}</p>
               <p className="text-sm text-slate-200">Score goal: {targetScore}</p>
             </div>
+            <LevelRangeMeter level={level} />
 
             <div className="mb-3 rounded-2xl border border-cyan-300/25 bg-cyan-300/10 px-3 py-2">
               <div className="flex items-center justify-between gap-3">
@@ -3533,6 +3584,7 @@ export default function PlayPage() {
             <p className="text-sm font-black text-white">
               {puzzlePlan.title}
             </p>
+            <LevelRangeMeter level={level} compact />
           </section>
 
           <section className="grid grid-cols-4 gap-1.5 lg:grid-cols-2 lg:gap-2">
