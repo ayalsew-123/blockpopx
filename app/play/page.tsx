@@ -3265,8 +3265,8 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#243c5a,transparent_36%),linear-gradient(135deg,#190f32_0%,#06333a_46%,#3a1021_100%)] text-white">
-      <header className="border-b border-white/10 bg-black/25 backdrop-blur">
+    <main className="h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_top_left,#243c5a,transparent_36%),linear-gradient(135deg,#190f32_0%,#06333a_46%,#3a1021_100%)] text-white lg:h-auto lg:min-h-screen lg:overflow-x-hidden lg:overflow-y-auto">
+      <header className="hidden border-b border-white/10 bg-black/25 backdrop-blur lg:block">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-3 sm:flex-row">
           <Link
             href="/"
@@ -3338,9 +3338,9 @@ export default function PlayPage() {
         </section>
       )}
 
-      <section className="px-2 py-3 sm:px-3 lg:px-5">
-        <div className="mx-auto grid max-w-[1300px] gap-3 lg:grid-cols-[minmax(240px,330px)_minmax(360px,560px)_minmax(240px,300px)] lg:items-start">
-          <div className="order-3 space-y-3 lg:order-1">
+      <section className="h-full overflow-hidden px-2 py-2 lg:h-auto lg:overflow-visible lg:px-5 lg:py-4">
+        <div className="mx-auto grid h-full max-w-[1300px] grid-rows-[auto_minmax(0,1fr)] gap-2 lg:h-auto lg:grid-rows-none lg:grid-cols-[minmax(240px,330px)_minmax(360px,560px)_minmax(240px,300px)] lg:items-start lg:gap-3">
+          <div className="hidden space-y-3 lg:order-1 lg:block">
           <section className="text-center lg:text-left">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-200">
               Falling Ball Rush
@@ -3504,50 +3504,50 @@ export default function PlayPage() {
           </section>
           </div>
 
-          <div className="order-2 space-y-3 lg:order-3">
-          <section className="grid grid-cols-2 gap-2">
-            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+          <div className="order-1 space-y-2 lg:order-3 lg:space-y-3">
+          <section className="grid grid-cols-4 gap-1.5 lg:grid-cols-2 lg:gap-2">
+            <div className="rounded-xl bg-slate-900/90 p-2 text-center shadow-lg lg:rounded-2xl lg:p-3">
               <p className="text-xs text-slate-400">Score</p>
-              <p className="text-xl font-black text-cyan-300">{score}</p>
+              <p className="text-base font-black text-cyan-300 lg:text-xl">{score}</p>
             </div>
 
-            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+            <div className="rounded-xl bg-slate-900/90 p-2 text-center shadow-lg lg:rounded-2xl lg:p-3">
               <p className="text-xs text-slate-400">Best</p>
-              <p className="text-xl font-black text-yellow-300">{highScore}</p>
+              <p className="text-base font-black text-yellow-300 lg:text-xl">{highScore}</p>
             </div>
 
-            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+            <div className="rounded-xl bg-slate-900/90 p-2 text-center shadow-lg lg:rounded-2xl lg:p-3">
               <p className="text-xs text-slate-400">Fouls</p>
-              <p className="text-xl font-black text-fuchsia-300">
+              <p className="text-base font-black text-fuchsia-300 lg:text-xl">
                 {fouls}/{maxFouls}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg">
+            <div className="hidden rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg lg:block">
               <p className="text-xs text-slate-400">Streak</p>
               <p className="text-xl font-black text-green-300">{streak}</p>
             </div>
 
-            <div className={`rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg ${canSeeDanger ? "" : "hidden sm:block"}`}>
+            <div className="hidden rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg lg:block">
               <p className="text-xs text-slate-400">Balls</p>
               <p className="text-xl font-black text-sky-300">{dropStock}</p>
             </div>
 
-            <div className={`rounded-2xl bg-slate-900/90 p-3 text-center shadow-lg ${canSeeDanger ? "" : "hidden sm:block"}`}>
+            <div className="rounded-xl bg-slate-900/90 p-2 text-center shadow-lg lg:rounded-2xl lg:p-3">
               <p className="text-xs text-slate-400">Danger</p>
-              <p className="text-xl font-black text-rose-300">
+              <p className="text-base font-black text-rose-300 lg:text-xl">
                 {pileDangerProgress}%
               </p>
             </div>
           </section>
 
-          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <section className="grid grid-cols-4 gap-1.5 lg:grid-cols-3 lg:gap-2">
             {canFlipGravity && (
               <button
                 type="button"
                 onClick={flipGravity}
                 disabled={isMoving || gameOver || levelComplete}
-                className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+                className="hidden min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50 lg:block"
               >
                 {gravity === "down" ? "Down" : "Up"}
               </button>
@@ -3558,7 +3558,7 @@ export default function PlayPage() {
                 type="button"
                 onClick={smartShuffle}
                 disabled={isMoving || gameOver || levelComplete}
-                className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+                className="hidden min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50 lg:block"
               >
                 Mix {shufflesLeft}
               </button>
@@ -3569,7 +3569,7 @@ export default function PlayPage() {
                 type="button"
                 onClick={activatePipBlast}
                 disabled={isMoving || gameOver || levelComplete}
-                className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50"
+                className="hidden min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 disabled:opacity-50 lg:block"
               >
                 Pip {pipBlastsLeft > 0 ? pipBlastsLeft : `${pipCharge}/${maxPipCharge}`}
               </button>
@@ -3578,7 +3578,7 @@ export default function PlayPage() {
             <button
               type="button"
               onClick={() => setShowHelp(true)}
-              className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20"
+              className="min-h-10 rounded-xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 lg:min-h-11 lg:rounded-2xl"
             >
               ? How
             </button>
@@ -3586,23 +3586,23 @@ export default function PlayPage() {
             <button
               type="button"
               onClick={toggleSound}
-              className="min-h-11 rounded-2xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20"
+              className="min-h-10 rounded-xl bg-white/10 p-2 text-center text-xs font-bold hover:bg-white/20 lg:min-h-11 lg:rounded-2xl"
             >
               {soundEnabled ? "Sound On" : "Muted"}
             </button>
           </section>
 
           {message && (
-            <p className="rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-bold text-cyan-200">
+            <p className="hidden rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-bold text-cyan-200 lg:block">
               {message}
             </p>
           )}
 
-          <div className="flex justify-center gap-2">
+          <div className="grid grid-cols-2 gap-1.5 lg:flex lg:justify-center lg:gap-2">
             <button
               type="button"
               onClick={restartGame}
-              className="rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700"
+              className="min-h-10 rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700 lg:rounded-full"
             >
               Restart
             </button>
@@ -3610,7 +3610,7 @@ export default function PlayPage() {
             <button
               type="button"
               onClick={resetHighScore}
-              className="rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700"
+              className="hidden rounded-full bg-slate-800 px-3 py-2 text-xs font-bold hover:bg-slate-700 lg:block"
             >
               Reset
             </button>
@@ -3618,20 +3618,27 @@ export default function PlayPage() {
             <button
               type="button"
               onClick={shareScore}
-              className="rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400 px-3 py-2 text-xs font-black text-slate-950"
+              className="min-h-10 rounded-xl bg-gradient-to-r from-cyan-300 to-fuchsia-400 px-3 py-2 text-xs font-black text-slate-950 lg:rounded-full"
             >
               Share
             </button>
           </div>
 
-          <p className="text-center text-xs leading-5 text-slate-400 lg:text-left">
+          <p className="hidden text-center text-xs leading-5 text-slate-400 lg:block lg:text-left">
             {level <= 1
               ? "Tap 2 or more matching balls. Bigger groups score more."
               : "Plan before you touch. Bigger groups and smart cuts score more."}
           </p>
           </div>
 
-          <div className="order-1 lg:order-2 lg:w-[min(620px,calc(100vh-104px))] lg:justify-self-center">
+          <div
+            className="order-2 min-h-0 justify-self-center lg:order-2 lg:justify-self-center"
+            style={
+              {
+                width: "min(calc(100vw - 16px), calc(100dvh - 196px), 620px)",
+              } as CSSProperties
+            }
+          >
           {(gameOver || levelComplete) && (
             <section className="mb-3 rounded-3xl border border-cyan-300 bg-slate-900 p-5 text-center shadow-2xl">
               <h2 className="text-3xl font-black text-cyan-300">
@@ -3886,6 +3893,14 @@ export default function PlayPage() {
 
           <Link href="/privacy" className="hover:text-cyan-400">
             Privacy Policy
+          </Link>
+
+          <Link href="/terms" className="hover:text-cyan-400">
+            Terms
+          </Link>
+
+          <Link href="/contact" className="hover:text-cyan-400">
+            Contact
           </Link>
         </div>
       </footer>

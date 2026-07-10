@@ -44,5 +44,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    {
+      url: "https://www.blockpopx.com/terms",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.45,
+    },
+    {
+      url: "https://www.blockpopx.com/contact",
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.45,
+    },
   ];
 }

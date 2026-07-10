@@ -418,6 +418,14 @@ export default function Home() {
           <Link href="/privacy" className="hover:text-cyan-400">
             Privacy Policy
           </Link>
+
+          <Link href="/terms" className="hover:text-cyan-400">
+            Terms
+          </Link>
+
+          <Link href="/contact" className="hover:text-cyan-400">
+            Contact
+          </Link>
         </div>
       </footer>
     </main>

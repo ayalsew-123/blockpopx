@@ -97,6 +97,18 @@ export function SeoGamePage({
 
       <footer className="border-t border-slate-800 px-6 py-8 text-center text-sm text-slate-400">
         <p>(c) 2026 BlockPopX. All rights reserved.</p>
+
+        <div className="mt-4 flex flex-wrap justify-center gap-6">
+          <Link href="/privacy" className="hover:text-cyan-400">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-cyan-400">
+            Terms
+          </Link>
+          <Link href="/contact" className="hover:text-cyan-400">
+            Contact
+          </Link>
+        </div>
       </footer>
     </main>
   );

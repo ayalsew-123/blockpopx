@@ -50,6 +50,14 @@ export default function PrivacyPage() {
             <Link href="/privacy" className="text-cyan-400">
               Privacy
             </Link>
+
+            <Link href="/terms" className="hover:text-cyan-400">
+              Terms
+            </Link>
+
+            <Link href="/contact" className="hover:text-cyan-400">
+              Contact
+            </Link>
           </nav>
         </div>
       </header>
@@ -99,7 +107,14 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-bold">Contact</h2>
 
               <p className="mt-3 leading-7 text-slate-300">
-                For questions, contact us through BlockPopX.com.
+                For questions, email{" "}
+                <a
+                  href="mailto:support@blockpopx.com"
+                  className="font-bold text-cyan-300 hover:text-cyan-200"
+                >
+                  support@blockpopx.com
+                </a>
+                .
               </p>
             </section>
           </div>
@@ -120,6 +135,14 @@ export default function PrivacyPage() {
 
           <Link href="/how-to-play" className="hover:text-cyan-400">
             How to Play
+          </Link>
+
+          <Link href="/terms" className="hover:text-cyan-400">
+            Terms
+          </Link>
+
+          <Link href="/contact" className="hover:text-cyan-400">
+            Contact
           </Link>
         </div>
       </footer>
