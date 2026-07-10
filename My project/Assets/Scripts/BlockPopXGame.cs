@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Events;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -116,7 +115,9 @@ namespace BlockPopX
             {
                 TryTapScreenPosition(Mouse.current.position.ReadValue());
             }
-#else
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
             if (Input.GetMouseButtonDown(0))
             {
                 TryTapScreenPosition(Input.mousePosition);
@@ -272,11 +273,6 @@ namespace BlockPopX
 
         private void TryTapScreenPosition(Vector2 screenPosition)
         {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-            {
-                return;
-            }
-
             var camera = Camera.main;
             if (camera == null)
             {

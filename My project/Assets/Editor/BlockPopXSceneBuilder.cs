@@ -226,7 +226,7 @@ public static class BlockPopXSceneBuilder
         label.fontStyle = FontStyles.Bold;
         label.alignment = alignment;
         label.color = Color.white;
-        label.enableWordWrapping = false;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
         label.overflowMode = TextOverflowModes.Ellipsis;
         return label;
     }
