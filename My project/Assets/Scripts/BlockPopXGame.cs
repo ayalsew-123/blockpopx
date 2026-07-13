@@ -689,7 +689,7 @@ namespace BlockPopX
 
         private bool DropFreshWave(string message)
         {
-            var filledAnyCell = false;
+            var droppedCells = new List<Vector2Int>();
             dropWaveCounter++;
 
             for (var row = 0; row < BoardGenerator.Rows; row++)
@@ -702,13 +702,27 @@ namespace BlockPopX
                     }
 
                     board[row, col] = CreateDroppedCell(row, col);
-                    views[row, col] = CreateBallView(row, col);
-                    var targetPosition = GetWorldPosition(row, col);
-                    views[row, col].transform.position = targetPosition + Vector3.up * (cellSpacing * (BoardGenerator.Rows + 2 + row * 0.25f));
-                    views[row, col].Bind(this, row, col, board[row, col]);
-                    StartCoroutine(DropBallRoutine(views[row, col].transform, targetPosition, 0.22f + row * 0.018f));
-                    filledAnyCell = true;
+                    droppedCells.Add(new Vector2Int(row, col));
                 }
+            }
+
+            ShapeDroppedPuzzleWave(droppedCells);
+
+            for (var index = 0; index < droppedCells.Count; index++)
+            {
+                var cell = droppedCells[index];
+                var row = cell.x;
+                var col = cell.y;
+
+                if (views[row, col] == null)
+                {
+                    views[row, col] = CreateBallView(row, col);
+                }
+
+                var targetPosition = GetWorldPosition(row, col);
+                views[row, col].transform.position = targetPosition + Vector3.up * (cellSpacing * (BoardGenerator.Rows + 2 + row * 0.25f));
+                views[row, col].Bind(this, row, col, board[row, col]);
+                StartCoroutine(DropBallRoutine(views[row, col].transform, targetPosition, 0.22f + row * 0.018f));
             }
 
             if (!HasPlayableMove())
@@ -716,18 +730,18 @@ namespace BlockPopX
                 OpenNextPlayableMatch();
             }
 
-            if (filledAnyCell)
+            if (droppedCells.Count > 0)
             {
                 PlayLevelCompleteFeedback();
                 SetMessage(message);
             }
 
-            return filledAnyCell;
+            return droppedCells.Count > 0;
         }
 
         private BallCell CreateDroppedCell(int row, int col)
         {
-            var colorIndex = PositiveModulo(level * 13 + score + dropWaveCounter * 17 + row * 5 + col * 7, BlockPopXColorPalette.All.Length);
+            var colorIndex = GetDroppedPatternColorIndex(row, col);
             var cell = new BallCell(BlockPopXColorPalette.All[colorIndex]);
 
             if (level >= 5 && PositiveModulo(row * 3 + col + dropWaveCounter + level, 17) == 0)
@@ -745,6 +759,177 @@ namespace BlockPopX
             }
 
             return cell;
+        }
+
+        private int GetDroppedPatternColorIndex(int row, int col)
+        {
+            var paletteLength = BlockPopXColorPalette.All.Length;
+            var pattern = PositiveModulo(level + dropWaveCounter, 4);
+
+            switch (pattern)
+            {
+                case 0:
+                    return PositiveModulo(row / 2 + col / 3 + level + dropWaveCounter, paletteLength);
+                case 1:
+                    return PositiveModulo(Mathf.Abs(row - col) + col / 2 + level + dropWaveCounter * 2, paletteLength);
+                case 2:
+                    return PositiveModulo((row + col) / 2 + (row % 2 == 0 ? 0 : 3) + level, paletteLength);
+                default:
+                    return PositiveModulo(Mathf.Abs(row + col - (BoardGenerator.Columns - 1)) + row / 3 + dropWaveCounter, paletteLength);
+            }
+        }
+
+        private void ShapeDroppedPuzzleWave(List<Vector2Int> droppedCells)
+        {
+            if (droppedCells.Count == 0)
+            {
+                return;
+            }
+
+            var droppedSet = new HashSet<int>();
+            for (var index = 0; index < droppedCells.Count; index++)
+            {
+                var cell = droppedCells[index];
+                droppedSet.Add(CellKey(cell.x, cell.y));
+            }
+
+            PaintDroppedZigzag(droppedSet);
+            PaintDroppedBridge(droppedSet);
+            PaintDroppedMirrors(droppedCells, droppedSet);
+            PaintDroppedChallengeGroups(droppedSet);
+        }
+
+        private void PaintDroppedZigzag(HashSet<int> droppedSet)
+        {
+            var color = BlockPopXColorPalette.All[PositiveModulo(level + dropWaveCounter * 2, BlockPopXColorPalette.All.Length)];
+
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                var col = PositiveModulo(dropWaveCounter + level + row * 2, BoardGenerator.Columns);
+                SetDroppedColor(droppedSet, row, col, color);
+
+                var side = row % 2 == 0 ? 1 : -1;
+                SetDroppedColor(droppedSet, row, col + side, color);
+            }
+        }
+
+        private void PaintDroppedBridge(HashSet<int> droppedSet)
+        {
+            var color = BlockPopXColorPalette.All[PositiveModulo(level * 2 + dropWaveCounter + 3, BlockPopXColorPalette.All.Length)];
+            var bridgeCol = PositiveModulo(level + dropWaveCounter * 3, BoardGenerator.Columns - 1);
+
+            for (var row = 1; row < BoardGenerator.Rows; row += 2)
+            {
+                var col = PositiveModulo(bridgeCol + row / 2, BoardGenerator.Columns);
+                SetDroppedColor(droppedSet, row, col, color);
+                SetDroppedColor(droppedSet, row, col + 1, color);
+            }
+        }
+
+        private void PaintDroppedMirrors(List<Vector2Int> droppedCells, HashSet<int> droppedSet)
+        {
+            var paletteLength = BlockPopXColorPalette.All.Length;
+
+            for (var index = 0; index < droppedCells.Count; index++)
+            {
+                var cell = droppedCells[index];
+                if (PositiveModulo(cell.x + cell.y + dropWaveCounter, 4) != 0)
+                {
+                    continue;
+                }
+
+                var mirrorCol = BoardGenerator.Columns - 1 - cell.y;
+                if (!IsDroppedCell(droppedSet, cell.x, mirrorCol))
+                {
+                    continue;
+                }
+
+                var color = BlockPopXColorPalette.All[PositiveModulo(level + dropWaveCounter + cell.x, paletteLength)];
+                SetDroppedColor(droppedSet, cell.x, cell.y, color);
+                SetDroppedColor(droppedSet, cell.x, mirrorCol, color);
+            }
+        }
+
+        private void PaintDroppedChallengeGroups(HashSet<int> droppedSet)
+        {
+            var groupSize = Mathf.Clamp(plan.MinimumGroupSize + level / 4, 2, 4);
+            var groupCount = Mathf.Clamp(4 + level / 2, 4, 8);
+
+            for (var group = 0; group < groupCount; group++)
+            {
+                var row = PositiveModulo(dropWaveCounter * 3 + group * 2 + level, BoardGenerator.Rows);
+                var col = PositiveModulo(score / 25 + dropWaveCounter + group * 3, BoardGenerator.Columns);
+                var color = BlockPopXColorPalette.All[PositiveModulo(level + dropWaveCounter + group * 2, BlockPopXColorPalette.All.Length)];
+                PaintDroppedRun(droppedSet, row, col, color, groupSize, group % 4);
+            }
+        }
+
+        private void PaintDroppedRun(HashSet<int> droppedSet, int startRow, int startCol, BlockPopXColor color, int length, int direction)
+        {
+            var rowStep = 0;
+            var colStep = 1;
+
+            if (direction == 1)
+            {
+                rowStep = 1;
+                colStep = 0;
+            }
+            else if (direction == 2)
+            {
+                rowStep = 1;
+                colStep = 1;
+            }
+            else if (direction == 3)
+            {
+                rowStep = -1;
+                colStep = 1;
+            }
+
+            var paintedCells = new HashSet<int>();
+            for (var step = 0; step < length; step++)
+            {
+                var row = startRow + rowStep * step;
+                var col = startCol + colStep * step;
+                if (SetDroppedColor(droppedSet, row, col, color))
+                {
+                    paintedCells.Add(CellKey(row, col));
+                }
+            }
+
+            for (var radius = 1; paintedCells.Count < length && radius <= 2; radius++)
+            {
+                for (var row = startRow - radius; paintedCells.Count < length && row <= startRow + radius; row++)
+                {
+                    for (var col = startCol - radius; paintedCells.Count < length && col <= startCol + radius; col++)
+                    {
+                        if (SetDroppedColor(droppedSet, row, col, color))
+                        {
+                            paintedCells.Add(CellKey(row, col));
+                        }
+                    }
+                }
+            }
+        }
+
+        private bool SetDroppedColor(HashSet<int> droppedSet, int row, int col, BlockPopXColor color)
+        {
+            if (!IsDroppedCell(droppedSet, row, col))
+            {
+                return false;
+            }
+
+            board[row, col].Color = color;
+            return true;
+        }
+
+        private bool IsDroppedCell(HashSet<int> droppedSet, int row, int col)
+        {
+            return IsInside(row, col) && droppedSet.Contains(CellKey(row, col)) && !board[row, col].IsEmpty;
+        }
+
+        private static int CellKey(int row, int col)
+        {
+            return row * BoardGenerator.Columns + col;
         }
 
         private IEnumerator DropBallRoutine(Transform ballTransform, Vector3 targetPosition, float duration)
