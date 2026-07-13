@@ -1080,8 +1080,8 @@ namespace BlockPopX
 
         private void SetMessage(string message)
         {
-            currentMessage = message;
-            MessageChanged.Invoke(message);
+            currentMessage = $"L{level} Score {score} - {message}";
+            MessageChanged.Invoke(currentMessage);
         }
 
         private void SetPaused(bool paused)

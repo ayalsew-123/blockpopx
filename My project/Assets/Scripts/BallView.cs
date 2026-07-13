@@ -157,8 +157,8 @@ namespace BlockPopX
                 specialLabel = labelObject.AddComponent<TextMesh>();
                 specialLabel.anchor = TextAnchor.MiddleCenter;
                 specialLabel.alignment = TextAlignment.Center;
-                specialLabel.characterSize = 0.18f;
-                specialLabel.fontSize = 48;
+                specialLabel.characterSize = 0.065f;
+                specialLabel.fontSize = 36;
 
                 var labelRenderer = specialLabel.GetComponent<MeshRenderer>();
                 labelRenderer.sortingOrder = 30;
@@ -166,6 +166,7 @@ namespace BlockPopX
 
             specialLabel.gameObject.SetActive(true);
             specialLabel.text = label;
+            specialLabel.characterSize = cell.Special == BallSpecial.Locked ? 0.058f : 0.07f;
             specialLabel.color = cell.Special == BallSpecial.Locked ? Color.white : new Color(0.02f, 0.03f, 0.08f);
         }
 
@@ -174,7 +175,7 @@ namespace BlockPopX
             switch (cell.Special)
             {
                 case BallSpecial.Locked:
-                    return "LOCK";
+                    return "L";
                 case BallSpecial.Pip:
                     return cell.Pips > 1 ? cell.Pips.ToString() : ".";
                 case BallSpecial.Rocket:
