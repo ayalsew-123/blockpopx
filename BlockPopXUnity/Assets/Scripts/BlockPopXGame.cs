@@ -67,6 +67,7 @@ namespace BlockPopX
         private Coroutine boardFeedbackRoutine;
         private int lastTapFrame = -1;
         private int lastControlFrame = -1;
+        private int dropWaveCounter;
 
         public int CurrentLevel => level;
         public int CurrentScore => score;
@@ -169,6 +170,7 @@ namespace BlockPopX
             collectedPips = 0;
             firedRockets = 0;
             foundPrizes = 0;
+            dropWaveCounter = 0;
             isGameOver = false;
             isLevelComplete = false;
             isPaused = false;
@@ -254,10 +256,8 @@ namespace BlockPopX
 
             if (AllTouchableBallsGone())
             {
-                isLevelComplete = true;
-                PlayLevelCompleteFeedback();
-                LevelComplete.Invoke();
-                SetMessage($"Level {level} solved. Next level is ready.");
+                DropFreshWave("Fresh balls dropped from the top.");
+                SetMessage($"+{points} points. Fresh balls dropped from the top.");
                 return;
             }
 
@@ -596,14 +596,11 @@ namespace BlockPopX
 
             if (CountTouchableBalls() < plan.MinimumGroupSize)
             {
-                isLevelComplete = true;
-                PlayLevelCompleteFeedback();
-                LevelComplete.Invoke();
-                SetMessage($"Level {level} solved. Next level is ready.");
+                DropFreshWave("Fresh balls dropped from the top.");
                 return true;
             }
 
-            return OpenNextPlayableMatch();
+            return DropFreshWave("Fresh balls dropped from the top.");
         }
 
         private bool HasPlayableMove()
@@ -688,6 +685,95 @@ namespace BlockPopX
             }
 
             return false;
+        }
+
+        private bool DropFreshWave(string message)
+        {
+            var filledAnyCell = false;
+            dropWaveCounter++;
+
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (!board[row, col].IsEmpty)
+                    {
+                        continue;
+                    }
+
+                    board[row, col] = CreateDroppedCell(row, col);
+                    views[row, col] = CreateBallView(row, col);
+                    var targetPosition = GetWorldPosition(row, col);
+                    views[row, col].transform.position = targetPosition + Vector3.up * (cellSpacing * (BoardGenerator.Rows + 2 + row * 0.25f));
+                    views[row, col].Bind(this, row, col, board[row, col]);
+                    StartCoroutine(DropBallRoutine(views[row, col].transform, targetPosition, 0.22f + row * 0.018f));
+                    filledAnyCell = true;
+                }
+            }
+
+            if (!HasPlayableMove())
+            {
+                OpenNextPlayableMatch();
+            }
+
+            if (filledAnyCell)
+            {
+                PlayLevelCompleteFeedback();
+                SetMessage(message);
+            }
+
+            return filledAnyCell;
+        }
+
+        private BallCell CreateDroppedCell(int row, int col)
+        {
+            var colorIndex = PositiveModulo(level * 13 + score + dropWaveCounter * 17 + row * 5 + col * 7, BlockPopXColorPalette.All.Length);
+            var cell = new BallCell(BlockPopXColorPalette.All[colorIndex]);
+
+            if (level >= 5 && PositiveModulo(row * 3 + col + dropWaveCounter + level, 17) == 0)
+            {
+                cell.Special = BallSpecial.Pip;
+                cell.Pips = 1 + PositiveModulo(row + col + dropWaveCounter, 3);
+            }
+            else if (level >= 6 && PositiveModulo(row * 7 + col * 2 + dropWaveCounter + level, 31) == 0)
+            {
+                cell.Special = BallSpecial.Rocket;
+            }
+            else if (level >= 7 && PositiveModulo(row * 5 + col * 11 + dropWaveCounter + level, 43) == 0)
+            {
+                cell.Special = BallSpecial.Prize;
+            }
+
+            return cell;
+        }
+
+        private IEnumerator DropBallRoutine(Transform ballTransform, Vector3 targetPosition, float duration)
+        {
+            if (ballTransform == null)
+            {
+                yield break;
+            }
+
+            var startPosition = ballTransform.position;
+            duration = Mathf.Max(0.08f, duration);
+
+            for (var elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                if (ballTransform == null)
+                {
+                    yield break;
+                }
+
+                var t = Mathf.Clamp01(elapsed / duration);
+                var eased = 1f - Mathf.Pow(1f - t, 3f);
+                ballTransform.position = Vector3.Lerp(startPosition, targetPosition, eased);
+                yield return null;
+            }
+
+            if (ballTransform != null)
+            {
+                ballTransform.position = targetPosition;
+            }
         }
 
         private List<Vector2Int> CollectNearbyTouchableCells(int startRow, int startCol)
@@ -971,6 +1057,11 @@ namespace BlockPopX
             var x = (col - (BoardGenerator.Columns - 1) * 0.5f) * cellSpacing;
             var y = ((BoardGenerator.Rows - 1) * 0.5f - row) * cellSpacing;
             return new Vector3(x, y, 0f);
+        }
+
+        private static int PositiveModulo(int value, int modulus)
+        {
+            return (value % modulus + modulus) % modulus;
         }
 
         private void ClearBoardViews()
