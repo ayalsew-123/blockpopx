@@ -55,7 +55,6 @@ namespace BlockPopX
         private int collectedPips;
         private int firedRockets;
         private int foundPrizes;
-        private int successfulMoves;
         private bool isGameOver;
         private bool isLevelComplete;
         private bool isPaused;
@@ -170,7 +169,6 @@ namespace BlockPopX
             collectedPips = 0;
             firedRockets = 0;
             foundPrizes = 0;
-            successfulMoves = 0;
             isGameOver = false;
             isLevelComplete = false;
             isPaused = false;
@@ -248,14 +246,13 @@ namespace BlockPopX
             collectedPips += pipsThisMove;
             firedRockets += rocketsThisMove;
             foundPrizes += prizesThisMove;
-            successfulMoves++;
 
             PlayPopFeedback(cellsToClear.Count);
             score += points;
             SaveBestScoreIfNeeded();
             ScoreChanged.Invoke(score);
 
-            if (AllTouchableBallsGone() || IsLevelReadyToComplete())
+            if (AllTouchableBallsGone())
             {
                 isLevelComplete = true;
                 PlayLevelCompleteFeedback();
@@ -852,17 +849,6 @@ namespace BlockPopX
             }
         }
 
-        private bool IsLevelReadyToComplete()
-        {
-            if (plan == null)
-            {
-                return false;
-            }
-
-            var minimumMoves = Mathf.Max(1, plan.MinimumMoves);
-            return IsGoalComplete() && successfulMoves >= minimumMoves;
-        }
-
         private string GetGoalProgressText()
         {
             if (plan == null)
@@ -873,28 +859,18 @@ namespace BlockPopX
             switch (plan.GoalKind)
             {
                 case LevelGoalKind.ClearBalls:
-                    return AddMoveProgress($"Goal {Mathf.Min(clearedBalls, plan.GoalTarget)}/{plan.GoalTarget} balls");
+                    return $"Goal {Mathf.Min(clearedBalls, plan.GoalTarget)}/{plan.GoalTarget} balls";
                 case LevelGoalKind.CrackLocks:
-                    return AddMoveProgress($"Goal {Mathf.Min(crackedLocks, plan.GoalTarget)}/{plan.GoalTarget} locks");
+                    return $"Goal {Mathf.Min(crackedLocks, plan.GoalTarget)}/{plan.GoalTarget} locks";
                 case LevelGoalKind.CollectPips:
-                    return AddMoveProgress($"Goal {Mathf.Min(collectedPips, plan.GoalTarget)}/{plan.GoalTarget} pips");
+                    return $"Goal {Mathf.Min(collectedPips, plan.GoalTarget)}/{plan.GoalTarget} pips";
                 case LevelGoalKind.FireRockets:
-                    return AddMoveProgress($"Goal {Mathf.Min(firedRockets, plan.GoalTarget)}/{plan.GoalTarget} rockets");
+                    return $"Goal {Mathf.Min(firedRockets, plan.GoalTarget)}/{plan.GoalTarget} rockets";
                 case LevelGoalKind.FindPrizes:
-                    return AddMoveProgress($"Goal {Mathf.Min(foundPrizes, plan.GoalTarget)}/{plan.GoalTarget} prizes");
+                    return $"Goal {Mathf.Min(foundPrizes, plan.GoalTarget)}/{plan.GoalTarget} prizes";
                 default:
-                    return AddMoveProgress($"Goal {Mathf.Min(score, plan.ScoreTarget)}/{plan.ScoreTarget} score");
+                    return $"Goal {Mathf.Min(score, plan.ScoreTarget)}/{plan.ScoreTarget} score";
             }
-        }
-
-        private string AddMoveProgress(string goalText)
-        {
-            if (plan == null || plan.MinimumMoves <= 1)
-            {
-                return goalText;
-            }
-
-            return $"{goalText}  Moves {Mathf.Min(successfulMoves, plan.MinimumMoves)}/{plan.MinimumMoves}";
         }
 
         private void RenderBoard()
