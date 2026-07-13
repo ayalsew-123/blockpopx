@@ -18,6 +18,7 @@ namespace BlockPopX
         public int GoalTarget;
         public int ScoreTarget;
         public int MinimumGroupSize;
+        public int MinimumMoves;
         public bool ShuffleUnlocked;
         public bool GravityUnlocked;
         public bool LocksUnlocked;
@@ -58,7 +59,8 @@ namespace BlockPopX
                     GoalKind = LevelGoalKind.Score,
                     GoalTarget = 220,
                     ScoreTarget = 220,
-                    MinimumGroupSize = 2
+                    MinimumGroupSize = 2,
+                    MinimumMoves = 8
                 };
             }
 
@@ -72,6 +74,7 @@ namespace BlockPopX
                     GoalTarget = 24,
                     ScoreTarget = 0,
                     MinimumGroupSize = 2,
+                    MinimumMoves = 8,
                     ShuffleUnlocked = true
                 };
             }
@@ -86,6 +89,7 @@ namespace BlockPopX
                     GoalTarget = 650,
                     ScoreTarget = 650,
                     MinimumGroupSize = 2,
+                    MinimumMoves = 9,
                     ShuffleUnlocked = true,
                     GravityUnlocked = true
                 };
@@ -101,6 +105,7 @@ namespace BlockPopX
                     GoalTarget = 6,
                     ScoreTarget = 0,
                     MinimumGroupSize = 2,
+                    MinimumMoves = 10,
                     ShuffleUnlocked = true,
                     GravityUnlocked = true,
                     LocksUnlocked = true
@@ -115,6 +120,7 @@ namespace BlockPopX
                 GoalTarget = level == 5 ? 12 : level == 6 ? 3 : 2 + (level - 7) / 2,
                 ScoreTarget = 0,
                 MinimumGroupSize = level >= 8 ? 3 : 2,
+                MinimumMoves = level >= 8 ? 12 : 10,
                 ShuffleUnlocked = true,
                 GravityUnlocked = true,
                 LocksUnlocked = true,
