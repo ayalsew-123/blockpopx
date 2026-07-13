@@ -160,7 +160,7 @@ public static class BlockPopXSceneBuilder
         var existingCanvas = GameObject.Find("BlockPopXHudCanvas");
         if (existingCanvas != null)
         {
-            Object.DestroyImmediate(existingCanvas);
+            UnityEngine.Object.DestroyImmediate(existingCanvas);
         }
 
         var canvasObject = new GameObject("BlockPopXHudCanvas");
@@ -175,7 +175,7 @@ public static class BlockPopXSceneBuilder
 
         canvasObject.AddComponent<GraphicRaycaster>();
 
-        var eventSystem = Object.FindAnyObjectByType<EventSystem>();
+        var eventSystem = UnityEngine.Object.FindAnyObjectByType<EventSystem>();
         if (eventSystem == null)
         {
             var eventSystemObject = new GameObject("EventSystem");
@@ -325,13 +325,12 @@ public static class BlockPopXSceneBuilder
 
     private static void ConfigureInputModule(GameObject eventSystemObject)
     {
-        var standaloneInput = eventSystemObject.GetComponent<StandaloneInputModule>();
-        if (standaloneInput != null)
+        foreach (var standaloneInput in eventSystemObject.GetComponents<StandaloneInputModule>())
         {
-            Object.DestroyImmediate(standaloneInput);
+            UnityEngine.Object.DestroyImmediate(standaloneInput);
         }
 
-        var inputSystemModuleType = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+        var inputSystemModuleType = FindType("UnityEngine.InputSystem.UI.InputSystemUIInputModule");
         if (inputSystemModuleType != null)
         {
             if (eventSystemObject.GetComponent(inputSystemModuleType) == null)
@@ -346,6 +345,20 @@ public static class BlockPopXSceneBuilder
         {
             eventSystemObject.AddComponent<StandaloneInputModule>();
         }
+    }
+
+    private static Type FindType(string fullName)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var type = assembly.GetType(fullName);
+            if (type != null)
+            {
+                return type;
+            }
+        }
+
+        return null;
     }
 
     private static void Stretch(RectTransform rect)

@@ -1,9 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Events;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 #endif
 
 namespace BlockPopX
@@ -79,6 +81,11 @@ namespace BlockPopX
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
 
+        private void Awake()
+        {
+            ConfigureRuntimeInputModule();
+        }
+
         private void Start()
         {
             LoadProgress();
@@ -89,6 +96,32 @@ namespace BlockPopX
             HighestLevelChanged.Invoke(highestLevel);
             SoundChanged.Invoke(soundEnabled);
             PauseChanged.Invoke(isPaused);
+        }
+
+        private static void ConfigureRuntimeInputModule()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var eventSystem = EventSystem.current;
+            if (eventSystem == null)
+            {
+                eventSystem = FindAnyObjectByType<EventSystem>();
+            }
+
+            if (eventSystem == null)
+            {
+                return;
+            }
+
+            foreach (var legacyModule in eventSystem.GetComponents<StandaloneInputModule>())
+            {
+                Destroy(legacyModule);
+            }
+
+            if (eventSystem.GetComponent<InputSystemUIInputModule>() == null)
+            {
+                eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
+            }
+#endif
         }
 
         private void OnValidate()
