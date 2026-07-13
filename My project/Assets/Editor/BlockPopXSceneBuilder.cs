@@ -226,16 +226,17 @@ public static class BlockPopXSceneBuilder
         bottomRect.anchoredPosition = Vector2.zero;
 
         var pauseButton = CreateButton("PauseButton", bottomPanel.transform, "Pause", new Color(0.1f, 0.85f, 1f));
-        SetRect(pauseButton.GetComponent<RectTransform>(), new Vector2(0f, 0.5f), new Vector2(0.25f, 0.5f), new Vector2(24f, -52f), new Vector2(-8f, 52f));
+        SetRect(pauseButton.GetComponent<RectTransform>(), new Vector2(0f, 0.5f), new Vector2(0.333f, 0.5f), new Vector2(24f, -52f), new Vector2(-8f, 52f));
 
         var restartButton = CreateButton("RestartButton", bottomPanel.transform, "Restart", new Color(0.1f, 0.85f, 1f));
-        SetRect(restartButton.GetComponent<RectTransform>(), new Vector2(0.25f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
+        SetRect(restartButton.GetComponent<RectTransform>(), new Vector2(0.333f, 0.5f), new Vector2(0.666f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
 
         var soundButton = CreateButton("SoundButton", bottomPanel.transform, "Sound", new Color(1f, 0.82f, 0.12f));
-        SetRect(soundButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.75f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
+        SetRect(soundButton.GetComponent<RectTransform>(), new Vector2(0.666f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -52f), new Vector2(-24f, 52f));
 
         var nextLevelButton = CreateButton("NextLevelButton", bottomPanel.transform, "Next", new Color(1f, 0.28f, 0.86f));
-        SetRect(nextLevelButton.GetComponent<RectTransform>(), new Vector2(0.75f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -52f), new Vector2(-24f, 52f));
+        SetRect(nextLevelButton.GetComponent<RectTransform>(), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, Vector2.zero);
+        nextLevelButton.gameObject.SetActive(false);
 
         var overlayPanel = CreatePanel("ResultOverlay", hudObject.transform, new Color(0f, 0f, 0f, 0.68f));
         Stretch(overlayPanel.GetComponent<RectTransform>());

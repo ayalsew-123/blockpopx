@@ -157,7 +157,7 @@ namespace BlockPopX
             OnMessageChanged(game.CurrentMessage);
             OnPauseChanged(game.IsPaused);
             OnSoundChanged(game.SoundEnabled);
-            SetNextButtonVisible(game.IsLevelComplete);
+            SetNextButtonVisible(false);
             UpdateOverlay();
         }
 
@@ -236,13 +236,8 @@ namespace BlockPopX
 
         private void OnLevelComplete()
         {
-            SetNextButtonVisible(true);
-            ShowOverlay(
-                "Level Clear!",
-                $"Score {game.CurrentScore}\n{game.CurrentGoalText}",
-                "Next",
-                true,
-                true);
+            SetNextButtonVisible(false);
+            HideOverlay();
         }
 
         private void OnGameOver()
@@ -301,12 +296,6 @@ namespace BlockPopX
             if (game == null)
             {
                 HideOverlay();
-                return;
-            }
-
-            if (game.IsLevelComplete)
-            {
-                OnLevelComplete();
                 return;
             }
 
