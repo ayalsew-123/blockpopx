@@ -210,7 +210,7 @@ namespace BlockPopX
         {
             if (foulsText != null)
             {
-                foulsText.text = $"Fouls {fouls}/{game.MaxFouls}";
+                foulsText.text = game.MaxFouls > 0 ? $"Fouls {fouls}/{game.MaxFouls}" : $"Fouls {fouls}";
             }
         }
 
@@ -251,7 +251,7 @@ namespace BlockPopX
             OnPauseChanged(false);
             ShowOverlay(
                 "Try Again",
-                $"Score {game.CurrentScore}\nFouls {game.CurrentFouls}/{game.MaxFouls}",
+                $"Score {game.CurrentScore}\nFouls {game.CurrentFouls}",
                 "Restart",
                 false,
                 false);

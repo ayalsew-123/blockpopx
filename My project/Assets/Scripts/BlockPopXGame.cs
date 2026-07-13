@@ -25,6 +25,7 @@ namespace BlockPopX
 
         [Header("State")]
         [SerializeField] private int level = 1;
+        [SerializeField] private bool unlimitedTaps = true;
         [SerializeField] private int maxFouls = 3;
 
         [Header("Feedback")]
@@ -74,7 +75,7 @@ namespace BlockPopX
         public int BestScore => bestScore;
         public int HighestLevel => highestLevel;
         public int CurrentFouls => fouls;
-        public int MaxFouls => maxFouls;
+        public int MaxFouls => unlimitedTaps ? 0 : maxFouls;
         public string CurrentMessage => currentMessage;
         public string CurrentLevelTitle => plan != null ? plan.Title : "";
         public string CurrentGoalText => GetGoalProgressText();
@@ -1048,9 +1049,9 @@ namespace BlockPopX
             fouls++;
             PlayFoulFeedback();
             FoulsChanged.Invoke(fouls);
-            SetMessage($"{message} Foul {fouls}/{maxFouls}");
+            SetMessage(unlimitedTaps ? $"{message} Foul {fouls}. Keep playing." : $"{message} Foul {fouls}/{maxFouls}");
 
-            if (fouls >= maxFouls)
+            if (!unlimitedTaps && maxFouls > 0 && fouls >= maxFouls)
             {
                 isGameOver = true;
                 GameOver.Invoke();

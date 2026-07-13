@@ -25,6 +25,7 @@ namespace BlockPopX
             EnsureAllColors(board, level);
             AddLevelFeatures(board, level);
             SeedStrategicPairs(board, level);
+            PaintLevelPuzzleLayout(board, level);
 
             return board;
         }
@@ -79,6 +80,96 @@ namespace BlockPopX
             }
 
             return BlockPopXColorPalette.All[PositiveModulo(index, BlockPopXColorPalette.All.Length)];
+        }
+
+        private static void PaintLevelPuzzleLayout(BallCell[,] board, int level)
+        {
+            var stage = Mathf.Clamp(level, 1, 5);
+
+            if (stage == 1)
+            {
+                for (var index = 0; index < 8; index++)
+                {
+                    var row = 1 + (index / 4) * 3;
+                    var col = 1 + (index % 4) * 2;
+                    var color = BlockPopXColorPalette.All[PositiveModulo(index, BlockPopXColorPalette.All.Length)];
+                    PaintRun(board, row, col, 0, 1, 2, color);
+                }
+
+                return;
+            }
+
+            if (stage == 2)
+            {
+                for (var index = 0; index < 10; index++)
+                {
+                    var row = 1 + PositiveModulo(index * 2, Rows - 2);
+                    var col = 1 + PositiveModulo(index * 3, Columns - 3);
+                    var color = BlockPopXColorPalette.All[PositiveModulo(level + index * 2, BlockPopXColorPalette.All.Length)];
+                    PaintRun(board, row, col, 0, 1, 2, color);
+                    PaintRun(board, Mathf.Min(row + 1, Rows - 2), Mathf.Min(col + 1, Columns - 2), 1, 0, 2, color);
+                }
+
+                return;
+            }
+
+            if (stage == 3)
+            {
+                for (var row = 1; row < Rows - 1; row++)
+                {
+                    var col = 1 + PositiveModulo(row * 2 + level, Columns - 3);
+                    var color = BlockPopXColorPalette.All[PositiveModulo(row + level * 2, BlockPopXColorPalette.All.Length)];
+                    PaintRun(board, row, col, row % 2 == 0 ? 1 : -1, 1, 2, color);
+                }
+
+                PaintRun(board, 2, 1, 1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 4, BlockPopXColorPalette.All.Length)]);
+                PaintRun(board, 7, 2, -1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 7, BlockPopXColorPalette.All.Length)]);
+                return;
+            }
+
+            if (stage == 4)
+            {
+                var centerRow = Rows / 2;
+                var centerCol = Columns / 2;
+                for (var offset = -3; offset <= 3; offset += 2)
+                {
+                    var color = BlockPopXColorPalette.All[PositiveModulo(level + offset + 6, BlockPopXColorPalette.All.Length)];
+                    PaintRun(board, centerRow + offset, centerCol - 2, 0, 1, 3, color);
+                    PaintRun(board, centerRow - 2, centerCol + offset, 1, 0, 3, color);
+                }
+
+                PaintRun(board, 1, 1, 1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 1, BlockPopXColorPalette.All.Length)]);
+                PaintRun(board, Rows - 2, 1, -1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 3, BlockPopXColorPalette.All.Length)]);
+                return;
+            }
+
+            for (var index = 0; index < 12; index++)
+            {
+                var row = 1 + PositiveModulo(index * 3 + level, Rows - 2);
+                var col = 1 + PositiveModulo(index * 5 + level, Columns - 2);
+                var rowStep = index % 3 == 0 ? 1 : index % 3 == 1 ? 0 : -1;
+                var colStep = index % 2 == 0 ? 1 : 0;
+                var color = BlockPopXColorPalette.All[PositiveModulo(level + index * 3, BlockPopXColorPalette.All.Length)];
+                PaintRun(board, row, col, rowStep, colStep, 3, color);
+            }
+        }
+
+        private static void PaintRun(BallCell[,] board, int row, int col, int rowStep, int colStep, int length, BlockPopXColor color)
+        {
+            for (var index = 0; index < length; index++)
+            {
+                SetGuideColor(board, row + rowStep * index, col + colStep * index, color);
+            }
+        }
+
+        private static void SetGuideColor(BallCell[,] board, int row, int col, BlockPopXColor color)
+        {
+            if (row < 0 || row >= Rows || col < 0 || col >= Columns || board[row, col].Special == BallSpecial.Locked)
+            {
+                return;
+            }
+
+            board[row, col].Color = color;
         }
 
         private static void AddLevelFeatures(BallCell[,] board, int level)
