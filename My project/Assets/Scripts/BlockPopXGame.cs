@@ -637,10 +637,10 @@ namespace BlockPopX
                 return false;
             }
 
-            isLevelComplete = true;
+            var completedLevel = level;
             PlayLevelCompleteFeedback();
-            LevelComplete.Invoke();
-            SetMessage($"+{points} points. Level {level} clear!");
+            StartLevel(level + 1);
+            SetMessage($"+{points} points. Level {completedLevel} clear! Now Level {level}: {plan.GoalLabel}.");
             return true;
         }
 
