@@ -325,6 +325,7 @@ public static class BlockPopXSceneBuilder
 
     private static void ConfigureInputModule(GameObject eventSystemObject)
     {
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
         foreach (var standaloneInput in eventSystemObject.GetComponents<StandaloneInputModule>())
         {
             UnityEngine.Object.DestroyImmediate(standaloneInput);
@@ -340,6 +341,7 @@ public static class BlockPopXSceneBuilder
 
             return;
         }
+#endif
 
         if (eventSystemObject.GetComponent<StandaloneInputModule>() == null)
         {

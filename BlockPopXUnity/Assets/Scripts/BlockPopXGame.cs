@@ -112,6 +112,7 @@ namespace BlockPopX
                 return;
             }
 
+#if !ENABLE_LEGACY_INPUT_MANAGER
             foreach (var legacyModule in eventSystem.GetComponents<StandaloneInputModule>())
             {
                 Destroy(legacyModule);
@@ -121,6 +122,7 @@ namespace BlockPopX
             {
                 eventSystem.gameObject.AddComponent<InputSystemUIInputModule>();
             }
+#endif
 #endif
         }
 
