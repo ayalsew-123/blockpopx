@@ -85,6 +85,7 @@ namespace BlockPopX
         private static void PaintLevelPuzzleLayout(BallCell[,] board, int level)
         {
             var stage = Mathf.Clamp(level, 1, 5);
+            FillPuzzleBackground(board, level);
 
             if (stage == 1)
             {
@@ -151,7 +152,67 @@ namespace BlockPopX
                 var colStep = index % 2 == 0 ? 1 : 0;
                 var color = BlockPopXColorPalette.All[PositiveModulo(level + index * 3, BlockPopXColorPalette.All.Length)];
                 PaintRun(board, row, col, rowStep, colStep, 3, color);
+                MarkRunAsPips(board, row, col, rowStep, colStep, 3, 1 + index % 3);
             }
+        }
+
+        private static void FillPuzzleBackground(BallCell[,] board, int level)
+        {
+            for (var row = 0; row < Rows; row++)
+            {
+                for (var col = 0; col < Columns; col++)
+                {
+                    if (board[row, col].Special == BallSpecial.Locked)
+                    {
+                        continue;
+                    }
+
+                    board[row, col].Color = ChooseSeparatedColor(board, row, col, level);
+                }
+            }
+        }
+
+        private static BlockPopXColor ChooseSeparatedColor(BallCell[,] board, int row, int col, int level)
+        {
+            var palette = BlockPopXColorPalette.All;
+            var start = PositiveModulo(level * 7 + row * 3 + col * 5, palette.Length);
+
+            for (var offset = 0; offset < palette.Length; offset++)
+            {
+                var color = palette[PositiveModulo(start + offset, palette.Length)];
+                if (!MatchesPreviousNeighbor(board, row, col, color))
+                {
+                    return color;
+                }
+            }
+
+            return palette[start];
+        }
+
+        private static bool MatchesPreviousNeighbor(BallCell[,] board, int row, int col, BlockPopXColor color)
+        {
+            for (var checkRow = row - 1; checkRow <= row; checkRow++)
+            {
+                for (var checkCol = col - 1; checkCol <= col + 1; checkCol++)
+                {
+                    if (checkRow == row && checkCol >= col)
+                    {
+                        continue;
+                    }
+
+                    if (checkRow < 0 || checkCol < 0 || checkCol >= Columns)
+                    {
+                        continue;
+                    }
+
+                    if (board[checkRow, checkCol].Special != BallSpecial.Locked && board[checkRow, checkCol].Color == color)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static void PaintRun(BallCell[,] board, int row, int col, int rowStep, int colStep, int length, BlockPopXColor color)
@@ -170,6 +231,22 @@ namespace BlockPopX
             }
 
             board[row, col].Color = color;
+        }
+
+        private static void MarkRunAsPips(BallCell[,] board, int row, int col, int rowStep, int colStep, int length, int pips)
+        {
+            for (var index = 0; index < length; index++)
+            {
+                var nextRow = row + rowStep * index;
+                var nextCol = col + colStep * index;
+                if (nextRow < 0 || nextRow >= Rows || nextCol < 0 || nextCol >= Columns || board[nextRow, nextCol].Special == BallSpecial.Locked)
+                {
+                    continue;
+                }
+
+                board[nextRow, nextCol].Special = BallSpecial.Pip;
+                board[nextRow, nextCol].Pips = pips;
+            }
         }
 
         private static void AddLevelFeatures(BallCell[,] board, int level)

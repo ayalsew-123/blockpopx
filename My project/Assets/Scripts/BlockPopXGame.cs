@@ -255,6 +255,11 @@ namespace BlockPopX
             SaveBestScoreIfNeeded();
             ScoreChanged.Invoke(score);
 
+            if (TryCompleteLevel(points))
+            {
+                return;
+            }
+
             if (AllTouchableBallsGone())
             {
                 DropFreshWave("Fresh balls dropped from the top.");
@@ -623,6 +628,20 @@ namespace BlockPopX
             }
 
             return false;
+        }
+
+        private bool TryCompleteLevel(int points)
+        {
+            if (!IsGoalComplete())
+            {
+                return false;
+            }
+
+            isLevelComplete = true;
+            PlayLevelCompleteFeedback();
+            LevelComplete.Invoke();
+            SetMessage($"+{points} points. Level {level} clear!");
+            return true;
         }
 
         private int CountTouchableBalls()

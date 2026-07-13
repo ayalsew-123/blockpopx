@@ -2,6 +2,7 @@ using System;
 using BlockPopX;
 using TMPro;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -109,9 +110,9 @@ public static class BlockPopXSceneBuilder
         PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
         PlayerSettings.allowedAutorotateToLandscapeLeft = false;
         PlayerSettings.allowedAutorotateToLandscapeRight = false;
-        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Standalone, "com.blockpopx.game");
-        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.blockpopx.game");
-        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, "com.blockpopx.game");
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Standalone, "com.blockpopx.game");
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.blockpopx.game");
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.blockpopx.game");
         PlayerSettings.Android.bundleVersionCode = 1;
         PlayerSettings.iOS.buildNumber = "1";
         AssetDatabase.SaveAssets();
@@ -197,16 +198,16 @@ public static class BlockPopXSceneBuilder
         topRect.anchoredPosition = Vector2.zero;
 
         var levelText = CreateText("LevelText", topPanel.transform, "Level 1", 42f, TextAlignmentOptions.Left);
-        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(0.58f, 1f), new Vector2(24f, -20f), new Vector2(-8f, -78f));
+        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(0.58f, 1f), new Vector2(24f, -78f), new Vector2(-8f, -20f));
 
         var bestText = CreateText("BestText", topPanel.transform, "Best 0", 38f, TextAlignmentOptions.Right);
-        SetRect(bestText.rectTransform, new Vector2(0.58f, 1f), new Vector2(1f, 1f), new Vector2(8f, -20f), new Vector2(-24f, -78f));
+        SetRect(bestText.rectTransform, new Vector2(0.58f, 1f), new Vector2(1f, 1f), new Vector2(8f, -78f), new Vector2(-24f, -20f));
 
         var scoreText = CreateText("ScoreText", topPanel.transform, "Score 0", 46f, TextAlignmentOptions.Center);
-        SetRect(scoreText.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 1f), new Vector2(24f, -84f), new Vector2(-8f, -142f));
+        SetRect(scoreText.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 1f), new Vector2(24f, -142f), new Vector2(-8f, -84f));
 
         var foulsText = CreateText("FoulsText", topPanel.transform, "Fouls 0/3", 42f, TextAlignmentOptions.Right);
-        SetRect(foulsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(1f, 1f), new Vector2(8f, -84f), new Vector2(-24f, -142f));
+        SetRect(foulsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(1f, 1f), new Vector2(8f, -142f), new Vector2(-24f, -84f));
 
         var goalText = CreateText("GoalText", topPanel.transform, "Goal 0/0", 32f, TextAlignmentOptions.Center);
         SetRect(goalText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 90f), new Vector2(-24f, 150f));
