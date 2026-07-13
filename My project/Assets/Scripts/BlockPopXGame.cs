@@ -66,6 +66,7 @@ namespace BlockPopX
         private AudioClip levelClip;
         private Coroutine boardFeedbackRoutine;
         private int lastTapFrame = -1;
+        private int lastControlFrame = -1;
 
         public int CurrentLevel => level;
         public int CurrentScore => score;
@@ -135,27 +136,22 @@ namespace BlockPopX
 
         private void Update()
         {
-            if (board == null || isGameOver || isLevelComplete || isPaused)
-            {
-                return;
-            }
-
 #if ENABLE_INPUT_SYSTEM
             if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
             {
-                TryTapScreenPosition(Touchscreen.current.primaryTouch.position.ReadValue());
+                HandlePointerDown(Touchscreen.current.primaryTouch.position.ReadValue());
             }
 
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
-                TryTapScreenPosition(Mouse.current.position.ReadValue());
+                HandlePointerDown(Mouse.current.position.ReadValue());
             }
 #endif
 
 #if ENABLE_LEGACY_INPUT_MANAGER
             if (Input.GetMouseButtonDown(0))
             {
-                TryTapScreenPosition(Input.mousePosition);
+                HandlePointerDown(Input.mousePosition);
             }
 #endif
         }
@@ -316,6 +312,11 @@ namespace BlockPopX
 
         private void TryTapScreenPosition(Vector2 screenPosition)
         {
+            if (board == null || isGameOver || isLevelComplete || isPaused)
+            {
+                return;
+            }
+
             var camera = Camera.main;
             if (camera == null)
             {
@@ -330,6 +331,57 @@ namespace BlockPopX
             }
 
             TapCell(ballView.Row, ballView.Column);
+        }
+
+        private void HandlePointerDown(Vector2 screenPosition)
+        {
+            if (TryHandleControlTap(screenPosition))
+            {
+                return;
+            }
+
+            TryTapScreenPosition(screenPosition);
+        }
+
+        private bool TryHandleControlTap(Vector2 screenPosition)
+        {
+            if (Screen.width <= 0 || Screen.height <= 0)
+            {
+                return false;
+            }
+
+            var controlHeight = Mathf.Max(90f, Screen.height * 0.13f);
+            if (screenPosition.y > controlHeight)
+            {
+                return false;
+            }
+
+            var normalizedX = Mathf.Clamp01(screenPosition.x / Screen.width);
+            if (normalizedX < 0.25f)
+            {
+                TogglePause();
+                return true;
+            }
+
+            if (normalizedX < 0.5f)
+            {
+                RestartLevel();
+                return true;
+            }
+
+            if (normalizedX < 0.75f)
+            {
+                ToggleSound();
+                return true;
+            }
+
+            if (isLevelComplete)
+            {
+                NextLevel();
+                return true;
+            }
+
+            return false;
         }
 
         private void AddClearCell(List<Vector2Int> cellsToClear, bool[,] included, int row, int col)
@@ -384,16 +436,31 @@ namespace BlockPopX
 
         public void NextLevel()
         {
+            if (!TryBeginControlAction())
+            {
+                return;
+            }
+
             StartLevel(level + 1);
         }
 
         public void RestartLevel()
         {
+            if (!TryBeginControlAction())
+            {
+                return;
+            }
+
             StartLevel(level);
         }
 
         public void TogglePause()
         {
+            if (!TryBeginControlAction())
+            {
+                return;
+            }
+
             if (isGameOver || isLevelComplete)
             {
                 return;
@@ -409,7 +476,23 @@ namespace BlockPopX
 
         public void ToggleSound()
         {
+            if (!TryBeginControlAction())
+            {
+                return;
+            }
+
             SetSoundEnabled(!soundEnabled);
+        }
+
+        private bool TryBeginControlAction()
+        {
+            if (lastControlFrame == Time.frameCount)
+            {
+                return false;
+            }
+
+            lastControlFrame = Time.frameCount;
+            return true;
         }
 
         public void SetSoundEnabled(bool isEnabled)
