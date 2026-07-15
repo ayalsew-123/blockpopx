@@ -92,7 +92,7 @@ namespace BlockPopX
             LoadProgress();
             EnsureAudioSource();
             FitCameraToBoard();
-            StartLevel(level);
+            StartLevel(1);
             BestScoreChanged.Invoke(bestScore);
             HighestLevelChanged.Invoke(highestLevel);
             SoundChanged.Invoke(soundEnabled);

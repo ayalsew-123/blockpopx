@@ -61,6 +61,7 @@ public static class BlockPopXSceneBuilder
             serializedGame.FindProperty("cellSpacing").floatValue = 0.48f;
             serializedGame.FindProperty("ballScale").floatValue = 0.38f;
             serializedGame.FindProperty("boardPadding").floatValue = 0.9f;
+            serializedGame.FindProperty("level").intValue = 1;
             serializedGame.ApplyModifiedPropertiesWithoutUndo();
 
             var camera = Camera.main;
