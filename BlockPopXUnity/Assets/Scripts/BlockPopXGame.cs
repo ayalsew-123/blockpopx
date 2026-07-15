@@ -56,6 +56,7 @@ namespace BlockPopX
         private int collectedPips;
         private int firedRockets;
         private int foundPrizes;
+        private int levelStartScore;
         private bool isGameOver;
         private bool isLevelComplete;
         private bool isPaused;
@@ -160,12 +161,22 @@ namespace BlockPopX
 
         public void StartLevel(int nextLevel)
         {
+            StartLevel(nextLevel, true);
+        }
+
+        private void StartLevel(int nextLevel, bool resetRun)
+        {
             level = Mathf.Max(1, nextLevel);
             plan = LevelPlan.ForLevel(level);
             board = BoardGenerator.CreateBoard(level);
             views = new BallView[BoardGenerator.Rows, BoardGenerator.Columns];
-            score = 0;
-            fouls = 0;
+            if (resetRun)
+            {
+                score = 0;
+                fouls = 0;
+            }
+
+            levelStartScore = score;
             clearedBalls = 0;
             crackedLocks = 0;
             collectedPips = 0;
@@ -447,7 +458,7 @@ namespace BlockPopX
                 return;
             }
 
-            StartLevel(level + 1);
+            StartLevel(level + 1, false);
         }
 
         public void RestartLevel()
@@ -639,7 +650,7 @@ namespace BlockPopX
 
             var completedLevel = level;
             PlayLevelCompleteFeedback();
-            StartLevel(level + 1);
+            StartLevel(level + 1, false);
             SetMessage($"+{points} points. Level {completedLevel} clear! Now Level {level}: {plan.GoalLabel}.");
             return true;
         }
@@ -1136,7 +1147,7 @@ namespace BlockPopX
                 case LevelGoalKind.FindPrizes:
                     return foundPrizes >= plan.GoalTarget;
                 default:
-                    return score >= plan.ScoreTarget;
+                    return GetLevelScore() >= plan.ScoreTarget;
             }
         }
 
@@ -1160,8 +1171,13 @@ namespace BlockPopX
                 case LevelGoalKind.FindPrizes:
                     return $"Goal {Mathf.Min(foundPrizes, plan.GoalTarget)}/{plan.GoalTarget} prizes";
                 default:
-                    return $"Goal {Mathf.Min(score, plan.ScoreTarget)}/{plan.ScoreTarget} score";
+                    return $"Goal {Mathf.Min(GetLevelScore(), plan.ScoreTarget)}/{plan.ScoreTarget} score";
             }
+        }
+
+        private int GetLevelScore()
+        {
+            return Mathf.Max(0, score - levelStartScore);
         }
 
         private void RenderBoard()
