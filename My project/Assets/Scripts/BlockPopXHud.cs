@@ -138,7 +138,7 @@ namespace BlockPopX
         {
             if (levelText != null)
             {
-                levelText.text = $"Level {level}  {game.CurrentLevelTitle}  Best L{game.HighestLevel}";
+                levelText.text = $"Level {level}: {game.CurrentLevelTitle}";
             }
 
             UpdateGoalText();
@@ -279,7 +279,7 @@ namespace BlockPopX
         {
             if (goalText != null && game != null)
             {
-                goalText.text = game.CurrentGoalText;
+                goalText.text = $"Level {game.CurrentLevel} - {game.CurrentLevelTitle} | {game.CurrentGoalText}";
             }
         }
 

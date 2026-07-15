@@ -197,17 +197,18 @@ public static class BlockPopXSceneBuilder
         topRect.sizeDelta = new Vector2(0f, 300f);
         topRect.anchoredPosition = Vector2.zero;
 
-        var levelText = CreateText("LevelText", topPanel.transform, "Level 1", 42f, TextAlignmentOptions.Left);
-        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(0.58f, 1f), new Vector2(24f, -78f), new Vector2(-8f, -20f));
+        var levelText = CreateText("LevelText", topPanel.transform, "Level 1: Starter Pop", 50f, TextAlignmentOptions.Center);
+        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(24f, -80f), new Vector2(-24f, -16f));
+        levelText.color = new Color(0.18f, 0.93f, 1f);
 
         var bestText = CreateText("BestText", topPanel.transform, "Best 0", 38f, TextAlignmentOptions.Right);
-        SetRect(bestText.rectTransform, new Vector2(0.58f, 1f), new Vector2(1f, 1f), new Vector2(8f, -78f), new Vector2(-24f, -20f));
+        SetRect(bestText.rectTransform, new Vector2(0.62f, 1f), new Vector2(1f, 1f), new Vector2(8f, -142f), new Vector2(-24f, -84f));
 
         var scoreText = CreateText("ScoreText", topPanel.transform, "Score 0", 46f, TextAlignmentOptions.Center);
-        SetRect(scoreText.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 1f), new Vector2(24f, -142f), new Vector2(-8f, -84f));
+        SetRect(scoreText.rectTransform, new Vector2(0f, 1f), new Vector2(0.38f, 1f), new Vector2(24f, -142f), new Vector2(-8f, -84f));
 
         var foulsText = CreateText("FoulsText", topPanel.transform, "Fouls 0/3", 42f, TextAlignmentOptions.Right);
-        SetRect(foulsText.rectTransform, new Vector2(0.5f, 1f), new Vector2(1f, 1f), new Vector2(8f, -142f), new Vector2(-24f, -84f));
+        SetRect(foulsText.rectTransform, new Vector2(0.38f, 1f), new Vector2(0.62f, 1f), new Vector2(8f, -142f), new Vector2(-8f, -84f));
 
         var goalText = CreateText("GoalText", topPanel.transform, "Goal 0/0", 32f, TextAlignmentOptions.Center);
         SetRect(goalText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 90f), new Vector2(-24f, 150f));
