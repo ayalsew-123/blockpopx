@@ -16,6 +16,7 @@ namespace BlockPopX
         [SerializeField] private Button pauseButton;
         [SerializeField] private Button soundButton;
         [SerializeField] private Button restartButton;
+        [SerializeField] private Button nextButton;
         [SerializeField] private GameObject overlayPanel;
         [SerializeField] private TMP_Text overlayTitleText;
         [SerializeField] private TMP_Text overlayBodyText;
@@ -72,6 +73,11 @@ namespace BlockPopX
                 restartButton.onClick.AddListener(RestartLevel);
             }
 
+            if (nextButton != null)
+            {
+                nextButton.onClick.AddListener(NextLevel);
+            }
+
             if (overlayPrimaryButton != null)
             {
                 overlayPrimaryButton.onClick.AddListener(RestartLevel);
@@ -108,6 +114,11 @@ namespace BlockPopX
             if (restartButton != null)
             {
                 restartButton.onClick.RemoveListener(RestartLevel);
+            }
+
+            if (nextButton != null)
+            {
+                nextButton.onClick.RemoveListener(NextLevel);
             }
 
             if (overlayPrimaryButton != null)
@@ -228,6 +239,11 @@ namespace BlockPopX
         private void RestartLevel()
         {
             game?.RestartLevel();
+        }
+
+        private void NextLevel()
+        {
+            game?.NextLevel();
         }
 
         private void UpdateOverlay()

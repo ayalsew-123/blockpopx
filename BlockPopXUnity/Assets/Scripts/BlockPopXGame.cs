@@ -446,6 +446,17 @@ namespace BlockPopX
             StartLevel(level);
         }
 
+        public void NextLevel()
+        {
+            if (!TryBeginControlAction())
+            {
+                return;
+            }
+
+            StartLevel(level + 1, false);
+            SetMessage($"Level {level}: {plan.GoalLabel}. {plan.Hint}");
+        }
+
         public void TogglePause()
         {
             if (!TryBeginControlAction())

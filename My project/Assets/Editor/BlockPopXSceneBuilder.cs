@@ -228,13 +228,16 @@ public static class BlockPopXSceneBuilder
         bottomRect.anchoredPosition = Vector2.zero;
 
         var pauseButton = CreateButton("PauseButton", bottomPanel.transform, "Pause", new Color(0.1f, 0.85f, 1f));
-        SetRect(pauseButton.GetComponent<RectTransform>(), new Vector2(0f, 0.5f), new Vector2(0.333f, 0.5f), new Vector2(24f, -52f), new Vector2(-8f, 52f));
+        SetRect(pauseButton.GetComponent<RectTransform>(), new Vector2(0f, 0.5f), new Vector2(0.25f, 0.5f), new Vector2(24f, -52f), new Vector2(-8f, 52f));
 
         var restartButton = CreateButton("RestartButton", bottomPanel.transform, "Restart", new Color(0.1f, 0.85f, 1f));
-        SetRect(restartButton.GetComponent<RectTransform>(), new Vector2(0.333f, 0.5f), new Vector2(0.666f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
+        SetRect(restartButton.GetComponent<RectTransform>(), new Vector2(0.25f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
 
         var soundButton = CreateButton("SoundButton", bottomPanel.transform, "Sound", new Color(1f, 0.82f, 0.12f));
-        SetRect(soundButton.GetComponent<RectTransform>(), new Vector2(0.666f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -52f), new Vector2(-24f, 52f));
+        SetRect(soundButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.75f, 0.5f), new Vector2(8f, -52f), new Vector2(-8f, 52f));
+
+        var nextButton = CreateButton("NextButton", bottomPanel.transform, "Next", new Color(0.93f, 0.25f, 0.83f));
+        SetRect(nextButton.GetComponent<RectTransform>(), new Vector2(0.75f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -52f), new Vector2(-24f, 52f));
 
         var overlayPanel = CreatePanel("ResultOverlay", hudObject.transform, new Color(0f, 0f, 0f, 0.68f));
         Stretch(overlayPanel.GetComponent<RectTransform>());
@@ -265,6 +268,7 @@ public static class BlockPopXSceneBuilder
         serializedHud.FindProperty("pauseButton").objectReferenceValue = pauseButton;
         serializedHud.FindProperty("soundButton").objectReferenceValue = soundButton;
         serializedHud.FindProperty("restartButton").objectReferenceValue = restartButton;
+        serializedHud.FindProperty("nextButton").objectReferenceValue = nextButton;
         serializedHud.FindProperty("overlayPanel").objectReferenceValue = overlayPanel;
         serializedHud.FindProperty("overlayTitleText").objectReferenceValue = overlayTitleText;
         serializedHud.FindProperty("overlayBodyText").objectReferenceValue = overlayBodyText;
