@@ -76,7 +76,7 @@ namespace BlockPopX
         public int CurrentFouls => fouls;
         public int MaxFouls => unlimitedTaps ? 0 : maxFouls;
         public string CurrentMessage => currentMessage;
-        public string CurrentLevelTitle => plan != null ? plan.Title : "";
+        public string CurrentLevelTitle => plan != null && !string.IsNullOrEmpty(plan.Title) ? plan.Title : LevelPlan.ForLevel(level).Title;
         public string CurrentGoalText => GetGoalProgressText();
         public bool IsGameOver => isGameOver;
         public bool IsPaused => isPaused;

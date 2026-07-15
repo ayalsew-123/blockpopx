@@ -85,11 +85,7 @@ namespace BlockPopX
         private static void PaintLevelPuzzleLayout(BallCell[,] board, int level)
         {
             var stage = Mathf.Clamp(level, 1, 5);
-            if (stage <= 5)
-            {
-                ClearSpecials(board);
-            }
-
+            ClearSpecials(board);
             FillPuzzleBackground(board, level);
 
             if (stage == 1)
@@ -116,7 +112,19 @@ namespace BlockPopX
                 return;
             }
 
-            PaintPipMaze(board);
+            if (level == 5)
+            {
+                PaintPipMaze(board);
+                return;
+            }
+
+            if (level == 6)
+            {
+                PaintRocketLines(board);
+                return;
+            }
+
+            PaintPrizeMaze(board, level);
         }
 
         private static void PaintStarterPairs(BallCell[,] board)
@@ -195,6 +203,38 @@ namespace BlockPopX
             PaintPipRun(board, 8, 6, 0, 1, 3, BlockPopXColor.Orange, 2);
             PaintRun(board, 2, 6, 0, 1, 2, BlockPopXColor.Teal);
             PaintRun(board, 6, 2, 0, 1, 2, BlockPopXColor.Yellow);
+        }
+
+        private static void PaintRocketLines(BallCell[,] board)
+        {
+            PaintRun(board, 1, 0, 0, 1, 10, BlockPopXColor.Green);
+            PaintRun(board, 3, 0, 0, 1, 10, BlockPopXColor.Blue);
+            PaintRun(board, 5, 0, 0, 1, 10, BlockPopXColor.Purple);
+            PaintRun(board, 7, 0, 0, 1, 10, BlockPopXColor.Red);
+            PaintRun(board, 9, 0, 0, 1, 10, BlockPopXColor.Orange);
+
+            PaintRun(board, 0, 2, 1, 0, 10, BlockPopXColor.Teal);
+            PaintRun(board, 0, 6, 1, 0, 10, BlockPopXColor.Yellow);
+
+            SetSpecial(board, 1, 2, BallSpecial.Rocket, 0);
+            SetSpecial(board, 3, 6, BallSpecial.Rocket, 0);
+            SetSpecial(board, 5, 2, BallSpecial.Rocket, 0);
+            SetSpecial(board, 7, 6, BallSpecial.Rocket, 0);
+        }
+
+        private static void PaintPrizeMaze(BallCell[,] board, int level)
+        {
+            PaintPipMaze(board);
+            SetSpecial(board, 1, 8, BallSpecial.Prize, 0);
+            SetSpecial(board, 4, 1, BallSpecial.Prize, 0);
+            SetSpecial(board, 8, 4, BallSpecial.Rocket, 0);
+
+            if (level >= 8)
+            {
+                SetLocked(board, 2, 2);
+                SetLocked(board, 7, 7);
+                SetSpecial(board, 6, 8, BallSpecial.Prize, 0);
+            }
         }
 
         private static void PaintPipRun(BallCell[,] board, int row, int col, int rowStep, int colStep, int length, BlockPopXColor color, int pips)
@@ -296,6 +336,17 @@ namespace BlockPopX
                 board[nextRow, nextCol].Special = BallSpecial.Pip;
                 board[nextRow, nextCol].Pips = pips;
             }
+        }
+
+        private static void SetSpecial(BallCell[,] board, int row, int col, BallSpecial special, int pips)
+        {
+            if (row < 0 || row >= Rows || col < 0 || col >= Columns || board[row, col].Special == BallSpecial.Locked)
+            {
+                return;
+            }
+
+            board[row, col].Special = special;
+            board[row, col].Pips = pips;
         }
 
         private static void AddLevelFeatures(BallCell[,] board, int level)
