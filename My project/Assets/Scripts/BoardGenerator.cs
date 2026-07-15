@@ -85,75 +85,145 @@ namespace BlockPopX
         private static void PaintLevelPuzzleLayout(BallCell[,] board, int level)
         {
             var stage = Mathf.Clamp(level, 1, 5);
+            if (stage <= 5)
+            {
+                ClearSpecials(board);
+            }
+
             FillPuzzleBackground(board, level);
 
             if (stage == 1)
             {
-                for (var index = 0; index < 8; index++)
-                {
-                    var row = 1 + (index / 4) * 3;
-                    var col = 1 + (index % 4) * 2;
-                    var color = BlockPopXColorPalette.All[PositiveModulo(index, BlockPopXColorPalette.All.Length)];
-                    PaintRun(board, row, col, 0, 1, 2, color);
-                }
-
+                PaintStarterPairs(board);
                 return;
             }
 
             if (stage == 2)
             {
-                for (var index = 0; index < 10; index++)
-                {
-                    var row = 1 + PositiveModulo(index * 2, Rows - 2);
-                    var col = 1 + PositiveModulo(index * 3, Columns - 3);
-                    var color = BlockPopXColorPalette.All[PositiveModulo(level + index * 2, BlockPopXColorPalette.All.Length)];
-                    PaintRun(board, row, col, 0, 1, 2, color);
-                    PaintRun(board, Mathf.Min(row + 1, Rows - 2), Mathf.Min(col + 1, Columns - 2), 1, 0, 2, color);
-                }
-
+                PaintColorPaths(board);
                 return;
             }
 
             if (stage == 3)
             {
-                for (var row = 1; row < Rows - 1; row++)
-                {
-                    var col = 1 + PositiveModulo(row * 2 + level, Columns - 3);
-                    var color = BlockPopXColorPalette.All[PositiveModulo(row + level * 2, BlockPopXColorPalette.All.Length)];
-                    PaintRun(board, row, col, row % 2 == 0 ? 1 : -1, 1, 2, color);
-                }
-
-                PaintRun(board, 2, 1, 1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 4, BlockPopXColorPalette.All.Length)]);
-                PaintRun(board, 7, 2, -1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 7, BlockPopXColorPalette.All.Length)]);
+                PaintZigzagSteps(board);
                 return;
             }
 
             if (stage == 4)
             {
-                var centerRow = Rows / 2;
-                var centerCol = Columns / 2;
-                for (var offset = -3; offset <= 3; offset += 2)
-                {
-                    var color = BlockPopXColorPalette.All[PositiveModulo(level + offset + 6, BlockPopXColorPalette.All.Length)];
-                    PaintRun(board, centerRow + offset, centerCol - 2, 0, 1, 3, color);
-                    PaintRun(board, centerRow - 2, centerCol + offset, 1, 0, 3, color);
-                }
-
-                PaintRun(board, 1, 1, 1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 1, BlockPopXColorPalette.All.Length)]);
-                PaintRun(board, Rows - 2, 1, -1, 1, 3, BlockPopXColorPalette.All[PositiveModulo(level + 3, BlockPopXColorPalette.All.Length)]);
+                PaintLockGates(board);
                 return;
             }
 
-            for (var index = 0; index < 12; index++)
+            PaintPipMaze(board);
+        }
+
+        private static void PaintStarterPairs(BallCell[,] board)
+        {
+            PaintRun(board, 1, 1, 0, 1, 3, BlockPopXColor.Red);
+            PaintRun(board, 1, 6, 0, 1, 2, BlockPopXColor.Blue);
+            PaintRun(board, 3, 2, 0, 1, 2, BlockPopXColor.Green);
+            PaintRun(board, 3, 6, 0, 1, 3, BlockPopXColor.Yellow);
+            PaintRun(board, 5, 1, 0, 1, 2, BlockPopXColor.Purple);
+            PaintRun(board, 5, 5, 0, 1, 2, BlockPopXColor.Pink);
+            PaintRun(board, 7, 2, 0, 1, 3, BlockPopXColor.Orange);
+            PaintRun(board, 8, 6, 0, 1, 2, BlockPopXColor.Teal);
+        }
+
+        private static void PaintColorPaths(BallCell[,] board)
+        {
+            PaintRun(board, 1, 1, 0, 1, 4, BlockPopXColor.Red);
+            PaintRun(board, 2, 4, 1, 0, 3, BlockPopXColor.Red);
+            PaintRun(board, 1, 7, 1, 0, 4, BlockPopXColor.Blue);
+            PaintRun(board, 4, 4, 0, 1, 3, BlockPopXColor.Blue);
+            PaintRun(board, 6, 1, 0, 1, 4, BlockPopXColor.Green);
+            PaintRun(board, 6, 4, 1, 0, 3, BlockPopXColor.Green);
+            PaintRun(board, 8, 5, 0, 1, 4, BlockPopXColor.Purple);
+            PaintRun(board, 4, 1, 1, 1, 3, BlockPopXColor.Yellow);
+        }
+
+        private static void PaintZigzagSteps(BallCell[,] board)
+        {
+            PaintRun(board, 1, 1, 1, 1, 4, BlockPopXColor.Red);
+            PaintRun(board, 4, 4, -1, 1, 4, BlockPopXColor.Red);
+            PaintRun(board, 1, 8, 1, -1, 4, BlockPopXColor.Blue);
+            PaintRun(board, 4, 5, 1, 1, 4, BlockPopXColor.Blue);
+            PaintRun(board, 6, 1, 0, 1, 3, BlockPopXColor.Green);
+            PaintRun(board, 7, 3, 1, 1, 3, BlockPopXColor.Green);
+            PaintRun(board, 7, 8, 0, -1, 3, BlockPopXColor.Purple);
+            PaintRun(board, 8, 6, -1, -1, 3, BlockPopXColor.Purple);
+            PaintRun(board, 2, 2, 0, 1, 2, BlockPopXColor.Yellow);
+            PaintRun(board, 5, 6, 1, 0, 2, BlockPopXColor.Orange);
+        }
+
+        private static void PaintLockGates(BallCell[,] board)
+        {
+            SetLocked(board, 3, 4);
+            SetLocked(board, 3, 5);
+            SetLocked(board, 4, 4);
+            SetLocked(board, 5, 5);
+            SetLocked(board, 6, 4);
+            SetLocked(board, 6, 5);
+
+            PaintRun(board, 2, 3, 0, 1, 2, BlockPopXColor.Red);
+            PaintRun(board, 2, 5, 0, 1, 2, BlockPopXColor.Blue);
+            PaintRun(board, 4, 2, 0, 1, 2, BlockPopXColor.Green);
+            PaintRun(board, 4, 5, 0, 1, 3, BlockPopXColor.Yellow);
+            PaintRun(board, 5, 2, 0, 1, 2, BlockPopXColor.Purple);
+            PaintRun(board, 6, 6, 0, 1, 2, BlockPopXColor.Pink);
+            PaintRun(board, 7, 3, 0, 1, 2, BlockPopXColor.Orange);
+            PaintRun(board, 7, 5, 0, 1, 2, BlockPopXColor.Teal);
+        }
+
+        private static void PaintPipMaze(BallCell[,] board)
+        {
+            SetLocked(board, 2, 4);
+            SetLocked(board, 3, 4);
+            SetLocked(board, 4, 4);
+            SetLocked(board, 5, 5);
+            SetLocked(board, 6, 5);
+            SetLocked(board, 7, 5);
+            SetLocked(board, 4, 7);
+            SetLocked(board, 5, 2);
+
+            PaintPipRun(board, 1, 1, 0, 1, 3, BlockPopXColor.Red, 2);
+            PaintPipRun(board, 1, 6, 1, 0, 3, BlockPopXColor.Blue, 2);
+            PaintPipRun(board, 3, 1, 1, 1, 3, BlockPopXColor.Green, 3);
+            PaintPipRun(board, 5, 7, 1, -1, 3, BlockPopXColor.Purple, 2);
+            PaintPipRun(board, 7, 1, 0, 1, 4, BlockPopXColor.Pink, 1);
+            PaintPipRun(board, 8, 6, 0, 1, 3, BlockPopXColor.Orange, 2);
+            PaintRun(board, 2, 6, 0, 1, 2, BlockPopXColor.Teal);
+            PaintRun(board, 6, 2, 0, 1, 2, BlockPopXColor.Yellow);
+        }
+
+        private static void PaintPipRun(BallCell[,] board, int row, int col, int rowStep, int colStep, int length, BlockPopXColor color, int pips)
+        {
+            PaintRun(board, row, col, rowStep, colStep, length, color);
+            MarkRunAsPips(board, row, col, rowStep, colStep, length, pips);
+        }
+
+        private static void ClearSpecials(BallCell[,] board)
+        {
+            for (var row = 0; row < Rows; row++)
             {
-                var row = 1 + PositiveModulo(index * 3 + level, Rows - 2);
-                var col = 1 + PositiveModulo(index * 5 + level, Columns - 2);
-                var rowStep = index % 3 == 0 ? 1 : index % 3 == 1 ? 0 : -1;
-                var colStep = index % 2 == 0 ? 1 : 0;
-                var color = BlockPopXColorPalette.All[PositiveModulo(level + index * 3, BlockPopXColorPalette.All.Length)];
-                PaintRun(board, row, col, rowStep, colStep, 3, color);
-                MarkRunAsPips(board, row, col, rowStep, colStep, 3, 1 + index % 3);
+                for (var col = 0; col < Columns; col++)
+                {
+                    board[row, col].Special = BallSpecial.None;
+                    board[row, col].Pips = 0;
+                }
             }
+        }
+
+        private static void SetLocked(BallCell[,] board, int row, int col)
+        {
+            if (row < 0 || row >= Rows || col < 0 || col >= Columns)
+            {
+                return;
+            }
+
+            board[row, col].Special = BallSpecial.Locked;
+            board[row, col].Pips = 0;
         }
 
         private static void FillPuzzleBackground(BallCell[,] board, int level)

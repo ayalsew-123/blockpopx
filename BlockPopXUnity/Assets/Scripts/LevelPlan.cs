@@ -54,10 +54,10 @@ namespace BlockPopX
                 return new LevelPlan
                 {
                     Title = "Starter Pop",
-                    Hint = "Easy pairs teach the first pops.",
+                    Hint = "Simple side-by-side pairs. Learn the pop rhythm.",
                     GoalKind = LevelGoalKind.Score,
-                    GoalTarget = 180,
-                    ScoreTarget = 180,
+                    GoalTarget = 120,
+                    ScoreTarget = 120,
                     MinimumGroupSize = 2
                 };
             }
@@ -67,9 +67,9 @@ namespace BlockPopX
                 return new LevelPlan
                 {
                     Title = "Color Paths",
-                    Hint = "Follow short lines and side pairs.",
+                    Hint = "Follow short paths and L shapes.",
                     GoalKind = LevelGoalKind.ClearBalls,
-                    GoalTarget = 28,
+                    GoalTarget = 32,
                     ScoreTarget = 0,
                     MinimumGroupSize = 2,
                     ShuffleUnlocked = true
@@ -81,10 +81,10 @@ namespace BlockPopX
                 return new LevelPlan
                 {
                     Title = "Zigzag Steps",
-                    Hint = "Use diagonal and zigzag groups for bigger points.",
+                    Hint = "Look for diagonal steps before you tap.",
                     GoalKind = LevelGoalKind.Score,
-                    GoalTarget = 520,
-                    ScoreTarget = 520,
+                    GoalTarget = 600,
+                    ScoreTarget = 600,
                     MinimumGroupSize = 2,
                     ShuffleUnlocked = true,
                     GravityUnlocked = true
@@ -96,9 +96,9 @@ namespace BlockPopX
                 return new LevelPlan
                 {
                     Title = "Lock Gates",
-                    Hint = "Open the gate by clearing beside locked balls.",
+                    Hint = "Clear beside each lock to open the gate.",
                     GoalKind = LevelGoalKind.CrackLocks,
-                    GoalTarget = 5,
+                    GoalTarget = 6,
                     ScoreTarget = 0,
                     MinimumGroupSize = 2,
                     ShuffleUnlocked = true,
@@ -110,9 +110,9 @@ namespace BlockPopX
             return new LevelPlan
             {
                 Title = level == 5 ? "Pip Maze" : level == 6 ? "Rocket Lines" : "Prize Maze",
-                Hint = level == 5 ? "Plan around pip clusters and maze gaps." : level == 6 ? "Rockets clear full lines when popped." : "Prize balls give big rewards, but the board is tighter.",
+                Hint = level == 5 ? "Collect pip clusters hidden in a small maze." : level == 6 ? "Rockets clear full lines when popped." : "Prize balls give big rewards, but the board is tighter.",
                 GoalKind = level == 5 ? LevelGoalKind.CollectPips : level == 6 ? LevelGoalKind.FireRockets : LevelGoalKind.FindPrizes,
-                GoalTarget = level == 5 ? 12 : level == 6 ? 3 : 2 + (level - 7) / 2,
+                GoalTarget = level == 5 ? 18 : level == 6 ? 3 : 2 + (level - 7) / 2,
                 ScoreTarget = 0,
                 MinimumGroupSize = level >= 8 ? 3 : 2,
                 ShuffleUnlocked = true,
