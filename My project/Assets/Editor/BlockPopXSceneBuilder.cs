@@ -234,17 +234,13 @@ public static class BlockPopXSceneBuilder
         var soundButton = CreateButton("SoundButton", bottomPanel.transform, "Sound", new Color(1f, 0.82f, 0.12f));
         SetRect(soundButton.GetComponent<RectTransform>(), new Vector2(0.666f, 0.5f), new Vector2(1f, 0.5f), new Vector2(8f, -52f), new Vector2(-24f, 52f));
 
-        var nextLevelButton = CreateButton("NextLevelButton", bottomPanel.transform, "Next", new Color(1f, 0.28f, 0.86f));
-        SetRect(nextLevelButton.GetComponent<RectTransform>(), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, Vector2.zero);
-        nextLevelButton.gameObject.SetActive(false);
-
         var overlayPanel = CreatePanel("ResultOverlay", hudObject.transform, new Color(0f, 0f, 0f, 0.68f));
         Stretch(overlayPanel.GetComponent<RectTransform>());
 
         var overlayCard = CreatePanel("ResultCard", overlayPanel.transform, new Color(0.03f, 0.05f, 0.12f, 0.96f));
         SetRect(overlayCard.GetComponent<RectTransform>(), new Vector2(0.08f, 0.36f), new Vector2(0.92f, 0.66f), new Vector2(0f, 0f), new Vector2(0f, 0f));
 
-        var overlayTitleText = CreateText("OverlayTitle", overlayCard.transform, "Level Clear!", 64f, TextAlignmentOptions.Center);
+        var overlayTitleText = CreateText("OverlayTitle", overlayCard.transform, "Try Again", 64f, TextAlignmentOptions.Center);
         SetRect(overlayTitleText.rectTransform, new Vector2(0f, 0.58f), new Vector2(1f, 1f), new Vector2(32f, 0f), new Vector2(-32f, -28f));
         overlayTitleText.color = new Color(0.18f, 0.93f, 1f);
 
@@ -253,11 +249,8 @@ public static class BlockPopXSceneBuilder
         overlayBodyText.color = new Color(0.86f, 0.93f, 1f);
         overlayBodyText.textWrappingMode = TextWrappingModes.Normal;
 
-        var overlayPrimaryButton = CreateButton("OverlayPrimaryButton", overlayCard.transform, "Next", new Color(0.1f, 0.85f, 1f));
-        SetRect(overlayPrimaryButton.GetComponent<RectTransform>(), new Vector2(0.18f, 0.08f), new Vector2(0.5f, 0.28f), new Vector2(0f, 0f), new Vector2(-12f, 0f));
-
-        var overlaySecondaryButton = CreateButton("OverlaySecondaryButton", overlayCard.transform, "Retry", new Color(1f, 0.28f, 0.86f));
-        SetRect(overlaySecondaryButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.08f), new Vector2(0.82f, 0.28f), new Vector2(12f, 0f), new Vector2(0f, 0f));
+        var overlayPrimaryButton = CreateButton("OverlayPrimaryButton", overlayCard.transform, "Restart", new Color(0.1f, 0.85f, 1f));
+        SetRect(overlayPrimaryButton.GetComponent<RectTransform>(), new Vector2(0.34f, 0.08f), new Vector2(0.66f, 0.28f), Vector2.zero, Vector2.zero);
 
         var serializedHud = new SerializedObject(hud);
         serializedHud.FindProperty("game").objectReferenceValue = game;
@@ -270,12 +263,10 @@ public static class BlockPopXSceneBuilder
         serializedHud.FindProperty("pauseButton").objectReferenceValue = pauseButton;
         serializedHud.FindProperty("soundButton").objectReferenceValue = soundButton;
         serializedHud.FindProperty("restartButton").objectReferenceValue = restartButton;
-        serializedHud.FindProperty("nextLevelButton").objectReferenceValue = nextLevelButton;
         serializedHud.FindProperty("overlayPanel").objectReferenceValue = overlayPanel;
         serializedHud.FindProperty("overlayTitleText").objectReferenceValue = overlayTitleText;
         serializedHud.FindProperty("overlayBodyText").objectReferenceValue = overlayBodyText;
         serializedHud.FindProperty("overlayPrimaryButton").objectReferenceValue = overlayPrimaryButton;
-        serializedHud.FindProperty("overlaySecondaryButton").objectReferenceValue = overlaySecondaryButton;
         serializedHud.ApplyModifiedPropertiesWithoutUndo();
 
         overlayPanel.SetActive(false);

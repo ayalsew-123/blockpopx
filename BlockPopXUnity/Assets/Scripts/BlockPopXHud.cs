@@ -16,14 +16,10 @@ namespace BlockPopX
         [SerializeField] private Button pauseButton;
         [SerializeField] private Button soundButton;
         [SerializeField] private Button restartButton;
-        [SerializeField] private Button nextLevelButton;
         [SerializeField] private GameObject overlayPanel;
         [SerializeField] private TMP_Text overlayTitleText;
         [SerializeField] private TMP_Text overlayBodyText;
         [SerializeField] private Button overlayPrimaryButton;
-        [SerializeField] private Button overlaySecondaryButton;
-
-        private bool overlayPrimaryIsNextLevel;
 
         private void OnEnable()
         {
@@ -59,7 +55,6 @@ namespace BlockPopX
             game.MessageChanged.AddListener(OnMessageChanged);
             game.PauseChanged.AddListener(OnPauseChanged);
             game.SoundChanged.AddListener(OnSoundChanged);
-            game.LevelComplete.AddListener(OnLevelComplete);
             game.GameOver.AddListener(OnGameOver);
 
             if (pauseButton != null)
@@ -77,19 +72,9 @@ namespace BlockPopX
                 restartButton.onClick.AddListener(RestartLevel);
             }
 
-            if (nextLevelButton != null)
-            {
-                nextLevelButton.onClick.AddListener(NextLevel);
-            }
-
             if (overlayPrimaryButton != null)
             {
-                overlayPrimaryButton.onClick.AddListener(OverlayPrimaryAction);
-            }
-
-            if (overlaySecondaryButton != null)
-            {
-                overlaySecondaryButton.onClick.AddListener(RestartLevel);
+                overlayPrimaryButton.onClick.AddListener(RestartLevel);
             }
 
             RefreshAll();
@@ -107,7 +92,6 @@ namespace BlockPopX
                 game.MessageChanged.RemoveListener(OnMessageChanged);
                 game.PauseChanged.RemoveListener(OnPauseChanged);
                 game.SoundChanged.RemoveListener(OnSoundChanged);
-                game.LevelComplete.RemoveListener(OnLevelComplete);
                 game.GameOver.RemoveListener(OnGameOver);
             }
 
@@ -126,19 +110,9 @@ namespace BlockPopX
                 restartButton.onClick.RemoveListener(RestartLevel);
             }
 
-            if (nextLevelButton != null)
-            {
-                nextLevelButton.onClick.RemoveListener(NextLevel);
-            }
-
             if (overlayPrimaryButton != null)
             {
-                overlayPrimaryButton.onClick.RemoveListener(OverlayPrimaryAction);
-            }
-
-            if (overlaySecondaryButton != null)
-            {
-                overlaySecondaryButton.onClick.RemoveListener(RestartLevel);
+                overlayPrimaryButton.onClick.RemoveListener(RestartLevel);
             }
         }
 
@@ -157,7 +131,6 @@ namespace BlockPopX
             OnMessageChanged(game.CurrentMessage);
             OnPauseChanged(game.IsPaused);
             OnSoundChanged(game.SoundEnabled);
-            SetNextButtonVisible(false);
             UpdateOverlay();
         }
 
@@ -176,7 +149,6 @@ namespace BlockPopX
                 OnSoundChanged(game.SoundEnabled);
             }
 
-            SetNextButtonVisible(false);
             HideOverlay();
         }
 
@@ -234,22 +206,13 @@ namespace BlockPopX
             SetButtonLabel(soundButton, isSoundEnabled ? "Sound" : "Muted");
         }
 
-        private void OnLevelComplete()
-        {
-            SetNextButtonVisible(false);
-            HideOverlay();
-        }
-
         private void OnGameOver()
         {
-            SetNextButtonVisible(false);
             OnPauseChanged(false);
             ShowOverlay(
                 "Try Again",
                 $"Score {game.CurrentScore}\nFouls {game.CurrentFouls}",
-                "Restart",
-                false,
-                false);
+                "Restart");
         }
 
         private void TogglePause()
@@ -265,30 +228,6 @@ namespace BlockPopX
         private void RestartLevel()
         {
             game?.RestartLevel();
-        }
-
-        private void NextLevel()
-        {
-            game?.NextLevel();
-        }
-
-        private void OverlayPrimaryAction()
-        {
-            if (overlayPrimaryIsNextLevel)
-            {
-                NextLevel();
-                return;
-            }
-
-            RestartLevel();
-        }
-
-        private void SetNextButtonVisible(bool isVisible)
-        {
-            if (nextLevelButton != null)
-            {
-                nextLevelButton.gameObject.SetActive(isVisible);
-            }
         }
 
         private void UpdateOverlay()
@@ -308,10 +247,8 @@ namespace BlockPopX
             HideOverlay();
         }
 
-        private void ShowOverlay(string title, string body, string primaryLabel, bool primaryIsNextLevel, bool showSecondary)
+        private void ShowOverlay(string title, string body, string primaryLabel)
         {
-            overlayPrimaryIsNextLevel = primaryIsNextLevel;
-
             if (overlayPanel != null)
             {
                 overlayPanel.SetActive(true);
@@ -328,12 +265,6 @@ namespace BlockPopX
             }
 
             SetButtonLabel(overlayPrimaryButton, primaryLabel);
-
-            if (overlaySecondaryButton != null)
-            {
-                overlaySecondaryButton.gameObject.SetActive(showSecondary);
-                SetButtonLabel(overlaySecondaryButton, "Retry");
-            }
         }
 
         private void HideOverlay()

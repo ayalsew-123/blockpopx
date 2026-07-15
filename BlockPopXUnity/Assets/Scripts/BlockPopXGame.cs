@@ -42,7 +42,6 @@ namespace BlockPopX
         public UnityEvent<bool> PauseChanged = new UnityEvent<bool>();
         public UnityEvent<bool> SoundChanged = new UnityEvent<bool>();
         public UnityEvent GameOver = new UnityEvent();
-        public UnityEvent LevelComplete = new UnityEvent();
 
         private BallCell[,] board;
         private BallView[,] views;
@@ -58,7 +57,6 @@ namespace BlockPopX
         private int foundPrizes;
         private int levelStartScore;
         private bool isGameOver;
-        private bool isLevelComplete;
         private bool isPaused;
         private string currentMessage = "";
         private Sprite runtimeBallSprite;
@@ -81,7 +79,6 @@ namespace BlockPopX
         public string CurrentLevelTitle => plan != null ? plan.Title : "";
         public string CurrentGoalText => GetGoalProgressText();
         public bool IsGameOver => isGameOver;
-        public bool IsLevelComplete => isLevelComplete;
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
 
@@ -184,7 +181,6 @@ namespace BlockPopX
             foundPrizes = 0;
             dropWaveCounter = 0;
             isGameOver = false;
-            isLevelComplete = false;
             isPaused = false;
 
             if (level > highestLevel)
@@ -215,7 +211,7 @@ namespace BlockPopX
 
             lastTapFrame = Time.frameCount;
 
-            if (board == null || isGameOver || isLevelComplete || isPaused)
+            if (board == null || isGameOver || isPaused)
             {
                 return;
             }
@@ -279,11 +275,6 @@ namespace BlockPopX
             }
 
             var boardShifted = EnsurePlayableMove();
-            if (isLevelComplete)
-            {
-                return;
-            }
-
             SetMessage(boardShifted ? $"+{points} points. New match opened." : $"+{points} points. {GetGoalProgressText()}");
         }
 
@@ -329,7 +320,7 @@ namespace BlockPopX
 
         private void TryTapScreenPosition(Vector2 screenPosition)
         {
-            if (board == null || isGameOver || isLevelComplete || isPaused)
+            if (board == null || isGameOver || isPaused)
             {
                 return;
             }
@@ -392,12 +383,6 @@ namespace BlockPopX
                 return true;
             }
 
-            if (isLevelComplete)
-            {
-                NextLevel();
-                return true;
-            }
-
             return false;
         }
 
@@ -451,16 +436,6 @@ namespace BlockPopX
             return total;
         }
 
-        public void NextLevel()
-        {
-            if (!TryBeginControlAction())
-            {
-                return;
-            }
-
-            StartLevel(level + 1, false);
-        }
-
         public void RestartLevel()
         {
             if (!TryBeginControlAction())
@@ -478,7 +453,7 @@ namespace BlockPopX
                 return;
             }
 
-            if (isGameOver || isLevelComplete)
+            if (isGameOver)
             {
                 return;
             }
@@ -649,7 +624,7 @@ namespace BlockPopX
             }
 
             var completedLevel = level;
-            PlayLevelCompleteFeedback();
+            PlayRewardFeedback();
             StartLevel(level + 1, false);
             SetMessage($"+{points} points. Level {completedLevel} clear! Now Level {level}: {plan.GoalLabel}.");
             return true;
@@ -763,7 +738,7 @@ namespace BlockPopX
 
             if (droppedCells.Count > 0)
             {
-                PlayLevelCompleteFeedback();
+                PlayRewardFeedback();
                 SetMessage(message);
             }
 
@@ -1071,7 +1046,7 @@ namespace BlockPopX
 
         private void AddFoul(string message)
         {
-            if (isGameOver || isLevelComplete)
+            if (isGameOver)
             {
                 return;
             }
@@ -1310,9 +1285,9 @@ namespace BlockPopX
             PulseBoard(0.965f, 0.13f);
         }
 
-        private void PlayLevelCompleteFeedback()
+        private void PlayRewardFeedback()
         {
-            PlayTone(ref levelClip, "BlockPopX Level Clear", 860f, 0.2f, 0.3f);
+            PlayTone(ref levelClip, "BlockPopX Reward", 860f, 0.2f, 0.3f);
             PulseBoard(1.08f, 0.22f);
         }
 
