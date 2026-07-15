@@ -89,6 +89,7 @@ namespace BlockPopX
 
         private void Start()
         {
+            ApplyDefaultBoardSizing();
             LoadProgress();
             EnsureAudioSource();
             FitCameraToBoard();
@@ -132,6 +133,13 @@ namespace BlockPopX
             cellSpacing = Mathf.Max(0.32f, cellSpacing);
             ballScale = Mathf.Max(0.24f, ballScale);
             boardPadding = Mathf.Max(0.25f, boardPadding);
+        }
+
+        private void ApplyDefaultBoardSizing()
+        {
+            cellSpacing = 0.48f;
+            ballScale = 0.38f;
+            boardPadding = 0.9f;
         }
 
         private void Update()
@@ -193,6 +201,7 @@ namespace BlockPopX
 
             ClearBoardViews();
             ResetBoardScale();
+            FillMissingBoardCells();
             RenderBoard();
             LevelChanged.Invoke(level);
             ScoreChanged.Invoke(score);
@@ -953,6 +962,27 @@ namespace BlockPopX
                     var view = CreateBallView(row, col);
                     view.Bind(this, row, col, board[row, col]);
                     views[row, col] = view;
+                }
+            }
+        }
+
+        private void FillMissingBoardCells()
+        {
+            if (board == null)
+            {
+                board = BoardGenerator.CreateBoard(level);
+            }
+
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (board[row, col] == null)
+                    {
+                        board[row, col] = new BallCell(BlockPopXColorPalette.All[(row + col) % BlockPopXColorPalette.All.Length]);
+                    }
+
+                    board[row, col].IsEmpty = false;
                 }
             }
         }
