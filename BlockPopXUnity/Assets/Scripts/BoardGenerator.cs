@@ -224,10 +224,14 @@ namespace BlockPopX
 
             board[row, col].Special = BallSpecial.Locked;
             board[row, col].Pips = 0;
+            board[row, col].Color = BlockPopXColor.Teal;
         }
 
         private static void FillPuzzleBackground(BallCell[,] board, int level)
         {
+            var stage = Mathf.Clamp(level, 1, 5);
+            var palette = BlockPopXColorPalette.All;
+
             for (var row = 0; row < Rows; row++)
             {
                 for (var col = 0; col < Columns; col++)
@@ -237,52 +241,27 @@ namespace BlockPopX
                         continue;
                     }
 
-                    board[row, col].Color = ChooseSeparatedColor(board, row, col, level);
-                }
-            }
-        }
-
-        private static BlockPopXColor ChooseSeparatedColor(BallCell[,] board, int row, int col, int level)
-        {
-            var palette = BlockPopXColorPalette.All;
-            var start = PositiveModulo(level * 7 + row * 3 + col * 5, palette.Length);
-
-            for (var offset = 0; offset < palette.Length; offset++)
-            {
-                var color = palette[PositiveModulo(start + offset, palette.Length)];
-                if (!MatchesPreviousNeighbor(board, row, col, color))
-                {
-                    return color;
-                }
-            }
-
-            return palette[start];
-        }
-
-        private static bool MatchesPreviousNeighbor(BallCell[,] board, int row, int col, BlockPopXColor color)
-        {
-            for (var checkRow = row - 1; checkRow <= row; checkRow++)
-            {
-                for (var checkCol = col - 1; checkCol <= col + 1; checkCol++)
-                {
-                    if (checkRow == row && checkCol >= col)
+                    var group = col / 2;
+                    if (stage == 2)
                     {
-                        continue;
+                        group = row < 5 ? (row / 2) * 5 + col / 2 : (col / 2) * 3 + (row - 5) / 2;
+                    }
+                    else if (stage == 3)
+                    {
+                        group = PositiveModulo(row + col / 2 + (row % 2 == 0 ? 0 : 3), palette.Length);
+                    }
+                    else if (stage == 4)
+                    {
+                        group = (row / 2) * 5 + col / 2 + (col >= 4 && col <= 5 ? 4 : 0);
+                    }
+                    else if (stage >= 5)
+                    {
+                        group = PositiveModulo((row / 2) * 4 + col / 2 + Mathf.Abs(row - col), palette.Length);
                     }
 
-                    if (checkRow < 0 || checkCol < 0 || checkCol >= Columns)
-                    {
-                        continue;
-                    }
-
-                    if (board[checkRow, checkCol].Special != BallSpecial.Locked && board[checkRow, checkCol].Color == color)
-                    {
-                        return true;
-                    }
+                    board[row, col].Color = palette[PositiveModulo(level + row * 2 + group, palette.Length)];
                 }
             }
-
-            return false;
         }
 
         private static void PaintRun(BallCell[,] board, int row, int col, int rowStep, int colStep, int length, BlockPopXColor color)
