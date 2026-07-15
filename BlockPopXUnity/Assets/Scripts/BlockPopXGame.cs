@@ -274,8 +274,7 @@ namespace BlockPopX
                 return;
             }
 
-            var boardShifted = EnsurePlayableMove();
-            SetMessage(boardShifted ? $"+{points} points. New match opened." : $"+{points} points. {GetGoalProgressText()}");
+            SetMessage($"+{points} points. {GetGoalProgressText()}");
         }
 
         private List<Vector2Int> BuildClearSet(List<Vector2Int> group)
@@ -590,22 +589,6 @@ namespace BlockPopX
             views[row, col]?.Bind(this, row, col, board[row, col]);
         }
 
-        private bool EnsurePlayableMove()
-        {
-            if (HasPlayableMove())
-            {
-                return false;
-            }
-
-            if (CountTouchableBalls() < plan.MinimumGroupSize)
-            {
-                DropFreshWave("Fresh balls dropped from the top.");
-                return true;
-            }
-
-            return OpenNextPlayableMatch();
-        }
-
         private bool HasPlayableMove()
         {
             for (var row = 0; row < BoardGenerator.Rows; row++)
@@ -639,23 +622,6 @@ namespace BlockPopX
             StartLevel(level + 1, false);
             SetMessage($"+{points} points. Level {completedLevel} clear! Now Level {level}: {plan.GoalLabel}.");
             return true;
-        }
-
-        private int CountTouchableBalls()
-        {
-            var count = 0;
-            for (var row = 0; row < BoardGenerator.Rows; row++)
-            {
-                for (var col = 0; col < BoardGenerator.Columns; col++)
-                {
-                    if (!board[row, col].IsEmpty && board[row, col].Special != BallSpecial.Locked)
-                    {
-                        count++;
-                    }
-                }
-            }
-
-            return count;
         }
 
         private bool OpenNextPlayableMatch()
