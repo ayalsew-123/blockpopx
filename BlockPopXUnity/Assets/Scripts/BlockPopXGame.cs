@@ -58,6 +58,7 @@ namespace BlockPopX
         private int levelStartScore;
         private bool isGameOver;
         private bool isPaused;
+        private bool isLevelComplete;
         private string currentMessage = "";
         private Sprite runtimeBallSprite;
         private AudioSource audioSource;
@@ -67,7 +68,6 @@ namespace BlockPopX
         private Coroutine boardFeedbackRoutine;
         private int lastTapFrame = -1;
         private int lastControlFrame = -1;
-        private int dropWaveCounter;
 
         public int CurrentLevel => level;
         public int CurrentScore => score;
@@ -81,6 +81,7 @@ namespace BlockPopX
         public bool IsGameOver => isGameOver;
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
+        public bool IsLevelComplete => isLevelComplete;
 
         private void Awake()
         {
@@ -187,9 +188,9 @@ namespace BlockPopX
             collectedPips = 0;
             firedRockets = 0;
             foundPrizes = 0;
-            dropWaveCounter = 0;
             isGameOver = false;
             isPaused = false;
+            isLevelComplete = false;
 
             if (level > highestLevel)
             {
@@ -220,7 +221,7 @@ namespace BlockPopX
 
             lastTapFrame = Time.frameCount;
 
-            if (board == null || isGameOver || isPaused)
+            if (board == null || isGameOver || isPaused || isLevelComplete)
             {
                 return;
             }
@@ -271,15 +272,10 @@ namespace BlockPopX
             SaveBestScoreIfNeeded();
             ScoreChanged.Invoke(score);
 
+            ApplyGravityAndRefill();
+
             if (TryCompleteLevel(points))
             {
-                return;
-            }
-
-            if (AllTouchableBallsGone())
-            {
-                DropFreshWave("Fresh balls dropped from the top.");
-                SetMessage($"+{points} points. Fresh balls dropped from the top.");
                 return;
             }
 
@@ -461,6 +457,12 @@ namespace BlockPopX
                 return;
             }
 
+            if (!isLevelComplete)
+            {
+                SetMessage("Finish this level first.");
+                return;
+            }
+
             StartLevel(level + 1, false);
             SetMessage($"Level {level}: {plan.GoalLabel}. {plan.Hint}");
         }
@@ -598,27 +600,6 @@ namespace BlockPopX
             views[row, col]?.Bind(this, row, col, board[row, col]);
         }
 
-        private bool HasPlayableMove()
-        {
-            for (var row = 0; row < BoardGenerator.Rows; row++)
-            {
-                for (var col = 0; col < BoardGenerator.Columns; col++)
-                {
-                    if (board[row, col].IsEmpty || board[row, col].Special == BallSpecial.Locked)
-                    {
-                        continue;
-                    }
-
-                    if (FindConnectedGroup(row, col).Count >= plan.MinimumGroupSize)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
         private bool TryCompleteLevel(int points)
         {
             if (!IsGoalComplete())
@@ -626,109 +607,75 @@ namespace BlockPopX
                 return false;
             }
 
-            var completedLevel = level;
+            isLevelComplete = true;
             PlayRewardFeedback();
-            StartLevel(level + 1, false);
-            SetMessage($"+{points} points. Level {completedLevel} clear! Now Level {level}: {plan.GoalLabel}.");
+            SetMessage($"+{points} points. Level {level} complete! Tap Next.");
             return true;
         }
 
-        private bool OpenNextPlayableMatch()
+        private void ApplyGravityAndRefill()
         {
-            for (var row = 0; row < BoardGenerator.Rows; row++)
+            var refillSource = BoardGenerator.CreateBoard(level);
+
+            for (var col = 0; col < BoardGenerator.Columns; col++)
             {
-                for (var col = 0; col < BoardGenerator.Columns; col++)
-                {
-                    if (board[row, col].IsEmpty || board[row, col].Special == BallSpecial.Locked)
-                    {
-                        continue;
-                    }
+                var writeRow = BoardGenerator.Rows - 1;
 
-                    var cluster = CollectNearbyTouchableCells(row, col);
-                    var color = board[row, col].Color;
-
-                    if (cluster.Count < plan.MinimumGroupSize)
-                    {
-                        var emptyCells = CollectNearbyEmptyCells(row, col);
-                        while (cluster.Count < plan.MinimumGroupSize && emptyCells.Count > 0)
-                        {
-                            var newCell = emptyCells[0];
-                            emptyCells.RemoveAt(0);
-                            CreatePlayableCell(newCell.x, newCell.y, color);
-                            cluster.Add(newCell);
-                        }
-                    }
-
-                    if (cluster.Count < plan.MinimumGroupSize)
-                    {
-                        continue;
-                    }
-
-                    for (var index = 0; index < plan.MinimumGroupSize; index++)
-                    {
-                        var cell = cluster[index];
-                        board[cell.x, cell.y].Color = color;
-                        views[cell.x, cell.y]?.Bind(this, cell.x, cell.y, board[cell.x, cell.y]);
-                    }
-
-                    PulseBoard(1.045f, 0.16f);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool DropFreshWave(string message)
-        {
-            var droppedCells = new List<Vector2Int>();
-            dropWaveCounter++;
-            board = BoardGenerator.CreateBoard(level);
-            views = new BallView[BoardGenerator.Rows, BoardGenerator.Columns];
-            ClearBoardViews();
-
-            for (var row = 0; row < BoardGenerator.Rows; row++)
-            {
-                for (var col = 0; col < BoardGenerator.Columns; col++)
+                for (var row = BoardGenerator.Rows - 1; row >= 0; row--)
                 {
                     if (board[row, col].IsEmpty)
                     {
                         continue;
                     }
 
-                    droppedCells.Add(new Vector2Int(row, col));
+                    var cellData = board[row, col];
+                    var view = views[row, col];
+
+                    if (writeRow != row)
+                    {
+                        board[writeRow, col] = cellData;
+                        board[row, col] = CreateEmptyCell();
+                        views[writeRow, col] = view;
+                        views[row, col] = null;
+
+                        if (view != null)
+                        {
+                            view.Bind(this, writeRow, col, cellData);
+                            StartCoroutine(DropBallRoutine(view.transform, GetWorldPosition(writeRow, col), 0.16f + (writeRow - row) * 0.02f));
+                        }
+                    }
+
+                    writeRow--;
                 }
-            }
 
-            for (var index = 0; index < droppedCells.Count; index++)
-            {
-                var cell = droppedCells[index];
-                var row = cell.x;
-                var col = cell.y;
-
-                if (views[row, col] == null)
+                for (var row = writeRow; row >= 0; row--)
                 {
-                    views[row, col] = CreateBallView(row, col);
+                    var refillCell = CreateRefillCell(refillSource, row, col);
+                    board[row, col] = refillCell;
+
+                    var view = CreateBallView(row, col);
+                    var targetPosition = GetWorldPosition(row, col);
+                    view.transform.position = targetPosition + Vector3.up * (cellSpacing * (BoardGenerator.Rows + 1 - row));
+                    view.Bind(this, row, col, refillCell);
+                    views[row, col] = view;
+                    StartCoroutine(DropBallRoutine(view.transform, targetPosition, 0.22f + row * 0.015f));
                 }
-
-                var targetPosition = GetWorldPosition(row, col);
-                views[row, col].transform.position = targetPosition + Vector3.up * (cellSpacing * (BoardGenerator.Rows + 2 + row * 0.25f));
-                views[row, col].Bind(this, row, col, board[row, col]);
-                StartCoroutine(DropBallRoutine(views[row, col].transform, targetPosition, 0.22f + row * 0.018f));
             }
+        }
 
-            if (!HasPlayableMove())
+        private static BallCell CreateEmptyCell()
+        {
+            return new BallCell(BlockPopXColor.Blue)
             {
-                OpenNextPlayableMatch();
-            }
+                IsEmpty = true
+            };
+        }
 
-            if (droppedCells.Count > 0)
-            {
-                PlayRewardFeedback();
-                SetMessage(message);
-            }
-
-            return droppedCells.Count > 0;
+        private static BallCell CreateRefillCell(BallCell[,] source, int row, int col)
+        {
+            var cell = source[row, col].Clone();
+            cell.IsEmpty = false;
+            return cell;
         }
 
         private IEnumerator DropBallRoutine(Transform ballTransform, Vector3 targetPosition, float duration)
@@ -758,83 +705,6 @@ namespace BlockPopX
             {
                 ballTransform.position = targetPosition;
             }
-        }
-
-        private List<Vector2Int> CollectNearbyTouchableCells(int startRow, int startCol)
-        {
-            var cells = new List<Vector2Int> { new Vector2Int(startRow, startCol) };
-
-            for (var row = startRow - 1; row <= startRow + 1 && cells.Count < plan.MinimumGroupSize; row++)
-            {
-                for (var col = startCol - 1; col <= startCol + 1 && cells.Count < plan.MinimumGroupSize; col++)
-                {
-                    if (!IsInside(row, col) || (row == startRow && col == startCol))
-                    {
-                        continue;
-                    }
-
-                    if (!board[row, col].IsEmpty && board[row, col].Special != BallSpecial.Locked)
-                    {
-                        cells.Add(new Vector2Int(row, col));
-                    }
-                }
-            }
-
-            return cells;
-        }
-
-        private List<Vector2Int> CollectNearbyEmptyCells(int startRow, int startCol)
-        {
-            var cells = new List<Vector2Int>();
-
-            for (var row = startRow - 1; row <= startRow + 1; row++)
-            {
-                for (var col = startCol - 1; col <= startCol + 1; col++)
-                {
-                    if (!IsInside(row, col) || (row == startRow && col == startCol))
-                    {
-                        continue;
-                    }
-
-                    if (board[row, col].IsEmpty)
-                    {
-                        cells.Add(new Vector2Int(row, col));
-                    }
-                }
-            }
-
-            return cells;
-        }
-
-        private void CreatePlayableCell(int row, int col, BlockPopXColor color)
-        {
-            board[row, col].Color = color;
-            board[row, col].Special = BallSpecial.None;
-            board[row, col].Pips = 0;
-            board[row, col].IsEmpty = false;
-
-            if (views[row, col] == null)
-            {
-                views[row, col] = CreateBallView(row, col);
-            }
-
-            views[row, col].Bind(this, row, col, board[row, col]);
-        }
-
-        private bool AllTouchableBallsGone()
-        {
-            for (var row = 0; row < BoardGenerator.Rows; row++)
-            {
-                for (var col = 0; col < BoardGenerator.Columns; col++)
-                {
-                    if (!board[row, col].IsEmpty && board[row, col].Special != BallSpecial.Locked)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
         }
 
         private void AddFoul(string message)
