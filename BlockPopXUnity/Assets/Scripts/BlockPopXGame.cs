@@ -32,6 +32,11 @@ namespace BlockPopX
         [SerializeField] private bool soundEnabled = true;
         [SerializeField] private float boardPulseScale = 1.035f;
 
+        [Header("Shape Drag")]
+        [SerializeField] private bool shapeDragEnabled = true;
+        [SerializeField] private Transform shapeTrayRoot;
+        [SerializeField] private float shapeTrayOffset = 0.8f;
+
         [Header("Events")]
         public UnityEvent<int> ScoreChanged = new UnityEvent<int>();
         public UnityEvent<int> BestScoreChanged = new UnityEvent<int>();
@@ -68,6 +73,20 @@ namespace BlockPopX
         private Coroutine boardFeedbackRoutine;
         private int lastTapFrame = -1;
         private int lastControlFrame = -1;
+        private ShapePieceView[] shapePieces;
+
+        private static readonly Vector2Int[][] ShapeLibrary =
+        {
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 1) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 0) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 0) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(1, 1) },
+            new[] { new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(2, 1) },
+            new[] { new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2), new Vector2Int(2, 1) }
+        };
 
         public int CurrentLevel => level;
         public int CurrentScore => score;
@@ -82,6 +101,7 @@ namespace BlockPopX
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
         public bool IsLevelComplete => isLevelComplete;
+        public bool CanDragShape => shapeDragEnabled && !isGameOver && !isPaused && !isLevelComplete && board != null;
 
         private void Awake()
         {
@@ -204,6 +224,7 @@ namespace BlockPopX
             ResetBoardScale();
             FillMissingBoardCells();
             RenderBoard();
+            RefreshShapeTray();
             LevelChanged.Invoke(level);
             ScoreChanged.Invoke(score);
             BestScoreChanged.Invoke(bestScore);
@@ -276,10 +297,54 @@ namespace BlockPopX
 
             if (TryCompleteLevel(points))
             {
+                ClearShapeTray();
                 return;
             }
 
+            RefreshShapeTray();
             SetMessage($"+{points} points. {GetGoalProgressText()}");
+        }
+
+        public void TryPlaceShape(ShapePieceView shapePiece, Vector3 worldPosition)
+        {
+            if (shapePiece == null || !CanDragShape)
+            {
+                shapePiece?.ReturnHome();
+                return;
+            }
+
+            var anchor = WorldToBoardCell(worldPosition);
+            if (!TryGetShapeCells(anchor.x, anchor.y, shapePiece.Offsets, shapePiece.Color, out var cellsToClear))
+            {
+                shapePiece.ReturnHome();
+                AddFoul("Shape must cover matching color cells.");
+                return;
+            }
+
+            foreach (var cell in cellsToClear)
+            {
+                ClearCell(cell);
+                CrackAdjacentLocks(cell.x, cell.y);
+            }
+
+            var points = cellsToClear.Count * cellsToClear.Count * 12;
+            clearedBalls += cellsToClear.Count;
+            PlayPopFeedback(cellsToClear.Count);
+            score += points;
+            SaveBestScoreIfNeeded();
+            ScoreChanged.Invoke(score);
+            Destroy(shapePiece.gameObject);
+
+            ApplyGravityAndRefill();
+
+            if (TryCompleteLevel(points))
+            {
+                ClearShapeTray();
+                return;
+            }
+
+            RefreshShapeTray();
+            SetMessage($"+{points} shape points. {GetGoalProgressText()}");
         }
 
         private List<Vector2Int> BuildClearSet(List<Vector2Int> group)
@@ -613,6 +678,178 @@ namespace BlockPopX
             return true;
         }
 
+        private void RefreshShapeTray()
+        {
+            ClearShapeTray();
+
+            if (!shapeDragEnabled || isLevelComplete || isGameOver)
+            {
+                return;
+            }
+
+            EnsureShapeTrayRoot();
+            shapePieces = new ShapePieceView[3];
+
+            for (var slot = 0; slot < shapePieces.Length; slot++)
+            {
+                if (!TryChooseShape(slot, out var offsets, out var color))
+                {
+                    continue;
+                }
+
+                var pieceObject = new GameObject($"DragShape {slot + 1}");
+                pieceObject.transform.SetParent(shapeTrayRoot, false);
+                var piece = pieceObject.AddComponent<ShapePieceView>();
+                piece.Setup(this, slot, offsets, color, GetShapeTrayPosition(slot), cellSpacing, GetRuntimeBallSprite());
+                shapePieces[slot] = piece;
+            }
+        }
+
+        private void ClearShapeTray()
+        {
+            if (shapePieces != null)
+            {
+                foreach (var piece in shapePieces)
+                {
+                    if (piece != null)
+                    {
+                        Destroy(piece.gameObject);
+                    }
+                }
+            }
+
+            shapePieces = null;
+
+            if (shapeTrayRoot == null)
+            {
+                return;
+            }
+
+            for (var i = shapeTrayRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(shapeTrayRoot.GetChild(i).gameObject);
+            }
+        }
+
+        private bool TryChooseShape(int slot, out Vector2Int[] offsets, out BlockPopXColor color)
+        {
+            var unlockedCount = Mathf.Clamp(2 + level + slot, 2, ShapeLibrary.Length);
+            for (var attempt = 0; attempt < ShapeLibrary.Length; attempt++)
+            {
+                var index = PositiveModulo(level * 3 + slot * 5 + attempt, unlockedCount);
+                offsets = ShapeLibrary[index];
+
+                if (TryFindShapeColor(offsets, level + slot + attempt, out color))
+                {
+                    return true;
+                }
+            }
+
+            offsets = ShapeLibrary[0];
+            return TryFindShapeColor(offsets, level + slot, out color);
+        }
+
+        private bool TryFindShapeColor(IReadOnlyList<Vector2Int> offsets, int seed, out BlockPopXColor color)
+        {
+            for (var rowAttempt = 0; rowAttempt < BoardGenerator.Rows; rowAttempt++)
+            {
+                var row = PositiveModulo(seed + rowAttempt * 3, BoardGenerator.Rows);
+                for (var colAttempt = 0; colAttempt < BoardGenerator.Columns; colAttempt++)
+                {
+                    var col = PositiveModulo(seed * 2 + colAttempt * 5, BoardGenerator.Columns);
+                    if (TryReadShapeColor(row, col, offsets, out color))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            color = BlockPopXColor.Red;
+            return false;
+        }
+
+        private bool TryReadShapeColor(int anchorRow, int anchorCol, IReadOnlyList<Vector2Int> offsets, out BlockPopXColor color)
+        {
+            color = BlockPopXColor.Red;
+
+            if (offsets == null || offsets.Count == 0)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < offsets.Count; index++)
+            {
+                var row = anchorRow + offsets[index].x;
+                var col = anchorCol + offsets[index].y;
+                if (!IsInside(row, col) || board[row, col].IsEmpty || board[row, col].Special == BallSpecial.Locked)
+                {
+                    return false;
+                }
+
+                if (index == 0)
+                {
+                    color = board[row, col].Color;
+                }
+                else if (board[row, col].Color != color)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool TryGetShapeCells(int anchorRow, int anchorCol, IReadOnlyList<Vector2Int> offsets, BlockPopXColor color, out List<Vector2Int> cells)
+        {
+            cells = new List<Vector2Int>();
+
+            if (offsets == null || offsets.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (var offset in offsets)
+            {
+                var row = anchorRow + offset.x;
+                var col = anchorCol + offset.y;
+                if (!IsInside(row, col) || board[row, col].IsEmpty || board[row, col].Special == BallSpecial.Locked || board[row, col].Color != color)
+                {
+                    cells.Clear();
+                    return false;
+                }
+
+                cells.Add(new Vector2Int(row, col));
+            }
+
+            return cells.Count >= plan.MinimumGroupSize;
+        }
+
+        private Vector2Int WorldToBoardCell(Vector3 worldPosition)
+        {
+            var col = Mathf.RoundToInt(worldPosition.x / cellSpacing + (BoardGenerator.Columns - 1) * 0.5f);
+            var row = Mathf.RoundToInt((BoardGenerator.Rows - 1) * 0.5f - worldPosition.y / cellSpacing);
+            return new Vector2Int(row, col);
+        }
+
+        private Vector3 GetShapeTrayPosition(int slot)
+        {
+            var y = GetWorldPosition(BoardGenerator.Rows - 1, 0).y - shapeTrayOffset;
+            var x = (slot - 1) * cellSpacing * 3.0f;
+            return new Vector3(x, y, 0f);
+        }
+
+        private void EnsureShapeTrayRoot()
+        {
+            if (shapeTrayRoot != null)
+            {
+                return;
+            }
+
+            var trayObject = new GameObject("ShapeTrayRoot");
+            trayObject.transform.SetParent(transform, false);
+            shapeTrayRoot = trayObject.transform;
+        }
+
         private void ApplyGravityAndRefill()
         {
             var refillSource = BoardGenerator.CreateBoard(level);
@@ -886,14 +1123,14 @@ namespace BlockPopX
             }
 
             var boardWidth = (BoardGenerator.Columns - 1) * cellSpacing + ballScale + boardPadding;
-            var boardHeight = (BoardGenerator.Rows - 1) * cellSpacing + ballScale + boardPadding;
+            var boardHeight = (BoardGenerator.Rows - 1) * cellSpacing + ballScale + boardPadding + (shapeDragEnabled ? 1.4f : 0f);
             var aspect = Mathf.Max(0.1f, camera.aspect);
             var sizeForHeight = boardHeight * 0.5f;
             var sizeForWidth = boardWidth * 0.5f / aspect;
 
             camera.orthographic = true;
             camera.orthographicSize = Mathf.Max(sizeForHeight, sizeForWidth);
-            camera.transform.position = new Vector3(0f, 0f, -10f);
+            camera.transform.position = new Vector3(0f, shapeDragEnabled ? -0.35f : 0f, -10f);
         }
 
         private Sprite GetRuntimeBallSprite()
