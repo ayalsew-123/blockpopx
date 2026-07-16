@@ -25,6 +25,7 @@ namespace BlockPopX
 
         [Header("State")]
         [SerializeField] private int level = 1;
+        [SerializeField] private bool classicBlockMode = true;
         [SerializeField] private bool unlimitedTaps = true;
         [SerializeField] private int maxFouls = 3;
 
@@ -33,7 +34,7 @@ namespace BlockPopX
         [SerializeField] private float boardPulseScale = 1.035f;
 
         [Header("Shape Drag")]
-        [SerializeField] private bool shapeDragEnabled = false;
+        [SerializeField] private bool shapeDragEnabled = true;
         [SerializeField] private Transform shapeTrayRoot;
         [SerializeField] private float shapeTrayOffset = 0.8f;
 
@@ -66,6 +67,7 @@ namespace BlockPopX
         private bool isLevelComplete;
         private string currentMessage = "";
         private Sprite runtimeBallSprite;
+        private Sprite runtimeBlockSprite;
         private AudioSource audioSource;
         private AudioClip popClip;
         private AudioClip foulClip;
@@ -78,6 +80,7 @@ namespace BlockPopX
 
         private static readonly Vector2Int[][] ShapeLibrary =
         {
+            new[] { new Vector2Int(0, 0) },
             new[] { new Vector2Int(0, 0), new Vector2Int(0, 1) },
             new[] { new Vector2Int(0, 0), new Vector2Int(1, 0) },
             new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2) },
@@ -96,13 +99,13 @@ namespace BlockPopX
         public int CurrentFouls => fouls;
         public int MaxFouls => unlimitedTaps ? 0 : maxFouls;
         public string CurrentMessage => currentMessage;
-        public string CurrentLevelTitle => plan != null && !string.IsNullOrEmpty(plan.Title) ? plan.Title : LevelPlan.ForLevel(level).Title;
-        public string CurrentGoalText => GetGoalProgressText();
+        public string CurrentLevelTitle => classicBlockMode ? "Classic Blocks" : plan != null && !string.IsNullOrEmpty(plan.Title) ? plan.Title : LevelPlan.ForLevel(level).Title;
+        public string CurrentGoalText => classicBlockMode ? "Place shapes. Clear full rows and columns." : GetGoalProgressText();
         public bool IsGameOver => isGameOver;
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
         public bool IsLevelComplete => isLevelComplete;
-        public bool CanDragShape => shapeDragEnabled && !isGameOver && !isPaused && !isLevelComplete && board != null;
+        public bool CanDragShape => classicBlockMode && shapeDragEnabled && !isGameOver && !isPaused && !isLevelComplete && board != null;
 
         private void Awake()
         {
@@ -246,7 +249,7 @@ namespace BlockPopX
         {
             level = Mathf.Max(1, nextLevel);
             plan = LevelPlan.ForLevel(level);
-            board = BoardGenerator.CreateBoard(level);
+            board = classicBlockMode ? CreateEmptyClassicBoard() : BoardGenerator.CreateBoard(level);
             views = new BallView[BoardGenerator.Rows, BoardGenerator.Columns];
             if (resetRun)
             {
@@ -274,7 +277,11 @@ namespace BlockPopX
 
             ClearBoardViews();
             ResetBoardScale();
-            FillMissingBoardCells();
+            if (!classicBlockMode)
+            {
+                FillMissingBoardCells();
+            }
+
             RenderBoard();
             RefreshShapeTray();
             LevelChanged.Invoke(level);
@@ -282,7 +289,7 @@ namespace BlockPopX
             BestScoreChanged.Invoke(bestScore);
             FoulsChanged.Invoke(fouls);
             PauseChanged.Invoke(isPaused);
-            SetMessage($"Goal: {plan.GoalLabel}. {plan.Hint}");
+            SetMessage(classicBlockMode ? "Classic mode: drag shapes into free spaces. Fill rows or columns to clear." : $"Goal: {plan.GoalLabel}. {plan.Hint}");
         }
 
         public void TapCell(int row, int col)
@@ -293,6 +300,11 @@ namespace BlockPopX
             }
 
             lastTapFrame = Time.frameCount;
+
+            if (classicBlockMode)
+            {
+                return;
+            }
 
             if (board == null || isGameOver || isPaused || isLevelComplete)
             {
@@ -365,6 +377,12 @@ namespace BlockPopX
                 return;
             }
 
+            if (classicBlockMode)
+            {
+                TryPlaceClassicShape(shapePiece, worldPosition);
+                return;
+            }
+
             var anchor = WorldToBoardCell(worldPosition);
             if (!TryGetShapeCells(anchor.x, anchor.y, shapePiece.Offsets, shapePiece.Color, out var cellsToClear))
             {
@@ -397,6 +415,62 @@ namespace BlockPopX
 
             RefreshShapeTray();
             SetMessage($"+{points} shape points. {GetGoalProgressText()}");
+        }
+
+        private void TryPlaceClassicShape(ShapePieceView shapePiece, Vector3 worldPosition)
+        {
+            var anchor = WorldToBoardCell(worldPosition);
+            if (!TryGetClassicPlacementCells(anchor.x, anchor.y, shapePiece.Offsets, out var placementCells))
+            {
+                shapePiece.ReturnHome();
+                SetMessage("That shape does not fit there.");
+                PlayFoulFeedback();
+                return;
+            }
+
+            foreach (var cell in placementCells)
+            {
+                var nextCell = new BallCell(shapePiece.Color)
+                {
+                    IsEmpty = false
+                };
+                board[cell.x, cell.y] = nextCell;
+
+                var view = CreateBallView(cell.x, cell.y);
+                view.Bind(this, cell.x, cell.y, nextCell);
+                views[cell.x, cell.y] = view;
+            }
+
+            var placedCount = placementCells.Count;
+            Destroy(shapePiece.gameObject);
+            if (shapePieces != null && shapePiece.SlotIndex >= 0 && shapePiece.SlotIndex < shapePieces.Length)
+            {
+                shapePieces[shapePiece.SlotIndex] = null;
+            }
+
+            var clearedCount = ClearCompletedClassicLines(out var lineCount);
+            var points = placedCount * 10 + clearedCount * 25 + lineCount * lineCount * 100;
+            score += points;
+            clearedBalls += clearedCount;
+            SaveBestScoreIfNeeded();
+            ScoreChanged.Invoke(score);
+            PlayPopFeedback(Mathf.Max(placedCount, clearedCount));
+
+            if (AreAllShapeSlotsEmpty())
+            {
+                RefreshShapeTray();
+            }
+
+            if (!HasAnyClassicMove())
+            {
+                isGameOver = true;
+                GameOver.Invoke();
+                SetMessage($"Game over. Score {score}. Restart to try again.");
+                return;
+            }
+
+            var clearText = lineCount > 0 ? $" Cleared {lineCount} line{(lineCount == 1 ? "" : "s")}!" : "";
+            SetMessage($"+{points} points.{clearText}");
         }
 
         private List<Vector2Int> BuildClearSet(List<Vector2Int> group)
@@ -811,7 +885,7 @@ namespace BlockPopX
                 var pieceObject = new GameObject($"DragShape {slot + 1}");
                 pieceObject.transform.SetParent(shapeTrayRoot, false);
                 var piece = pieceObject.AddComponent<ShapePieceView>();
-                piece.Setup(this, slot, offsets, color, GetShapeTrayPosition(slot), cellSpacing, GetRuntimeBallSprite());
+                piece.Setup(this, slot, offsets, color, GetShapeTrayPosition(slot), cellSpacing, classicBlockMode ? GetRuntimeBlockSprite() : GetRuntimeBallSprite());
                 shapePieces[slot] = piece;
             }
         }
@@ -844,6 +918,11 @@ namespace BlockPopX
 
         private bool TryChooseShape(int slot, out Vector2Int[] offsets, out BlockPopXColor color)
         {
+            if (classicBlockMode)
+            {
+                return TryChooseClassicShape(slot, out offsets, out color);
+            }
+
             var unlockedCount = Mathf.Clamp(2 + level + slot, 2, ShapeLibrary.Length);
             for (var attempt = 0; attempt < ShapeLibrary.Length; attempt++)
             {
@@ -858,6 +937,36 @@ namespace BlockPopX
 
             offsets = ShapeLibrary[0];
             return TryFindShapeColor(offsets, level + slot, out color);
+        }
+
+        private bool TryChooseClassicShape(int slot, out Vector2Int[] offsets, out BlockPopXColor color)
+        {
+            var unlockedCount = Mathf.Clamp(3 + score / 600 + slot, 3, ShapeLibrary.Length);
+            for (var attempt = 0; attempt < ShapeLibrary.Length; attempt++)
+            {
+                var index = PositiveModulo(score / 40 + level * 7 + slot * 4 + attempt, unlockedCount);
+                offsets = ShapeLibrary[index];
+                color = BlockPopXColorPalette.All[PositiveModulo(score / 70 + slot * 3 + attempt, BlockPopXColorPalette.All.Length)];
+
+                if (TryShapeFitsAnywhere(offsets))
+                {
+                    return true;
+                }
+            }
+
+            for (var index = 0; index < ShapeLibrary.Length; index++)
+            {
+                offsets = ShapeLibrary[index];
+                color = BlockPopXColorPalette.All[PositiveModulo(score / 50 + slot + index, BlockPopXColorPalette.All.Length)];
+                if (TryShapeFitsAnywhere(offsets))
+                {
+                    return true;
+                }
+            }
+
+            offsets = ShapeLibrary[0];
+            color = BlockPopXColor.Red;
+            return false;
         }
 
         private bool TryFindShapeColor(IReadOnlyList<Vector2Int> offsets, int seed, out BlockPopXColor color)
@@ -933,6 +1042,147 @@ namespace BlockPopX
             }
 
             return cells.Count >= plan.MinimumGroupSize;
+        }
+
+        private bool TryGetClassicPlacementCells(int anchorRow, int anchorCol, IReadOnlyList<Vector2Int> offsets, out List<Vector2Int> cells)
+        {
+            cells = new List<Vector2Int>();
+            if (offsets == null || offsets.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (var offset in offsets)
+            {
+                var row = anchorRow + offset.x;
+                var col = anchorCol + offset.y;
+                if (!IsInside(row, col) || board[row, col] == null || !board[row, col].IsEmpty)
+                {
+                    cells.Clear();
+                    return false;
+                }
+
+                cells.Add(new Vector2Int(row, col));
+            }
+
+            return true;
+        }
+
+        private bool TryShapeFitsAnywhere(IReadOnlyList<Vector2Int> offsets)
+        {
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (TryGetClassicPlacementCells(row, col, offsets, out _))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private bool HasAnyClassicMove()
+        {
+            if (shapePieces == null)
+            {
+                return true;
+            }
+
+            foreach (var piece in shapePieces)
+            {
+                if (piece != null && TryShapeFitsAnywhere(piece.Offsets))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool AreAllShapeSlotsEmpty()
+        {
+            if (shapePieces == null || shapePieces.Length == 0)
+            {
+                return true;
+            }
+
+            foreach (var piece in shapePieces)
+            {
+                if (piece != null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private int ClearCompletedClassicLines(out int lineCount)
+        {
+            var clearRows = new bool[BoardGenerator.Rows];
+            var clearCols = new bool[BoardGenerator.Columns];
+            lineCount = 0;
+
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                var full = true;
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (board[row, col] == null || board[row, col].IsEmpty)
+                    {
+                        full = false;
+                        break;
+                    }
+                }
+
+                if (full)
+                {
+                    clearRows[row] = true;
+                    lineCount++;
+                }
+            }
+
+            for (var col = 0; col < BoardGenerator.Columns; col++)
+            {
+                var full = true;
+                for (var row = 0; row < BoardGenerator.Rows; row++)
+                {
+                    if (board[row, col] == null || board[row, col].IsEmpty)
+                    {
+                        full = false;
+                        break;
+                    }
+                }
+
+                if (full)
+                {
+                    clearCols[col] = true;
+                    lineCount++;
+                }
+            }
+
+            var cleared = 0;
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    if (!clearRows[row] && !clearCols[col])
+                    {
+                        continue;
+                    }
+
+                    if (board[row, col] != null && !board[row, col].IsEmpty)
+                    {
+                        ClearCell(new Vector2Int(row, col));
+                        cleared++;
+                    }
+                }
+            }
+
+            return cleared;
         }
 
         private Vector2Int WorldToBoardCell(Vector3 worldPosition)
@@ -1168,6 +1418,11 @@ namespace BlockPopX
 
         private void RenderBoard()
         {
+            if (classicBlockMode)
+            {
+                RenderClassicGrid();
+            }
+
             for (var row = 0; row < BoardGenerator.Rows; row++)
             {
                 for (var col = 0; col < BoardGenerator.Columns; col++)
@@ -1182,6 +1437,42 @@ namespace BlockPopX
                     views[row, col] = view;
                 }
             }
+        }
+
+        private void RenderClassicGrid()
+        {
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    var gridObject = new GameObject($"Grid {row},{col}");
+                    gridObject.transform.SetParent(boardRoot, false);
+                    gridObject.transform.position = GetWorldPosition(row, col);
+                    gridObject.transform.localScale = Vector3.one * ballScale;
+
+                    var renderer = gridObject.AddComponent<SpriteRenderer>();
+                    renderer.sprite = GetRuntimeBlockSprite();
+                    renderer.color = new Color(0.12f, 0.17f, 0.28f, 0.58f);
+                    renderer.sortingOrder = 1;
+                }
+            }
+        }
+
+        private static BallCell[,] CreateEmptyClassicBoard()
+        {
+            var nextBoard = new BallCell[BoardGenerator.Rows, BoardGenerator.Columns];
+            for (var row = 0; row < BoardGenerator.Rows; row++)
+            {
+                for (var col = 0; col < BoardGenerator.Columns; col++)
+                {
+                    nextBoard[row, col] = new BallCell(BlockPopXColor.Blue)
+                    {
+                        IsEmpty = true
+                    };
+                }
+            }
+
+            return nextBoard;
         }
 
         private void FillMissingBoardCells()
@@ -1207,7 +1498,7 @@ namespace BlockPopX
 
         private BallView CreateBallView(int row, int col)
         {
-            if (ballPrefab != null)
+            if (ballPrefab != null && !classicBlockMode)
             {
                 return Instantiate(ballPrefab, GetWorldPosition(row, col), Quaternion.identity, boardRoot);
             }
@@ -1218,7 +1509,7 @@ namespace BlockPopX
             ballObject.transform.localScale = Vector3.one * ballScale;
 
             var spriteRenderer = ballObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = GetRuntimeBallSprite();
+            spriteRenderer.sprite = classicBlockMode ? GetRuntimeBlockSprite() : GetRuntimeBallSprite();
             spriteRenderer.sortingOrder = 10;
             ballObject.AddComponent<CircleCollider2D>();
 
@@ -1278,6 +1569,43 @@ namespace BlockPopX
             runtimeBallSprite.name = "Runtime BlockPopX Ball";
 
             return runtimeBallSprite;
+        }
+
+        private Sprite GetRuntimeBlockSprite()
+        {
+            if (runtimeBlockSprite != null)
+            {
+                return runtimeBlockSprite;
+            }
+
+            const int size = 96;
+            const int radius = 14;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var dx = Mathf.Max(radius - x, x - (size - radius - 1), 0);
+                    var dy = Mathf.Max(radius - y, y - (size - radius - 1), 0);
+                    var cornerDistance = Mathf.Sqrt(dx * dx + dy * dy);
+                    var alpha = Mathf.Clamp01(radius - cornerDistance + 1f);
+                    var shine = y > size * 0.58f && x < size * 0.42f ? 0.16f : 0f;
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha * (0.86f + shine)));
+                }
+            }
+
+            texture.Apply();
+            texture.filterMode = FilterMode.Bilinear;
+            runtimeBlockSprite = Sprite.Create(
+                texture,
+                new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f),
+                size
+            );
+            runtimeBlockSprite.name = "Runtime BlockPopX Classic Block";
+
+            return runtimeBlockSprite;
         }
 
         private Vector3 GetWorldPosition(int row, int col)
