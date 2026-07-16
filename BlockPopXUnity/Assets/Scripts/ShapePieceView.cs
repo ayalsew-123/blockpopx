@@ -40,7 +40,7 @@ namespace BlockPopX
                 var cellObject = new GameObject($"ShapeCell {offset.x},{offset.y}");
                 cellObject.transform.SetParent(transform, false);
                 cellObject.transform.localPosition = new Vector3(offset.y * cellSpacing, -offset.x * cellSpacing, 0f);
-                cellObject.transform.localScale = Vector3.one * 0.72f;
+                cellObject.transform.localScale = Vector3.one * 0.68f;
 
                 var renderer = cellObject.AddComponent<SpriteRenderer>();
                 renderer.sprite = sprite;
@@ -155,7 +155,7 @@ namespace BlockPopX
 
             var width = (maxCol - minCol + 1) * cellSpacing;
             var height = (maxRow - minRow + 1) * cellSpacing;
-            collider.size = new Vector2(width, height);
+            collider.size = new Vector2(width + cellSpacing * 0.3f, height + cellSpacing * 0.3f);
             collider.offset = new Vector2((minCol + maxCol) * cellSpacing * 0.5f, -(minRow + maxRow) * cellSpacing * 0.5f);
         }
 
