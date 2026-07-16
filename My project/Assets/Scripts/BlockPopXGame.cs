@@ -72,14 +72,21 @@ namespace BlockPopX
             new[] { new Vector2Int(0, 2), new Vector2Int(1, 2), new Vector2Int(2, 0), new Vector2Int(2, 1), new Vector2Int(2, 2) },
             new[] { new Vector2Int(0, 0), new Vector2Int(0, 2), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2) },
             new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(1, 2), new Vector2Int(2, 2) },
-            new[] { new Vector2Int(0, 2), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(1, 0), new Vector2Int(2, 0) }
+            new[] { new Vector2Int(0, 2), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(1, 0), new Vector2Int(2, 0) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 1), new Vector2Int(2, 2) },
+            new[] { new Vector2Int(0, 2), new Vector2Int(1, 1), new Vector2Int(2, 0) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 1), new Vector2Int(0, 2) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 1), new Vector2Int(1, 2), new Vector2Int(0, 2) },
+            new[] { new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2), new Vector2Int(2, 1) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 1), new Vector2Int(2, 2), new Vector2Int(3, 3) },
+            new[] { new Vector2Int(0, 3), new Vector2Int(1, 2), new Vector2Int(2, 1), new Vector2Int(3, 0) }
         };
 
         private BallCell[,] board;
         private BallView[,] views;
         private ShapePieceView[] shapePieces;
         private ShapePieceView activeShapePiece;
-        private Sprite runtimeBlockSprite;
+        private Sprite[] runtimeBlockSprites;
         private AudioSource audioSource;
         private AudioClip popClip;
         private AudioClip failClip;
@@ -119,7 +126,7 @@ namespace BlockPopX
                 boardRoot = transform;
             }
 
-            runtimeBlockSprite = CreateRoundedBlockSprite();
+            runtimeBlockSprites = CreateBlockSprites();
             audioSource = gameObject.GetComponent<AudioSource>();
             if (audioSource == null)
             {
@@ -522,6 +529,7 @@ namespace BlockPopX
 
             board[row, col] = new BallCell(color)
             {
+                ShapeStyle = PickVisualStyle(row * Columns + col + level),
                 IsEmpty = false
             };
         }
@@ -534,6 +542,7 @@ namespace BlockPopX
                 var col = anchorCol + offset.y;
                 board[row, col] = new BallCell(shapePiece.Color)
                 {
+                    ShapeStyle = shapePiece.ShapeStyle,
                     IsEmpty = false
                 };
 
@@ -715,7 +724,8 @@ namespace BlockPopX
                 var shape = shapeObject.AddComponent<ShapePieceView>();
                 var offsets = PickShapeOffsets(levelSeed + slot * 5);
                 var color = PickColor(levelSeed + slot * 3);
-                shape.Setup(this, slot, offsets, color, shapeObject.transform.position, cellSpacing, runtimeBlockSprite);
+                var visualStyle = PickVisualStyle(levelSeed + slot * 11);
+                shape.Setup(this, slot, offsets, color, visualStyle, shapeObject.transform.position, cellSpacing, GetBlockSprite(visualStyle));
                 shapePieces[slot] = shape;
             }
         }
@@ -756,7 +766,18 @@ namespace BlockPopX
                 return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 };
             }
 
-            return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 };
+            return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33 };
+        }
+
+        private int PickVisualStyle(int seed)
+        {
+            if (runtimeBlockSprites == null || runtimeBlockSprites.Length == 0)
+            {
+                return 0;
+            }
+
+            var maxStyle = Mathf.Clamp(2 + level, 3, runtimeBlockSprites.Length);
+            return Mathf.Abs(seed * 13 + level * 5) % maxStyle;
         }
 
         private void ClearShapeTray()
@@ -859,7 +880,7 @@ namespace BlockPopX
                     gridObject.transform.localScale = Vector3.one * (ballScale * 1.04f);
 
                     var renderer = gridObject.AddComponent<SpriteRenderer>();
-                    renderer.sprite = runtimeBlockSprite;
+                    renderer.sprite = GetBlockSprite(0);
                     renderer.color = gridColor;
                     renderer.sortingOrder = 1;
                 }
@@ -892,7 +913,7 @@ namespace BlockPopX
             blockObject.transform.localPosition = BoardToLocalPosition(row, col, -0.02f);
 
             var renderer = blockObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = runtimeBlockSprite;
+            renderer.sprite = GetBlockSprite(board[row, col].ShapeStyle);
             renderer.sortingOrder = 12;
             blockObject.AddComponent<CircleCollider2D>();
             var view = blockObject.AddComponent<BallView>();
@@ -1066,6 +1087,70 @@ namespace BlockPopX
 #endif
         }
 
+        private Sprite[] CreateBlockSprites()
+        {
+            return new[]
+            {
+                CreateRoundedBlockSprite(),
+                CreatePolygonSprite("Hexagon", new[]
+                {
+                    new Vector2(0.5f, 0.06f),
+                    new Vector2(0.88f, 0.28f),
+                    new Vector2(0.88f, 0.72f),
+                    new Vector2(0.5f, 0.94f),
+                    new Vector2(0.12f, 0.72f),
+                    new Vector2(0.12f, 0.28f)
+                }),
+                CreatePolygonSprite("Octagon", new[]
+                {
+                    new Vector2(0.32f, 0.06f),
+                    new Vector2(0.68f, 0.06f),
+                    new Vector2(0.94f, 0.32f),
+                    new Vector2(0.94f, 0.68f),
+                    new Vector2(0.68f, 0.94f),
+                    new Vector2(0.32f, 0.94f),
+                    new Vector2(0.06f, 0.68f),
+                    new Vector2(0.06f, 0.32f)
+                }),
+                CreatePolygonSprite("Diamond", new[]
+                {
+                    new Vector2(0.5f, 0.04f),
+                    new Vector2(0.96f, 0.5f),
+                    new Vector2(0.5f, 0.96f),
+                    new Vector2(0.04f, 0.5f)
+                }),
+                CreatePolygonSprite("TriangleUp", new[]
+                {
+                    new Vector2(0.5f, 0.05f),
+                    new Vector2(0.95f, 0.9f),
+                    new Vector2(0.05f, 0.9f)
+                }),
+                CreatePolygonSprite("TriangleDown", new[]
+                {
+                    new Vector2(0.05f, 0.1f),
+                    new Vector2(0.95f, 0.1f),
+                    new Vector2(0.5f, 0.95f)
+                }),
+                CreatePolygonSprite("Kite", new[]
+                {
+                    new Vector2(0.52f, 0.03f),
+                    new Vector2(0.94f, 0.42f),
+                    new Vector2(0.66f, 0.95f),
+                    new Vector2(0.08f, 0.58f)
+                })
+            };
+        }
+
+        private Sprite GetBlockSprite(int style)
+        {
+            if (runtimeBlockSprites == null || runtimeBlockSprites.Length == 0)
+            {
+                return null;
+            }
+
+            return runtimeBlockSprites[Mathf.Abs(style) % runtimeBlockSprites.Length];
+        }
+
         private Sprite CreateRoundedBlockSprite()
         {
             const int size = 96;
@@ -1104,6 +1189,51 @@ namespace BlockPopX
 
             texture.Apply();
             return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+        }
+
+        private Sprite CreatePolygonSprite(string spriteName, Vector2[] points)
+        {
+            const int size = 96;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            texture.filterMode = FilterMode.Bilinear;
+
+            for (var y = 0; y < size; y++)
+            {
+                for (var x = 0; x < size; x++)
+                {
+                    var uv = new Vector2((x + 0.5f) / size, (y + 0.5f) / size);
+                    if (!IsPointInsidePolygon(uv, points))
+                    {
+                        texture.SetPixel(x, y, Color.clear);
+                        continue;
+                    }
+
+                    var shade = 0.84f + 0.16f * Mathf.Clamp01((float)(x + y) / (size * 2f));
+                    var highlight = uv.x < 0.35f && uv.y < 0.35f ? 0.08f : 0f;
+                    texture.SetPixel(x, y, new Color(shade + highlight, shade + highlight, shade + highlight, 1f));
+                }
+            }
+
+            texture.Apply();
+            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+        }
+
+        private bool IsPointInsidePolygon(Vector2 point, Vector2[] polygon)
+        {
+            var inside = false;
+            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+            {
+                var pi = polygon[i];
+                var pj = polygon[j];
+                var intersects = pi.y > point.y != pj.y > point.y &&
+                                 point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y) + pi.x;
+                if (intersects)
+                {
+                    inside = !inside;
+                }
+            }
+
+            return inside;
         }
 
         private AudioClip CreateToneClip(float frequency, float duration, float volume)

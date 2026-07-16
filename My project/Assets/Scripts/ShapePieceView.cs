@@ -13,6 +13,7 @@ namespace BlockPopX
         private BlockPopXGame game;
         private Vector2Int[] offsets;
         private BlockPopXColor color;
+        private int shapeStyle;
         private Vector3 homePosition;
         private Vector3 dragOffset;
         private Vector3 anchorLocalPosition;
@@ -21,17 +22,19 @@ namespace BlockPopX
         public int SlotIndex { get; private set; }
         public IReadOnlyList<Vector2Int> Offsets => offsets;
         public BlockPopXColor Color => color;
+        public int ShapeStyle => shapeStyle;
 
-        public void Setup(BlockPopXGame owner, int slotIndex, Vector2Int[] shapeOffsets, BlockPopXColor shapeColor, Vector3 position, float cellSpacing, Sprite sprite)
+        public void Setup(BlockPopXGame owner, int slotIndex, Vector2Int[] shapeOffsets, BlockPopXColor shapeColor, int visualStyle, Vector3 position, float cellSpacing, Sprite sprite)
         {
             game = owner;
             SlotIndex = slotIndex;
             offsets = shapeOffsets;
             color = shapeColor;
+            shapeStyle = visualStyle;
             homePosition = position;
             transform.position = homePosition;
             transform.localScale = Vector3.one;
-            name = $"Shape {slotIndex + 1} {shapeColor}";
+            name = $"Shape {slotIndex + 1} {shapeColor} Style {shapeStyle}";
 
             ClearCells();
 

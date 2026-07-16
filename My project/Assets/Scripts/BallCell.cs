@@ -14,6 +14,7 @@ namespace BlockPopX
         public BlockPopXColor Color;
         public BallSpecial Special;
         public int Pips;
+        public int ShapeStyle;
         public bool IsEmpty;
 
         public BallCell(BlockPopXColor color)
@@ -30,9 +31,9 @@ namespace BlockPopX
             {
                 Special = Special,
                 Pips = Pips,
+                ShapeStyle = ShapeStyle,
                 IsEmpty = IsEmpty
             };
         }
     }
 }
-
