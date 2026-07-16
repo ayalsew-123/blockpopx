@@ -19,7 +19,6 @@ namespace BlockPopX
         private const string SoundEnabledKey = "BlockPopX.SoundEnabled";
 
         [Header("Board")]
-        [SerializeField] private BallView ballPrefab;
         [SerializeField] private Transform boardRoot;
         [SerializeField] private float cellSpacing = 0.48f;
         [SerializeField] private float ballScale = 0.38f;
@@ -65,7 +64,15 @@ namespace BlockPopX
             new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2), new Vector2Int(0, 3) },
             new[] { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0) },
             new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2), new Vector2Int(0, 3), new Vector2Int(0, 4) },
-            new[] { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0), new Vector2Int(4, 0) }
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0), new Vector2Int(4, 0) },
+            new[] { new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2), new Vector2Int(2, 1) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2), new Vector2Int(1, 0), new Vector2Int(2, 0) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(0, 2), new Vector2Int(1, 2), new Vector2Int(2, 2) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(2, 1), new Vector2Int(2, 2) },
+            new[] { new Vector2Int(0, 2), new Vector2Int(1, 2), new Vector2Int(2, 0), new Vector2Int(2, 1), new Vector2Int(2, 2) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 2), new Vector2Int(1, 0), new Vector2Int(1, 1), new Vector2Int(1, 2) },
+            new[] { new Vector2Int(0, 0), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(1, 2), new Vector2Int(2, 2) },
+            new[] { new Vector2Int(0, 2), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(1, 0), new Vector2Int(2, 0) }
         };
 
         private BallCell[,] board;
@@ -696,7 +703,7 @@ namespace BlockPopX
 
             var root = shapeTrayRoot != null ? shapeTrayRoot : transform;
             var trayY = boardRoot.TransformPoint(new Vector3(0f, -Rows * cellSpacing * 0.5f - shapeTrayOffset, 0f)).y;
-            var slotSpacing = cellSpacing * 3.2f;
+            var slotSpacing = cellSpacing * 4.05f;
             var levelSeed = level * 17 + score / 10;
 
             for (var slot = 0; slot < shapePieces.Length; slot++)
@@ -715,9 +722,9 @@ namespace BlockPopX
 
         private Vector2Int[] PickShapeOffsets(int seed)
         {
-            var maxIndex = Mathf.Clamp(5 + level * 2, 6, ShapeLibrary.Length);
-            var index = Mathf.Abs(seed * 31 + level * 7) % maxIndex;
-            var source = ShapeLibrary[index];
+            var pool = GetShapePoolForLevel(level);
+            var poolIndex = Mathf.Abs(seed * 31 + level * 7) % pool.Length;
+            var source = ShapeLibrary[pool[poolIndex]];
             var result = new Vector2Int[source.Length];
             for (var i = 0; i < source.Length; i++)
             {
@@ -725,6 +732,31 @@ namespace BlockPopX
             }
 
             return result;
+        }
+
+        private int[] GetShapePoolForLevel(int currentLevel)
+        {
+            if (currentLevel <= 1)
+            {
+                return new[] { 1, 2, 3, 4, 5, 6, 7 };
+            }
+
+            if (currentLevel == 2)
+            {
+                return new[] { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16 };
+            }
+
+            if (currentLevel == 3)
+            {
+                return new[] { 5, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19 };
+            }
+
+            if (currentLevel == 4)
+            {
+                return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 };
+            }
+
+            return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 };
         }
 
         private void ClearShapeTray()
@@ -855,24 +887,15 @@ namespace BlockPopX
                 Destroy(views[row, col].gameObject);
             }
 
-            BallView view;
-            if (ballPrefab != null)
-            {
-                view = Instantiate(ballPrefab, boardRoot);
-                view.transform.localPosition = BoardToLocalPosition(row, col, -0.02f);
-            }
-            else
-            {
-                var blockObject = new GameObject($"Block {row},{col}");
-                blockObject.transform.SetParent(boardRoot, false);
-                blockObject.transform.localPosition = BoardToLocalPosition(row, col, -0.02f);
+            var blockObject = new GameObject($"Block {row},{col}");
+            blockObject.transform.SetParent(boardRoot, false);
+            blockObject.transform.localPosition = BoardToLocalPosition(row, col, -0.02f);
 
-                var renderer = blockObject.AddComponent<SpriteRenderer>();
-                renderer.sprite = runtimeBlockSprite;
-                renderer.sortingOrder = 12;
-                blockObject.AddComponent<CircleCollider2D>();
-                view = blockObject.AddComponent<BallView>();
-            }
+            var renderer = blockObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = runtimeBlockSprite;
+            renderer.sortingOrder = 12;
+            blockObject.AddComponent<CircleCollider2D>();
+            var view = blockObject.AddComponent<BallView>();
 
             view.transform.localScale = Vector3.one * ballScale;
             view.Bind(this, row, col, board[row, col]);

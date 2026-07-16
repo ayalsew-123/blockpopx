@@ -15,6 +15,7 @@ namespace BlockPopX
         private BlockPopXColor color;
         private Vector3 homePosition;
         private Vector3 dragOffset;
+        private Vector3 anchorLocalPosition;
         private bool isDragging;
 
         public int SlotIndex { get; private set; }
@@ -35,12 +36,15 @@ namespace BlockPopX
             ClearCells();
 
             var unityColor = BlockPopXColorPalette.ToUnityColor(shapeColor);
+            var centerOffset = GetCenterOffset(cellSpacing);
+            anchorLocalPosition = -centerOffset;
+
             foreach (var offset in offsets)
             {
                 var cellObject = new GameObject($"ShapeCell {offset.x},{offset.y}");
                 cellObject.transform.SetParent(transform, false);
-                cellObject.transform.localPosition = new Vector3(offset.y * cellSpacing, -offset.x * cellSpacing, 0f);
-                cellObject.transform.localScale = Vector3.one * 0.68f;
+                cellObject.transform.localPosition = new Vector3(offset.y * cellSpacing, -offset.x * cellSpacing, 0f) - centerOffset;
+                cellObject.transform.localScale = Vector3.one * 0.78f;
 
                 var renderer = cellObject.AddComponent<SpriteRenderer>();
                 renderer.sprite = sprite;
@@ -90,7 +94,7 @@ namespace BlockPopX
 
             isDragging = false;
             transform.localScale = Vector3.one;
-            game?.TryPlaceShape(this, transform.position);
+            game?.TryPlaceShape(this, transform.TransformPoint(anchorLocalPosition));
         }
 
         private void OnMouseDown()
@@ -156,7 +160,30 @@ namespace BlockPopX
             var width = (maxCol - minCol + 1) * cellSpacing;
             var height = (maxRow - minRow + 1) * cellSpacing;
             collider.size = new Vector2(width + cellSpacing * 0.3f, height + cellSpacing * 0.3f);
-            collider.offset = new Vector2((minCol + maxCol) * cellSpacing * 0.5f, -(minRow + maxRow) * cellSpacing * 0.5f);
+            collider.offset = Vector2.zero;
+        }
+
+        private Vector3 GetCenterOffset(float cellSpacing)
+        {
+            if (offsets == null || offsets.Length == 0)
+            {
+                return Vector3.zero;
+            }
+
+            var minRow = offsets[0].x;
+            var maxRow = offsets[0].x;
+            var minCol = offsets[0].y;
+            var maxCol = offsets[0].y;
+
+            foreach (var offset in offsets)
+            {
+                minRow = Mathf.Min(minRow, offset.x);
+                maxRow = Mathf.Max(maxRow, offset.x);
+                minCol = Mathf.Min(minCol, offset.y);
+                maxCol = Mathf.Max(maxCol, offset.y);
+            }
+
+            return new Vector3((minCol + maxCol) * cellSpacing * 0.5f, -(minRow + maxRow) * cellSpacing * 0.5f, 0f);
         }
 
         private void ClearCells()
