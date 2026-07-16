@@ -59,30 +59,29 @@ namespace BlockPopX
             transform.localScale = Vector3.one;
         }
 
-        private void OnMouseDown()
+        public void BeginDrag(Vector3 pointerWorldPosition)
         {
             if (game == null || !game.CanDragShape)
             {
                 return;
             }
 
-            var worldPosition = GetPointerWorldPosition();
-            dragOffset = transform.position - worldPosition;
+            dragOffset = transform.position - pointerWorldPosition;
             transform.localScale = Vector3.one * 1.08f;
             isDragging = true;
         }
 
-        private void OnMouseDrag()
+        public void DragTo(Vector3 pointerWorldPosition)
         {
             if (!isDragging)
             {
                 return;
             }
 
-            transform.position = GetPointerWorldPosition() + dragOffset;
+            transform.position = pointerWorldPosition + dragOffset;
         }
 
-        private void OnMouseUp()
+        public void EndDrag()
         {
             if (!isDragging)
             {
@@ -92,6 +91,21 @@ namespace BlockPopX
             isDragging = false;
             transform.localScale = Vector3.one;
             game?.TryPlaceShape(this, transform.position);
+        }
+
+        private void OnMouseDown()
+        {
+            BeginDrag(GetPointerWorldPosition());
+        }
+
+        private void OnMouseDrag()
+        {
+            DragTo(GetPointerWorldPosition());
+        }
+
+        private void OnMouseUp()
+        {
+            EndDrag();
         }
 
         private Vector3 GetPointerWorldPosition()

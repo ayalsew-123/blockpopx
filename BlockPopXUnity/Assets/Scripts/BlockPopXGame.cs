@@ -74,6 +74,7 @@ namespace BlockPopX
         private int lastTapFrame = -1;
         private int lastControlFrame = -1;
         private ShapePieceView[] shapePieces;
+        private ShapePieceView activeShapePiece;
 
         private static readonly Vector2Int[][] ShapeLibrary =
         {
@@ -166,14 +167,21 @@ namespace BlockPopX
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
-            if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+            if (TryReadInputSystemPointer(out var pointerPosition, out var pointerDown, out var pointerHeld, out var pointerUp))
             {
-                HandlePointerDown(Touchscreen.current.primaryTouch.position.ReadValue());
-            }
+                if (pointerDown)
+                {
+                    HandlePointerDown(pointerPosition);
+                }
+                else if (pointerHeld)
+                {
+                    HandlePointerDrag(pointerPosition);
+                }
 
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                HandlePointerDown(Mouse.current.position.ReadValue());
+                if (pointerUp)
+                {
+                    HandlePointerUp(pointerPosition);
+                }
             }
 #endif
 
@@ -182,8 +190,52 @@ namespace BlockPopX
             {
                 HandlePointerDown(Input.mousePosition);
             }
+
+            if (Input.GetMouseButton(0))
+            {
+                HandlePointerDrag(Input.mousePosition);
+            }
+
+            if (Input.GetMouseButtonUp(0))
+            {
+                HandlePointerUp(Input.mousePosition);
+            }
 #endif
         }
+
+#if ENABLE_INPUT_SYSTEM
+        private static bool TryReadInputSystemPointer(out Vector2 position, out bool wasPressed, out bool isPressed, out bool wasReleased)
+        {
+            position = Vector2.zero;
+            wasPressed = false;
+            isPressed = false;
+            wasReleased = false;
+
+            if (Touchscreen.current != null)
+            {
+                var touch = Touchscreen.current.primaryTouch;
+                if (touch.press.wasPressedThisFrame || touch.press.isPressed || touch.press.wasReleasedThisFrame)
+                {
+                    position = touch.position.ReadValue();
+                    wasPressed = touch.press.wasPressedThisFrame;
+                    isPressed = touch.press.isPressed;
+                    wasReleased = touch.press.wasReleasedThisFrame;
+                    return true;
+                }
+            }
+
+            if (Mouse.current != null)
+            {
+                position = Mouse.current.position.ReadValue();
+                wasPressed = Mouse.current.leftButton.wasPressedThisFrame;
+                isPressed = Mouse.current.leftButton.isPressed;
+                wasReleased = Mouse.current.leftButton.wasReleasedThisFrame;
+                return wasPressed || isPressed || wasReleased;
+            }
+
+            return false;
+        }
+#endif
 
         public void StartLevel(int nextLevel)
         {
@@ -412,12 +464,58 @@ namespace BlockPopX
 
         private void HandlePointerDown(Vector2 screenPosition)
         {
+            if (TryBeginShapeDrag(screenPosition))
+            {
+                return;
+            }
+
             if (TryHandleControlTap(screenPosition))
             {
                 return;
             }
 
             TryTapScreenPosition(screenPosition);
+        }
+
+        private void HandlePointerDrag(Vector2 screenPosition)
+        {
+            if (activeShapePiece == null)
+            {
+                return;
+            }
+
+            activeShapePiece.DragTo(ScreenToWorldPosition(screenPosition));
+        }
+
+        private void HandlePointerUp(Vector2 screenPosition)
+        {
+            if (activeShapePiece == null)
+            {
+                return;
+            }
+
+            activeShapePiece.DragTo(ScreenToWorldPosition(screenPosition));
+            activeShapePiece.EndDrag();
+            activeShapePiece = null;
+        }
+
+        private bool TryBeginShapeDrag(Vector2 screenPosition)
+        {
+            if (!CanDragShape)
+            {
+                return false;
+            }
+
+            var worldPosition = ScreenToWorldPosition(screenPosition);
+            var hit = Physics2D.OverlapPoint(worldPosition);
+            if (hit == null || !hit.TryGetComponent<ShapePieceView>(out var shapePiece))
+            {
+                return false;
+            }
+
+            activeShapePiece = shapePiece;
+            activeShapePiece.BeginDrag(worldPosition);
+            return true;
         }
 
         private bool TryHandleControlTap(Vector2 screenPosition)
@@ -453,6 +551,19 @@ namespace BlockPopX
             }
 
             return false;
+        }
+
+        private static Vector3 ScreenToWorldPosition(Vector2 screenPosition)
+        {
+            var camera = Camera.main;
+            if (camera == null)
+            {
+                return Vector3.zero;
+            }
+
+            var worldPosition = camera.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, -camera.transform.position.z));
+            worldPosition.z = 0f;
+            return worldPosition;
         }
 
         private void AddClearCell(List<Vector2Int> cellsToClear, bool[,] included, int row, int col)
