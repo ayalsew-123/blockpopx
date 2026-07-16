@@ -14,6 +14,9 @@ namespace BlockPopX
     {
         private const int Rows = 10;
         private const int Columns = 10;
+        private const int CellScore = 10;
+        private const int LineScore = 100;
+        private const int MultiLineBonus = 150;
         private const string BestScoreKey = "BlockPopX.BestScore";
         private const string HighestLevelKey = "BlockPopX.HighestLevel";
         private const string SoundEnabledKey = "BlockPopX.SoundEnabled";
@@ -115,8 +118,8 @@ namespace BlockPopX
         public string CurrentMessage => currentMessage;
         public string CurrentReward => currentReward;
         public string CurrentLevelTitle => GetLevelTitle(level);
-        public string CurrentGoalText => $"How to play: drag shapes into empty cells. Fill a full row or column to score big.";
-        public string CurrentProgressText => $"Goal: {linesClearedThisLevel}/{GetLineTarget(level)} lines | +10 per cell, +100 line bonus, +{level * 250} level bonus";
+        public string CurrentGoalText => "Drag 1 of 3 pieces onto empty cells. Full rows or columns disappear.";
+        public string CurrentProgressText => $"Level goal: {linesClearedThisLevel}/{GetLineTarget(level)} lines | Points: +{CellScore} per cell, +{LineScore} per line, combo bonus";
         public bool IsGameOver => isGameOver;
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
@@ -307,21 +310,24 @@ namespace BlockPopX
 
             var placedCount = shapePiece.Offsets.Count;
             var clearedCount = ClearCompletedLines(out var lineCount);
-            var gained = placedCount * 10 + clearedCount * 25 + lineCount * lineCount * 100;
+            var gained = CalculateMoveScore(placedCount, lineCount);
             AddScore(gained);
 
             if (lineCount > 0)
             {
                 linesClearedThisLevel += lineCount;
                 PlayRewardFeedback();
-                SetReward($"+{gained} points | {lineCount} line clear bonus");
-                SetMessage($"Great move. You cleared {lineCount} line{(lineCount == 1 ? "" : "s")}.");
+                var callout = GetMoveCallout(lineCount, gained);
+                ShowFloatingNotification(callout, new Color(0.35f, 1f, 0.72f));
+                SetReward($"{callout} | {placedCount} cells + {lineCount} line{(lineCount == 1 ? "" : "s")}");
+                SetMessage($"You cleared {lineCount} line{(lineCount == 1 ? "" : "s")}. Keep building combos.");
             }
             else
             {
                 PlaySound(popClip);
-                SetReward($"+{gained} points | placed {placedCount} shape cells");
-                SetMessage("Keep building full rows or columns.");
+                ShowFloatingNotification($"+{gained}", new Color(0.86f, 0.96f, 1f));
+                SetReward($"+{gained} points | {placedCount} cells placed");
+                SetMessage("Place pieces to complete full rows or columns.");
             }
 
             if (linesClearedThisLevel >= GetLineTarget(level))
@@ -374,8 +380,8 @@ namespace BlockPopX
             LevelChanged.Invoke(level);
             FoulsChanged.Invoke(fouls);
             PauseChanged.Invoke(isPaused);
-            SetMessage("Drag bottom shapes onto the board. Fill rows or columns.");
-            SetReward("Scoring: +10 per cell, big bonus for every cleared line.");
+            SetMessage("Drag one of 3 pieces. Fill rows or columns to clear them.");
+            SetReward($"Scoring: +{CellScore} per cell, +{LineScore} per cleared line, combo bonus.");
         }
 
         private void CreateBoard()
@@ -544,7 +550,7 @@ namespace BlockPopX
 
             board[row, col] = new BallCell(color)
             {
-                ShapeStyle = PickVisualStyle(row * Columns + col + level),
+                ShapeStyle = 0,
                 IsEmpty = false
             };
         }
@@ -557,7 +563,7 @@ namespace BlockPopX
                 var col = anchorCol + offset.y;
                 board[row, col] = new BallCell(shapePiece.Color)
                 {
-                    ShapeStyle = shapePiece.ShapeStyle,
+                    ShapeStyle = 0,
                     IsEmpty = false
                 };
 
@@ -739,8 +745,7 @@ namespace BlockPopX
                 var shape = shapeObject.AddComponent<ShapePieceView>();
                 var offsets = PickShapeOffsets(levelSeed + slot * 5);
                 var color = PickColor(levelSeed + slot * 3);
-                var visualStyle = PickVisualStyle(levelSeed + slot * 11);
-                shape.Setup(this, slot, offsets, color, visualStyle, shapeObject.transform.position, cellSpacing, GetBlockSprite(visualStyle));
+                shape.Setup(this, slot, offsets, color, 0, shapeObject.transform.position, cellSpacing, GetBlockSprite(0));
                 shapePieces[slot] = shape;
             }
         }
@@ -781,18 +786,7 @@ namespace BlockPopX
                 return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 };
             }
 
-            return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33 };
-        }
-
-        private int PickVisualStyle(int seed)
-        {
-            if (runtimeBlockSprites == null || runtimeBlockSprites.Length == 0)
-            {
-                return 0;
-            }
-
-            var maxStyle = Mathf.Clamp(2 + level, 3, Mathf.Min(5, runtimeBlockSprites.Length));
-            return Mathf.Abs(seed * 13 + level * 5) % maxStyle;
+            return new[] { 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 };
         }
 
         private void ClearShapeTray()
@@ -818,6 +812,7 @@ namespace BlockPopX
             ClearShapeTray();
             var levelBonus = level * 250;
             AddScore(levelBonus);
+            ShowFloatingNotification($"LEVEL CLEAR +{levelBonus}", new Color(1f, 0.9f, 0.35f));
             SetReward($"Level bonus +{levelBonus} points | Tap Next");
             PlayRewardFeedback();
             SetMessage($"Level {level} complete! Tap Next.");
@@ -849,6 +844,32 @@ namespace BlockPopX
             ScoreChanged.Invoke(score);
         }
 
+        private int CalculateMoveScore(int placedCount, int lineCount)
+        {
+            var total = placedCount * CellScore + lineCount * LineScore;
+            if (lineCount > 1)
+            {
+                total += (lineCount - 1) * MultiLineBonus;
+            }
+
+            return total;
+        }
+
+        private string GetMoveCallout(int lineCount, int points)
+        {
+            if (lineCount >= 3)
+            {
+                return $"MEGA COMBO x{lineCount} +{points}";
+            }
+
+            if (lineCount == 2)
+            {
+                return $"COMBO x2 +{points}";
+            }
+
+            return $"LINE CLEAR +{points}";
+        }
+
         private void SetMessage(string message)
         {
             currentMessage = $"L{level} Score {score} - {message}";
@@ -878,6 +899,44 @@ namespace BlockPopX
             }
 
             return count;
+        }
+
+        private void ShowFloatingNotification(string text, Color color)
+        {
+            StartCoroutine(FloatingNotificationRoutine(text, color));
+        }
+
+        private IEnumerator FloatingNotificationRoutine(string text, Color color)
+        {
+            var popup = new GameObject("PointNotification");
+            popup.transform.SetParent(boardRoot != null ? boardRoot : transform, false);
+            popup.transform.localPosition = new Vector3(0f, Rows * cellSpacing * 0.18f, -0.4f);
+
+            var label = popup.AddComponent<TextMesh>();
+            label.text = text;
+            label.anchor = TextAnchor.MiddleCenter;
+            label.alignment = TextAlignment.Center;
+            label.fontSize = 54;
+            label.characterSize = 0.12f;
+            label.color = color;
+
+            var renderer = label.GetComponent<MeshRenderer>();
+            renderer.sortingOrder = 80;
+
+            var startPosition = popup.transform.localPosition;
+            var endPosition = startPosition + new Vector3(0f, cellSpacing * 1.25f, 0f);
+            const float duration = 0.85f;
+
+            for (var elapsed = 0f; elapsed < duration; elapsed += Time.deltaTime)
+            {
+                var t = Mathf.Clamp01(elapsed / duration);
+                popup.transform.localPosition = Vector3.Lerp(startPosition, endPosition, t);
+                var fade = 1f - t;
+                label.color = new Color(color.r, color.g, color.b, fade);
+                yield return null;
+            }
+
+            Destroy(popup);
         }
 
         private string GetLevelTitle(int value)
@@ -1139,53 +1198,7 @@ namespace BlockPopX
         {
             return new[]
             {
-                CreateRoundedBlockSprite(),
-                CreatePolygonSprite("Hexagon", new[]
-                {
-                    new Vector2(0.5f, 0.02f),
-                    new Vector2(0.94f, 0.25f),
-                    new Vector2(0.94f, 0.75f),
-                    new Vector2(0.5f, 0.98f),
-                    new Vector2(0.06f, 0.75f),
-                    new Vector2(0.06f, 0.25f)
-                }),
-                CreatePolygonSprite("Octagon", new[]
-                {
-                    new Vector2(0.28f, 0.02f),
-                    new Vector2(0.72f, 0.02f),
-                    new Vector2(0.98f, 0.28f),
-                    new Vector2(0.98f, 0.72f),
-                    new Vector2(0.72f, 0.98f),
-                    new Vector2(0.28f, 0.98f),
-                    new Vector2(0.02f, 0.72f),
-                    new Vector2(0.02f, 0.28f)
-                }),
-                CreatePolygonSprite("Diamond", new[]
-                {
-                    new Vector2(0.5f, 0.01f),
-                    new Vector2(0.99f, 0.5f),
-                    new Vector2(0.5f, 0.99f),
-                    new Vector2(0.01f, 0.5f)
-                }),
-                CreatePolygonSprite("TriangleUp", new[]
-                {
-                    new Vector2(0.5f, 0.05f),
-                    new Vector2(0.95f, 0.9f),
-                    new Vector2(0.05f, 0.9f)
-                }),
-                CreatePolygonSprite("TriangleDown", new[]
-                {
-                    new Vector2(0.05f, 0.1f),
-                    new Vector2(0.95f, 0.1f),
-                    new Vector2(0.5f, 0.95f)
-                }),
-                CreatePolygonSprite("Kite", new[]
-                {
-                    new Vector2(0.52f, 0.03f),
-                    new Vector2(0.94f, 0.42f),
-                    new Vector2(0.66f, 0.95f),
-                    new Vector2(0.08f, 0.58f)
-                })
+                CreateRoundedBlockSprite()
             };
         }
 
@@ -1237,51 +1250,6 @@ namespace BlockPopX
 
             texture.Apply();
             return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
-        }
-
-        private Sprite CreatePolygonSprite(string spriteName, Vector2[] points)
-        {
-            const int size = 96;
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Bilinear;
-
-            for (var y = 0; y < size; y++)
-            {
-                for (var x = 0; x < size; x++)
-                {
-                    var uv = new Vector2((x + 0.5f) / size, (y + 0.5f) / size);
-                    if (!IsPointInsidePolygon(uv, points))
-                    {
-                        texture.SetPixel(x, y, Color.clear);
-                        continue;
-                    }
-
-                    var shade = 0.84f + 0.16f * Mathf.Clamp01((float)(x + y) / (size * 2f));
-                    var highlight = uv.x < 0.35f && uv.y < 0.35f ? 0.08f : 0f;
-                    texture.SetPixel(x, y, new Color(shade + highlight, shade + highlight, shade + highlight, 1f));
-                }
-            }
-
-            texture.Apply();
-            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
-        }
-
-        private bool IsPointInsidePolygon(Vector2 point, Vector2[] polygon)
-        {
-            var inside = false;
-            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
-            {
-                var pi = polygon[i];
-                var pj = polygon[j];
-                var intersects = pi.y > point.y != pj.y > point.y &&
-                                 point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y) + pi.x;
-                if (intersects)
-                {
-                    inside = !inside;
-                }
-            }
-
-            return inside;
         }
 
         private AudioClip CreateToneClip(float frequency, float duration, float volume)

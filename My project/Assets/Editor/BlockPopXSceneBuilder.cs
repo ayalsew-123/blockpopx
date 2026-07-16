@@ -211,21 +211,21 @@ public static class BlockPopXSceneBuilder
         var foulsText = CreateText("FoulsText", topPanel.transform, "Moves 0", 38f, TextAlignmentOptions.Center);
         SetRect(foulsText.rectTransform, new Vector2(0.38f, 1f), new Vector2(0.62f, 1f), new Vector2(8f, -158f), new Vector2(-8f, -96f));
 
-        var goalText = CreateText("GoalText", topPanel.transform, "How to play: drag shapes into empty cells. Fill a full row or column.", 30f, TextAlignmentOptions.Center);
+        var goalText = CreateText("GoalText", topPanel.transform, "Drag 1 of 3 pieces onto empty cells. Full rows or columns disappear.", 29f, TextAlignmentOptions.Center);
         SetRect(goalText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 188f), new Vector2(-24f, 242f));
         goalText.color = new Color(1f, 0.9f, 0.38f);
         goalText.textWrappingMode = TextWrappingModes.Normal;
 
-        var progressText = CreateText("ProgressText", topPanel.transform, "Goal: 0/3 lines | +10 per cell, +100 line bonus", 28f, TextAlignmentOptions.Center);
+        var progressText = CreateText("ProgressText", topPanel.transform, "Level goal: 0/3 lines | Points: +10 per cell, +100 per line", 27f, TextAlignmentOptions.Center);
         SetRect(progressText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 138f), new Vector2(-24f, 184f));
         progressText.color = new Color(0.86f, 0.96f, 1f);
 
-        var rewardText = CreateText("RewardText", topPanel.transform, "Scoring: place shapes, clear lines, earn bonus points", 30f, TextAlignmentOptions.Center);
+        var rewardText = CreateText("RewardText", topPanel.transform, "Scoring: line clears trigger Nice, Combo, and Mega bonuses", 28f, TextAlignmentOptions.Center);
         SetRect(rewardText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 84f), new Vector2(-24f, 132f));
         rewardText.color = new Color(0.42f, 1f, 0.68f);
         rewardText.textWrappingMode = TextWrappingModes.Normal;
 
-        var messageText = CreateText("MessageText", topPanel.transform, "Drag bottom pieces. Tap Next after completing the goal.", 27f, TextAlignmentOptions.Center);
+        var messageText = CreateText("MessageText", topPanel.transform, "Tap Next after the goal is complete. Restart starts Level 1 again.", 26f, TextAlignmentOptions.Center);
         SetRect(messageText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 20f), new Vector2(-24f, 78f));
         messageText.color = new Color(0.75f, 0.92f, 1f);
         messageText.textWrappingMode = TextWrappingModes.Normal;
