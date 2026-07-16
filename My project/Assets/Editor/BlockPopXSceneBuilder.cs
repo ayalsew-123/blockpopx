@@ -195,29 +195,40 @@ public static class BlockPopXSceneBuilder
         topRect.anchorMin = new Vector2(0f, 1f);
         topRect.anchorMax = new Vector2(1f, 1f);
         topRect.pivot = new Vector2(0.5f, 1f);
-        topRect.sizeDelta = new Vector2(0f, 300f);
+        topRect.sizeDelta = new Vector2(0f, 420f);
         topRect.anchoredPosition = Vector2.zero;
 
-        var levelText = CreateText("LevelText", topPanel.transform, "Level 1: Starter Pop", 50f, TextAlignmentOptions.Center);
-        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(24f, -80f), new Vector2(-24f, -16f));
+        var levelText = CreateText("LevelText", topPanel.transform, "Level 1: Classic Blocks", 52f, TextAlignmentOptions.Center);
+        SetRect(levelText.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(24f, -86f), new Vector2(-24f, -16f));
         levelText.color = new Color(0.18f, 0.93f, 1f);
 
         var bestText = CreateText("BestText", topPanel.transform, "Best 0", 38f, TextAlignmentOptions.Right);
-        SetRect(bestText.rectTransform, new Vector2(0.62f, 1f), new Vector2(1f, 1f), new Vector2(8f, -142f), new Vector2(-24f, -84f));
+        SetRect(bestText.rectTransform, new Vector2(0.62f, 1f), new Vector2(1f, 1f), new Vector2(8f, -158f), new Vector2(-24f, -96f));
 
         var scoreText = CreateText("ScoreText", topPanel.transform, "Score 0", 46f, TextAlignmentOptions.Center);
-        SetRect(scoreText.rectTransform, new Vector2(0f, 1f), new Vector2(0.38f, 1f), new Vector2(24f, -142f), new Vector2(-8f, -84f));
+        SetRect(scoreText.rectTransform, new Vector2(0f, 1f), new Vector2(0.38f, 1f), new Vector2(24f, -158f), new Vector2(-8f, -96f));
 
-        var foulsText = CreateText("FoulsText", topPanel.transform, "Fouls 0/3", 42f, TextAlignmentOptions.Right);
-        SetRect(foulsText.rectTransform, new Vector2(0.38f, 1f), new Vector2(0.62f, 1f), new Vector2(8f, -142f), new Vector2(-8f, -84f));
+        var foulsText = CreateText("FoulsText", topPanel.transform, "Moves 0", 38f, TextAlignmentOptions.Center);
+        SetRect(foulsText.rectTransform, new Vector2(0.38f, 1f), new Vector2(0.62f, 1f), new Vector2(8f, -158f), new Vector2(-8f, -96f));
 
-        var goalText = CreateText("GoalText", topPanel.transform, "Goal 0/0", 32f, TextAlignmentOptions.Center);
-        SetRect(goalText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 90f), new Vector2(-24f, 150f));
+        var goalText = CreateText("GoalText", topPanel.transform, "Goal: clear lines to unlock next level", 32f, TextAlignmentOptions.Center);
+        SetRect(goalText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 188f), new Vector2(-24f, 242f));
         goalText.color = new Color(1f, 0.9f, 0.38f);
+        goalText.textWrappingMode = TextWrappingModes.Normal;
 
-        var messageText = CreateText("MessageText", topPanel.transform, "Tap matching balls.", 30f, TextAlignmentOptions.Center);
-        SetRect(messageText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 20f), new Vector2(-24f, 82f));
+        var progressText = CreateText("ProgressText", topPanel.transform, "Progress: 0/3 lines | Shapes left: 3", 30f, TextAlignmentOptions.Center);
+        SetRect(progressText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 138f), new Vector2(-24f, 184f));
+        progressText.color = new Color(0.86f, 0.96f, 1f);
+
+        var rewardText = CreateText("RewardText", topPanel.transform, "Reward: clear lines for bonus points", 32f, TextAlignmentOptions.Center);
+        SetRect(rewardText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 84f), new Vector2(-24f, 132f));
+        rewardText.color = new Color(0.42f, 1f, 0.68f);
+        rewardText.textWrappingMode = TextWrappingModes.Normal;
+
+        var messageText = CreateText("MessageText", topPanel.transform, "Drag a shape. Fill rows or columns.", 28f, TextAlignmentOptions.Center);
+        SetRect(messageText.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(24f, 20f), new Vector2(-24f, 78f));
         messageText.color = new Color(0.75f, 0.92f, 1f);
+        messageText.textWrappingMode = TextWrappingModes.Normal;
 
         var bottomPanel = CreatePanel("BottomPanel", hudObject.transform, new Color(0.02f, 0.03f, 0.08f, 0.58f));
         var bottomRect = bottomPanel.GetComponent<RectTransform>();
@@ -264,6 +275,8 @@ public static class BlockPopXSceneBuilder
         serializedHud.FindProperty("bestText").objectReferenceValue = bestText;
         serializedHud.FindProperty("foulsText").objectReferenceValue = foulsText;
         serializedHud.FindProperty("goalText").objectReferenceValue = goalText;
+        serializedHud.FindProperty("progressText").objectReferenceValue = progressText;
+        serializedHud.FindProperty("rewardText").objectReferenceValue = rewardText;
         serializedHud.FindProperty("messageText").objectReferenceValue = messageText;
         serializedHud.FindProperty("pauseButton").objectReferenceValue = pauseButton;
         serializedHud.FindProperty("soundButton").objectReferenceValue = soundButton;

@@ -40,6 +40,7 @@ namespace BlockPopX
         public UnityEvent<int> HighestLevelChanged = new UnityEvent<int>();
         public UnityEvent<int> FoulsChanged = new UnityEvent<int>();
         public UnityEvent<string> MessageChanged = new UnityEvent<string>();
+        public UnityEvent<string> RewardChanged = new UnityEvent<string>();
         public UnityEvent<bool> PauseChanged = new UnityEvent<bool>();
         public UnityEvent<bool> SoundChanged = new UnityEvent<bool>();
         public UnityEvent GameOver = new UnityEvent();
@@ -102,6 +103,7 @@ namespace BlockPopX
         private bool isPaused;
         private bool isLevelComplete;
         private string currentMessage = "";
+        private string currentReward = "";
         private int lastControlFrame = -1;
 
         public int CurrentLevel => level;
@@ -111,8 +113,10 @@ namespace BlockPopX
         public int CurrentFouls => fouls;
         public int MaxFouls => 0;
         public string CurrentMessage => currentMessage;
+        public string CurrentReward => currentReward;
         public string CurrentLevelTitle => GetLevelTitle(level);
-        public string CurrentGoalText => $"Clear {linesClearedThisLevel}/{GetLineTarget(level)} lines";
+        public string CurrentGoalText => $"Goal: clear {GetLineTarget(level)} lines to unlock the next level";
+        public string CurrentProgressText => $"Progress: {linesClearedThisLevel}/{GetLineTarget(level)} lines | Shapes left: {GetShapeCount()}";
         public bool IsGameOver => isGameOver;
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
@@ -290,6 +294,8 @@ namespace BlockPopX
             }
 
             PlaceShape(shapePiece, anchor.x, anchor.y);
+            fouls++;
+            FoulsChanged.Invoke(fouls);
             Destroy(shapePiece.gameObject);
             shapePieces[shapePiece.SlotIndex] = null;
 
@@ -302,12 +308,14 @@ namespace BlockPopX
             {
                 linesClearedThisLevel += lineCount;
                 PlayRewardFeedback();
-                SetMessage($"+{gained} points. Cleared {lineCount} line{(lineCount == 1 ? "" : "s")}.");
+                SetReward($"+{gained} points | {lineCount} line clear bonus");
+                SetMessage($"Great move. You cleared {lineCount} line{(lineCount == 1 ? "" : "s")}.");
             }
             else
             {
                 PlaySound(popClip);
-                SetMessage($"+{gained} points. Build full rows or columns.");
+                SetReward($"+{gained} points | placed {placedCount} shape cells");
+                SetMessage("Keep building full rows or columns.");
             }
 
             if (linesClearedThisLevel >= GetLineTarget(level))
@@ -361,6 +369,7 @@ namespace BlockPopX
             FoulsChanged.Invoke(fouls);
             PauseChanged.Invoke(isPaused);
             SetMessage("Place shapes. Clear full rows and columns.");
+            SetReward("Reward: place shapes, clear lines, earn bonus points.");
         }
 
         private void CreateBoard()
@@ -801,6 +810,9 @@ namespace BlockPopX
         {
             isLevelComplete = true;
             ClearShapeTray();
+            var levelBonus = level * 250;
+            AddScore(levelBonus);
+            SetReward($"Level bonus +{levelBonus} points | Tap Next");
             PlayRewardFeedback();
             SetMessage($"Level {level} complete! Tap Next.");
             LevelChanged.Invoke(level);
@@ -835,6 +847,31 @@ namespace BlockPopX
         {
             currentMessage = $"L{level} Score {score} - {message}";
             MessageChanged.Invoke(currentMessage);
+        }
+
+        private void SetReward(string reward)
+        {
+            currentReward = reward;
+            RewardChanged.Invoke(currentReward);
+        }
+
+        private int GetShapeCount()
+        {
+            if (shapePieces == null)
+            {
+                return 0;
+            }
+
+            var count = 0;
+            foreach (var shapePiece in shapePieces)
+            {
+                if (shapePiece != null)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private string GetLevelTitle(int value)

@@ -12,6 +12,8 @@ namespace BlockPopX
         [SerializeField] private TMP_Text bestText;
         [SerializeField] private TMP_Text foulsText;
         [SerializeField] private TMP_Text goalText;
+        [SerializeField] private TMP_Text progressText;
+        [SerializeField] private TMP_Text rewardText;
         [SerializeField] private TMP_Text messageText;
         [SerializeField] private Button pauseButton;
         [SerializeField] private Button soundButton;
@@ -54,6 +56,7 @@ namespace BlockPopX
             game.BestScoreChanged.AddListener(OnBestScoreChanged);
             game.FoulsChanged.AddListener(OnFoulsChanged);
             game.MessageChanged.AddListener(OnMessageChanged);
+            game.RewardChanged.AddListener(OnRewardChanged);
             game.PauseChanged.AddListener(OnPauseChanged);
             game.SoundChanged.AddListener(OnSoundChanged);
             game.GameOver.AddListener(OnGameOver);
@@ -96,6 +99,7 @@ namespace BlockPopX
                 game.BestScoreChanged.RemoveListener(OnBestScoreChanged);
                 game.FoulsChanged.RemoveListener(OnFoulsChanged);
                 game.MessageChanged.RemoveListener(OnMessageChanged);
+                game.RewardChanged.RemoveListener(OnRewardChanged);
                 game.PauseChanged.RemoveListener(OnPauseChanged);
                 game.SoundChanged.RemoveListener(OnSoundChanged);
                 game.GameOver.RemoveListener(OnGameOver);
@@ -140,6 +144,7 @@ namespace BlockPopX
             OnBestScoreChanged(game.BestScore);
             OnFoulsChanged(game.CurrentFouls);
             OnMessageChanged(game.CurrentMessage);
+            OnRewardChanged(game.CurrentReward);
             OnPauseChanged(game.IsPaused);
             OnSoundChanged(game.SoundEnabled);
             UpdateOverlay();
@@ -153,6 +158,7 @@ namespace BlockPopX
             }
 
             UpdateGoalText();
+            UpdateProgressText();
             OnPauseChanged(game.IsPaused);
 
             if (game != null)
@@ -171,6 +177,7 @@ namespace BlockPopX
             }
 
             UpdateGoalText();
+            UpdateProgressText();
         }
 
         private void OnHighestLevelChanged(int highestLevel)
@@ -193,8 +200,10 @@ namespace BlockPopX
         {
             if (foulsText != null)
             {
-                foulsText.text = game.MaxFouls > 0 ? $"Fouls {fouls}/{game.MaxFouls}" : $"Fouls {fouls}";
+                foulsText.text = game.MaxFouls > 0 ? $"Fouls {fouls}/{game.MaxFouls}" : $"Moves {fouls}";
             }
+
+            UpdateProgressText();
         }
 
         private void OnMessageChanged(string message)
@@ -205,6 +214,15 @@ namespace BlockPopX
             }
 
             UpdateGoalText();
+            UpdateProgressText();
+        }
+
+        private void OnRewardChanged(string reward)
+        {
+            if (rewardText != null)
+            {
+                rewardText.text = string.IsNullOrEmpty(reward) ? "Reward: clear lines for bonus points" : reward;
+            }
         }
 
         private void OnPauseChanged(bool isPaused)
@@ -222,7 +240,7 @@ namespace BlockPopX
             OnPauseChanged(false);
             ShowOverlay(
                 "Try Again",
-                $"Score {game.CurrentScore}\nFouls {game.CurrentFouls}",
+                $"Score {game.CurrentScore}\nLevel {game.CurrentLevel}\nMoves {game.CurrentFouls}",
                 "Restart");
         }
 
@@ -296,6 +314,14 @@ namespace BlockPopX
             if (goalText != null && game != null)
             {
                 goalText.text = $"Level {game.CurrentLevel} - {game.CurrentLevelTitle} | {game.CurrentGoalText}";
+            }
+        }
+
+        private void UpdateProgressText()
+        {
+            if (progressText != null && game != null)
+            {
+                progressText.text = game.CurrentProgressText;
             }
         }
 
