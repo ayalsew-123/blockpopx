@@ -21,7 +21,7 @@ namespace BlockPopX
         [Header("Board")]
         [SerializeField] private Transform boardRoot;
         [SerializeField] private float cellSpacing = 0.48f;
-        [SerializeField] private float ballScale = 0.38f;
+        [SerializeField] private float ballScale = 0.42f;
         [SerializeField] private float boardPadding = 0.9f;
 
         [Header("Game")]
@@ -32,7 +32,7 @@ namespace BlockPopX
         [Header("Shapes")]
         [SerializeField] private bool shapeDragEnabled = true;
         [SerializeField] private Transform shapeTrayRoot;
-        [SerializeField] private float shapeTrayOffset = 0.8f;
+        [SerializeField] private float shapeTrayOffset = 0.55f;
 
         public UnityEvent<int> ScoreChanged = new UnityEvent<int>();
         public UnityEvent<int> BestScoreChanged = new UnityEvent<int>();
@@ -115,8 +115,8 @@ namespace BlockPopX
         public string CurrentMessage => currentMessage;
         public string CurrentReward => currentReward;
         public string CurrentLevelTitle => GetLevelTitle(level);
-        public string CurrentGoalText => $"Goal: clear {GetLineTarget(level)} lines to unlock the next level";
-        public string CurrentProgressText => $"Progress: {linesClearedThisLevel}/{GetLineTarget(level)} lines | Shapes left: {GetShapeCount()}";
+        public string CurrentGoalText => $"How to play: drag shapes into empty cells. Fill a full row or column to score big.";
+        public string CurrentProgressText => $"Goal: {linesClearedThisLevel}/{GetLineTarget(level)} lines | +10 per cell, +100 line bonus, +{level * 250} level bonus";
         public bool IsGameOver => isGameOver;
         public bool IsPaused => isPaused;
         public bool SoundEnabled => soundEnabled;
@@ -177,6 +177,11 @@ namespace BlockPopX
 
             if (pressedThisFrame)
             {
+                if (IsInBottomControlArea(screenPosition) && TryHandleBottomControl(screenPosition))
+                {
+                    return;
+                }
+
                 var worldPosition = ScreenToWorldPosition(screenPosition);
                 activeShapePiece = FindShapeUnderPointer(worldPosition);
 
@@ -217,7 +222,8 @@ namespace BlockPopX
         {
             if (!isLevelComplete)
             {
-                SetMessage("Clear the line goal first.");
+                SetMessage($"Next unlocks after {GetLineTarget(level) - linesClearedThisLevel} more line clear{(GetLineTarget(level) - linesClearedThisLevel == 1 ? "" : "s")}.");
+                SetReward("Keep playing: fill rows or columns to pass the level.");
                 return;
             }
 
@@ -233,7 +239,7 @@ namespace BlockPopX
 
             isPaused = !isPaused;
             PauseChanged.Invoke(isPaused);
-            SetMessage(isPaused ? "Paused." : "Place shapes. Clear full rows and columns.");
+            SetMessage(isPaused ? "Paused. Tap Play to continue." : "Drag shapes into empty cells. Clear full rows or columns.");
         }
 
         public void Resume()
@@ -245,7 +251,7 @@ namespace BlockPopX
 
             isPaused = false;
             PauseChanged.Invoke(false);
-            SetMessage("Place shapes. Clear full rows and columns.");
+            SetMessage("Drag shapes into empty cells. Clear full rows or columns.");
         }
 
         public void ToggleSound()
@@ -273,7 +279,7 @@ namespace BlockPopX
                 views[row, col].PlayInvalidPulse();
             }
 
-            SetMessage("Drag a shape from the tray onto the board.");
+            SetMessage("Drag one of the bottom shapes onto empty board cells.");
         }
 
         public void TryPlaceShape(ShapePieceView shapePiece, Vector3 worldPosition)
@@ -368,8 +374,8 @@ namespace BlockPopX
             LevelChanged.Invoke(level);
             FoulsChanged.Invoke(fouls);
             PauseChanged.Invoke(isPaused);
-            SetMessage("Place shapes. Clear full rows and columns.");
-            SetReward("Reward: place shapes, clear lines, earn bonus points.");
+            SetMessage("Drag bottom shapes onto the board. Fill rows or columns.");
+            SetReward("Scoring: +10 per cell, big bonus for every cleared line.");
         }
 
         private void CreateBoard()
@@ -721,14 +727,14 @@ namespace BlockPopX
 
             var root = shapeTrayRoot != null ? shapeTrayRoot : transform;
             var trayY = boardRoot.TransformPoint(new Vector3(0f, -Rows * cellSpacing * 0.5f - shapeTrayOffset, 0f)).y;
-            var slotSpacing = cellSpacing * 4.05f;
+            var slotSpacing = cellSpacing * 3.35f;
             var levelSeed = level * 17 + score / 10;
 
             for (var slot = 0; slot < shapePieces.Length; slot++)
             {
                 var shapeObject = new GameObject($"ShapeSlot {slot + 1}");
                 shapeObject.transform.SetParent(root, true);
-                shapeObject.transform.position = new Vector3((slot - 1) * slotSpacing, trayY, 0f);
+                shapeObject.transform.position = new Vector3((slot - 1) * slotSpacing, trayY, -0.05f);
 
                 var shape = shapeObject.AddComponent<ShapePieceView>();
                 var offsets = PickShapeOffsets(levelSeed + slot * 5);
@@ -785,7 +791,7 @@ namespace BlockPopX
                 return 0;
             }
 
-            var maxStyle = Mathf.Clamp(2 + level, 3, runtimeBlockSprites.Length);
+            var maxStyle = Mathf.Clamp(2 + level, 3, Mathf.Min(5, runtimeBlockSprites.Length));
             return Mathf.Abs(seed * 13 + level * 5) % maxStyle;
         }
 
@@ -1015,14 +1021,13 @@ namespace BlockPopX
 
         private bool TryHandleBottomControl(Vector2 screenPosition)
         {
-            if (Time.frameCount == lastControlFrame || screenPosition.y > 95f)
+            if (Time.frameCount == lastControlFrame || !IsInBottomControlArea(screenPosition))
             {
                 return false;
             }
 
             lastControlFrame = Time.frameCount;
-            var hasNext = isLevelComplete;
-            var zones = hasNext ? 4 : 3;
+            const int zones = 4;
             var index = Mathf.Clamp(Mathf.FloorToInt(screenPosition.x / Mathf.Max(1f, Screen.width / (float)zones)), 0, zones - 1);
 
             if (index == 0)
@@ -1043,6 +1048,12 @@ namespace BlockPopX
             }
 
             return true;
+        }
+
+        private bool IsInBottomControlArea(Vector2 screenPosition)
+        {
+            var controlHeight = Mathf.Max(130f, Screen.height * 0.13f);
+            return screenPosition.y <= controlHeight;
         }
 
         private bool TryReadPointer(out Vector2 screenPosition, out bool pressedThisFrame, out bool isPressed, out bool releasedThisFrame)
@@ -1131,30 +1142,30 @@ namespace BlockPopX
                 CreateRoundedBlockSprite(),
                 CreatePolygonSprite("Hexagon", new[]
                 {
-                    new Vector2(0.5f, 0.06f),
-                    new Vector2(0.88f, 0.28f),
-                    new Vector2(0.88f, 0.72f),
-                    new Vector2(0.5f, 0.94f),
-                    new Vector2(0.12f, 0.72f),
-                    new Vector2(0.12f, 0.28f)
+                    new Vector2(0.5f, 0.02f),
+                    new Vector2(0.94f, 0.25f),
+                    new Vector2(0.94f, 0.75f),
+                    new Vector2(0.5f, 0.98f),
+                    new Vector2(0.06f, 0.75f),
+                    new Vector2(0.06f, 0.25f)
                 }),
                 CreatePolygonSprite("Octagon", new[]
                 {
-                    new Vector2(0.32f, 0.06f),
-                    new Vector2(0.68f, 0.06f),
-                    new Vector2(0.94f, 0.32f),
-                    new Vector2(0.94f, 0.68f),
-                    new Vector2(0.68f, 0.94f),
-                    new Vector2(0.32f, 0.94f),
-                    new Vector2(0.06f, 0.68f),
-                    new Vector2(0.06f, 0.32f)
+                    new Vector2(0.28f, 0.02f),
+                    new Vector2(0.72f, 0.02f),
+                    new Vector2(0.98f, 0.28f),
+                    new Vector2(0.98f, 0.72f),
+                    new Vector2(0.72f, 0.98f),
+                    new Vector2(0.28f, 0.98f),
+                    new Vector2(0.02f, 0.72f),
+                    new Vector2(0.02f, 0.28f)
                 }),
                 CreatePolygonSprite("Diamond", new[]
                 {
-                    new Vector2(0.5f, 0.04f),
-                    new Vector2(0.96f, 0.5f),
-                    new Vector2(0.5f, 0.96f),
-                    new Vector2(0.04f, 0.5f)
+                    new Vector2(0.5f, 0.01f),
+                    new Vector2(0.99f, 0.5f),
+                    new Vector2(0.5f, 0.99f),
+                    new Vector2(0.01f, 0.5f)
                 }),
                 CreatePolygonSprite("TriangleUp", new[]
                 {

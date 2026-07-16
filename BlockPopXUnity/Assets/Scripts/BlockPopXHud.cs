@@ -227,7 +227,7 @@ namespace BlockPopX
 
         private void OnPauseChanged(bool isPaused)
         {
-            SetButtonLabel(pauseButton, isPaused ? "Resume" : "Pause");
+            SetButtonLabel(pauseButton, isPaused ? "Play" : "Pause");
         }
 
         private void OnSoundChanged(bool isSoundEnabled)
@@ -313,7 +313,7 @@ namespace BlockPopX
         {
             if (goalText != null && game != null)
             {
-                goalText.text = $"Level {game.CurrentLevel} - {game.CurrentLevelTitle} | {game.CurrentGoalText}";
+                goalText.text = game.CurrentGoalText;
             }
         }
 
