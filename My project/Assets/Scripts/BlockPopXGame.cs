@@ -33,7 +33,7 @@ namespace BlockPopX
         [SerializeField] private float boardPulseScale = 1.035f;
 
         [Header("Shape Drag")]
-        [SerializeField] private bool shapeDragEnabled = true;
+        [SerializeField] private bool shapeDragEnabled = false;
         [SerializeField] private Transform shapeTrayRoot;
         [SerializeField] private float shapeTrayOffset = 0.8f;
 
