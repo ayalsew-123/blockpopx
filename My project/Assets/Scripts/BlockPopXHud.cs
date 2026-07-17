@@ -88,7 +88,7 @@ namespace BlockPopX
 
             if (overlayPrimaryButton != null)
             {
-                overlayPrimaryButton.onClick.AddListener(RestartLevel);
+                overlayPrimaryButton.onClick.AddListener(PrimaryOverlayAction);
             }
 
             RefreshAll();
@@ -132,7 +132,7 @@ namespace BlockPopX
 
             if (overlayPrimaryButton != null)
             {
-                overlayPrimaryButton.onClick.RemoveListener(RestartLevel);
+                overlayPrimaryButton.onClick.RemoveListener(PrimaryOverlayAction);
             }
         }
 
@@ -171,7 +171,7 @@ namespace BlockPopX
                 OnSoundChanged(game.SoundEnabled);
             }
 
-            HideOverlay();
+            UpdateOverlay();
         }
 
         private void OnScoreChanged(int score)
@@ -269,6 +269,22 @@ namespace BlockPopX
             game?.NextLevel();
         }
 
+        private void PrimaryOverlayAction()
+        {
+            if (game == null)
+            {
+                return;
+            }
+
+            if (game.IsLevelComplete)
+            {
+                game.NextLevel();
+                return;
+            }
+
+            game.RestartLevel();
+        }
+
         private void UpdateOverlay()
         {
             if (game == null)
@@ -280,6 +296,15 @@ namespace BlockPopX
             if (game.IsGameOver)
             {
                 OnGameOver();
+                return;
+            }
+
+            if (game.IsLevelComplete)
+            {
+                ShowOverlay(
+                    "Level Clear!",
+                    $"Score {game.CurrentScore}\nLevel {game.CurrentLevel} complete",
+                    "Next");
                 return;
             }
 
