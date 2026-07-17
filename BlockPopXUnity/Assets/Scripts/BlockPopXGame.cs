@@ -155,6 +155,7 @@ namespace BlockPopX
 
             ApplyDefaultBoardSizing();
             StartLevel(1, true);
+            AttachRuntimeHuds();
 
             BestScoreChanged.Invoke(bestScore);
             HighestLevelChanged.Invoke(highestLevel);
@@ -375,6 +376,7 @@ namespace BlockPopX
             RenderGrid();
             RenderOccupiedCells();
             RefreshShapeTray();
+            AttachRuntimeHuds();
 
             ScoreChanged.Invoke(score);
             LevelChanged.Invoke(level);
@@ -842,6 +844,7 @@ namespace BlockPopX
             }
 
             ScoreChanged.Invoke(score);
+            AttachRuntimeHuds();
         }
 
         private int CalculateMoveScore(int placedCount, int lineCount)
@@ -899,6 +902,18 @@ namespace BlockPopX
             }
 
             return count;
+        }
+
+        private void AttachRuntimeHuds()
+        {
+            var huds = FindObjectsByType<BlockPopXHud>(FindObjectsInactive.Exclude);
+            foreach (var hud in huds)
+            {
+                if (hud != null)
+                {
+                    hud.Attach(this);
+                }
+            }
         }
 
         private void ShowFloatingNotification(string text, Color color)

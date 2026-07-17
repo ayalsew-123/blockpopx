@@ -26,6 +26,11 @@ namespace BlockPopX
 
         private void OnEnable()
         {
+            if (game == null)
+            {
+                game = FindAnyObjectByType<BlockPopXGame>();
+            }
+
             Attach(game);
         }
 
